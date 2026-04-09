@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Node
+node_modules/
+.next/
+.nuxt/
+dist/
+.env
+.env.local
+.env.*.local
+
+# Environment & secrets
+.env*
+!.env.example
+*.key
+*.pem
+secrets/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+logs/
+
+# Data & media (large files)
+*.mp3
+*.mp4
+*.pdf
+data/
+audio_cache/
+
+# Claude Code
+.claude/
