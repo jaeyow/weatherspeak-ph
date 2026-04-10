@@ -1,0 +1,6 @@
+[project]
+name = "weatherspeak-ph"
+version = "0.1.0"
+description = "AI-powered multilingual severe weather communications for the Philippines"
+requires-python = ">=3.12"
+dependencies = []
