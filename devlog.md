@@ -70,7 +70,7 @@ Created 5 Jupyter notebooks in `notebooks/` directory:
    - Production-grade baseline
    - Confidence scores for quality assessment
 
-4. **04-gemma4-vision.ipynb** - Gemma 4 Vision testing (CRITICAL)
+4. **04-gemma4.ipynb** - Gemma 4 Vision testing (CRITICAL)
    - Tests Gemma 4 26B via Ollama locally
    - Zero-shot document extraction
    - Hypothesis: Can vision-first replace specialized OCR?
@@ -152,7 +152,7 @@ For each approach, measure:
 1. `01-ocr-setup-and-data.ipynb` - Setup, download sample PAGASA PDFs, define evaluation metrics
 2. `02-surya-ocr.ipynb` - Test Surya OCR (best AI-native)
 3. `03-paddleocr.ipynb` - Test PaddleOCR (best traditional)
-4. `04-gemma4-vision.ipynb` - Test Gemma 4 Vision (hypothesis)
+4. `04-gemma4.ipynb` - Test Gemma 4 Vision (hypothesis)
 5. `05-comparison.ipynb` - Side-by-side comparison, decision matrix
 
 ### Evaluation Metrics
@@ -171,5 +171,105 @@ For each approach, measure:
 
 By testing these 3, we'll know which path to take for production.
 - Produce structured JSON output from a sample bulletin
+
+---
+
+## PR #2 — Replace PaddleOCR with Marker
+**Date:** 2026-04-11  
+**Branch:** `feature/ocr-experiments`  
+**Status:** In progress
+
+### What changed
+
+PaddleOCR was dropped from the experiment suite due to persistent macOS compatibility issues:
+- `PaddleOCR()` initialization causes a hard **kernel crash** in Jupyter on macOS (x86_64, Python 3.12)
+- PaddlePaddle 3.0.0 has known segfault issues on macOS — a native C++ dependency problem, not a code issue
+- No straightforward fix without downgrading Python or switching platforms
+
+**Replaced `03-paddleocr.ipynb` with `03-marker.ipynb`** using [Marker](https://github.com/VikParuchuri/marker).
+
+### Why Marker
+
+PAGASA bulletins contain both **text and a storm track chart**. Traditional text-only OCR tools (EasyOCR, Tesseract, PaddleOCR) would ignore the chart entirely. Marker is the only open-source traditional pipeline tool that handles mixed content:
+
+| Tool | Text | Tables | Charts/Figures |
+|---|---|---|---|
+| Surya | ✅ | ✅ | ❌ |
+| EasyOCR / Tesseract | ✅ | ❌ | ❌ |
+| **Marker** | ✅ | ✅ | ✅ (saves as image) |
+| Gemma 4 Vision | ✅ | ✅ | ✅ (understands semantically) |
+
+Marker sits on top of Surya for OCR, adds layout analysis, and outputs clean **Markdown** — a better format for downstream LLM translation than raw text.
+
+### Key decisions
+
+- Traditional OCR baseline is now Marker, not PaddleOCR
+- Decision framework updated: Scenario B/C fallback is "Surya or Marker", not "Surya or PaddleOCR"
+- Model name in notebook 04 corrected from `gemma2:27b-vision` → `gemma4:26b` → `gemma4:e4b`
+- Switched to `gemma4:e4b` for local inference: good enough accuracy with significantly lower latency than 26B
+
+### What this changes about the comparison narrative
+
+Marker's chart extraction (image only, no understanding) vs Gemma 4 Vision's chart *comprehension* is now a stronger demonstration of the vision-first advantage. The story becomes: traditional tools can *find* the storm track chart, but only Gemma 4 can *read* it.
+
+---
+
+## PR #3 — Switch to Gemma 4 E4B for Local Inference
+**Date:** 2026-04-12  
+**Branch:** `feature/ocr-experiments`  
+**Status:** In progress
+
+### What changed
+
+Switched the vision model in notebook 04 from `gemma4:26b` to `gemma4:e4b`.
+
+### Why E4B
+
+- **Latency**: 26B takes 80–1200s per sample locally; E4B is significantly faster on the same hardware
+- **Accuracy**: E4B accuracy on structured document extraction is good enough for PAGASA bulletins
+- **Local-first**: No cost implications — all inference runs via Ollama locally, so model size only affects speed
+- **Pragmatic**: For a hackathon demo pipeline processing 10 bulletins, E4B hits the right speed/quality tradeoff
+
+### Other improvements in this session
+
+- **Incremental save**: Processing loop now saves markdown and structured JSON to disk after each sample instead of batching everything in memory. Safe to interrupt mid-run; scales to any number of files.
+- **Constrained decoding**: Step 2 now passes the full `PAGASA_JSON_SCHEMA` to Ollama's `format` field instead of `"json"` string — guarantees schema-valid output token-by-token, eliminating JSON parse failures.
+- **Cleaner result dict**: `markdown`, `full_text`, and `raw_step2` removed from the in-memory summary. Markdown is on disk as `.md`; structured JSON is in `structured/`; summary JSON contains only timing/metadata.
+
+---
+
+## PR #4 — OCR Decision: Scenario A (Vision-First)
+**Date:** 2026-04-12  
+**Branch:** `feature/ocr-experiments`  
+**Status:** Complete ✅
+
+### Decision
+
+**Gemma 4 E4B Vision is the chosen production approach — Scenario A.**
+
+After running all three OCR experiments (Surya, Marker, Gemma 4 E4B) across 10 PAGASA bulletin samples and completing the comparison in notebook 05, Gemma 4 Vision passed with good enough accuracy.
+
+### Why Gemma 4 wins
+
+- **Accuracy**: Good enough on structured PAGASA bulletin text
+- **Chart comprehension**: Only Gemma 4 can *semantically interpret* the storm track map — Surya ignores it entirely, Marker extracts it as a raw image with no understanding
+- **Pipeline simplicity**: One model handles OCR + translation — no separate OCR engine to maintain
+- **Hackathon alignment**: Gemma 4 throughout the entire stack
+
+### Production pipeline (Scenario A)
+
+```
+PAGASA PDF → image → Gemma 4 E4B (Step 1: OCR → markdown)
+                   → Gemma 4 E4B (Step 2: markdown → structured JSON)
+                   → Gemma 4 E4B (Step 3: translation to Tagalog/Bisaya)
+                   → Google Cloud TTS → audio
+```
+
+### What this unblocks
+
+- Translation pipeline design (Week 2)
+- TTS integration strategy
+- Geographic context features
+- Database schema for bulletin storage
 
 ---
