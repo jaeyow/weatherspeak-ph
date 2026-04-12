@@ -273,3 +273,42 @@ PAGASA PDF → image → Gemma 4 E4B (Step 1: OCR → markdown)
 - Database schema for bulletin storage
 
 ---
+
+## PR #5 — Radio Bulletin Generator (3 Languages, Markdown Output)
+**Date:** 2026-04-12
+**Branch:** `feature/radio-bulletin`
+**Status:** In progress
+
+### What we built
+
+`06-radio-bulletin.ipynb` — generates ~750-word (~5 minute) radio broadcast scripts in **English, Tagalog, and Cebuano** from PAGASA bulletin markdown. Produces 6 scripts total (2 bulletins × 3 languages).
+
+### Approach
+
+- **Input**: Raw markdown from notebook 04 (not structured JSON — markdown carries the full bulletin text and is a better source for prose generation)
+- **Model**: Gemma 4 E4B via Ollama (text-only — no vision needed here)
+- **Output**: Markdown files saved to `data/radio_bulletins/{stem}_radio_{lang}.md`
+- **Review cell**: uses `IPython.display.Markdown` to render scripts with full formatting in the notebook — headings, bold storm names, and section structure display correctly rather than printing raw markdown syntax
+
+### Radio style rules baked into each language prompt
+
+- Flowing prose suitable for reading aloud
+- Numbers spelled out for spoken delivery ("one hundred thirty kilometres per hour")
+- Storm name and signal numbers bolded on first mention per section; repeated at least twice for mid-tune-in listeners
+- Structured with Markdown headings: title → Current Situation → Forecast Track → Affected Areas → Public Safety Advisory → Closing
+- Targets ~150 wpm (standard broadcast pace) for 5-minute read
+- Word count strips Markdown syntax before estimating spoken duration
+
+### Scope
+
+Working on 2 bulletins:
+- `PAGASA_20-19W_Pepito_SWB#01` — Severe Weather Bulletin, Tropical Depression Pepito
+- `PAGASA_22-TC02_Basyang_TCA#01` — Tropical Cyclone Alert, Basyang
+
+### Next steps
+
+- Run notebook and validate script quality against actual PAGASA bulletin language
+- Feed English output into Google Cloud TTS pipeline
+- Evaluate Tagalog/Cebuano output with native speakers
+
+---
