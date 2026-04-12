@@ -36,6 +36,13 @@ Gemma 4 Vision passed the comparison with good enough accuracy on PAGASA bulleti
 - Two-step pipeline: image → markdown (Step 1), markdown → structured JSON (Step 2)
 - Constrained decoding via JSON Schema guarantees valid structured output
 
+### 06. [Radio Bulletin Generator](06-radio-bulletin.ipynb)
+- Takes structured JSON from notebook 04 + raw markdown
+- Uses Gemma 4 E4B to generate a ~750-word (~5 min) English radio broadcast script
+- Style: Philippine radio broadcast — flowing prose, no bullets, storm name repeated for mid-tune-in listeners
+- Saves plain-text scripts to `data/radio_bulletins/`
+- Works on 2 sample bulletins: Pepito SWB#01 and Basyang TCA#01
+
 ### 05. [Comparison Analysis](05-comparison.ipynb) ✅
 - Side-by-side comparison of all three approaches
 - Performance metrics (speed, accuracy, structure)
