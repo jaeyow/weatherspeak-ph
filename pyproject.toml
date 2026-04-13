@@ -7,5 +7,5 @@ dependencies = [
     "coqui-tts>=0.25.0",
     "pydub>=0.25.1",
     "numpy>=1.26.0",
-    "transformers>=4.43.0,<=4.46.2",
+    "transformers>=4.43.0,<=4.46.2",  # pinned: coqui-tts 0.25.x compatibility constraint
 ]
