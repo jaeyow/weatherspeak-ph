@@ -13,6 +13,9 @@ def preprocess_for_tts(markdown_text: str) -> str:
     # Section headings → pause cue + heading text as a spoken sentence
     text = re.sub(r"^#{1,6}\s+(.+)$", r"\n...\n\1.\n", text, flags=re.MULTILINE)
 
+    # Horizontal rules — must come BEFORE bold/italic removal to avoid `***` corruption
+    text = re.sub(r"^[-*_]{3,}$", "", text, flags=re.MULTILINE)
+
     # Bold and italic markers
     text = re.sub(r"\*{1,3}(.+?)\*{1,3}", r"\1", text)
     text = re.sub(r"_{1,3}(.+?)_{1,3}", r"\1", text)
@@ -22,9 +25,6 @@ def preprocess_for_tts(markdown_text: str) -> str:
 
     # Blockquotes
     text = re.sub(r"^>\s+", "", text, flags=re.MULTILINE)
-
-    # Horizontal rules
-    text = re.sub(r"^[-*_]{3,}$", "", text, flags=re.MULTILINE)
 
     # Collapse 3+ blank lines to 2
     text = re.sub(r"\n{3,}", "\n\n", text)
@@ -83,6 +83,17 @@ def test_output_has_no_leading_trailing_whitespace():
     md = "\n\n## Title\n\nContent.\n\n"
     result = preprocess_for_tts(md)
     assert result == result.strip()
+
+
+def test_strips_horizontal_rules():
+    md = "Section one.\n\n---\n\nSection two.\n\n***\n\nSection three."
+    result = preprocess_for_tts(md)
+    assert "---" not in result
+    assert "***" not in result
+    assert "*" not in result  # no stray asterisks
+    assert "Section one." in result
+    assert "Section two." in result
+    assert "Section three." in result
 
 
 def test_pause_cue_position():
