@@ -3,4 +3,9 @@ name = "weatherspeak-ph"
 version = "0.1.0"
 description = "AI-powered multilingual severe weather communications for the Philippines"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "coqui-tts>=0.25.0",
+    "pydub>=0.25.1",
+    "numpy>=1.26.0",
+    "transformers>=4.43.0,<=4.46.2",
+]
