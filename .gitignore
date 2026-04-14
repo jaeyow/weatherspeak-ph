@@ -44,6 +44,7 @@ logs/
 
 # Data & media (large files)
 *.mp3
+!notebooks/07-tts-experiment/*.mp3
 *.mp4
 *.pdf
 data/
@@ -51,6 +52,8 @@ audio_cache/
 
 # Jupyter notebook output directories
 notebooks/*/
+!notebooks/07-tts-experiment/
+!notebooks/07-tts-experiment/**
 
 # Claude Code
 .claude/
