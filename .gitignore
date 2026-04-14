@@ -49,5 +49,8 @@ logs/
 data/
 audio_cache/
 
+# Jupyter notebook output directories
+notebooks/*/
+
 # Claude Code
 .claude/

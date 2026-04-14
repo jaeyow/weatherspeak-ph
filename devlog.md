@@ -312,3 +312,52 @@ Working on 2 bulletins:
 - Evaluate Tagalog/Cebuano output with native speakers
 
 ---
+
+## PR #6 — TTS Experiment: Coqui XTTS v2 → MP3
+**Date:** 2026-04-14
+**Branch:** `feature/tts-experiment`
+**Status:** Complete ✅
+
+### What we built
+
+`07-tts-experiment.ipynb` — synthesizes radio bulletin scripts into MP3 audio using **Coqui XTTS v2**. Proven end-to-end: markdown → plain text → chunked synthesis → MP3.
+
+### Approach
+
+- **Model**: Coqui XTTS v2 (`tts_models/multilingual/multi-dataset/xtts_v2`)
+- **Speaker**: `"Damien Black"` — built-in male voice, authoritative broadcast tone
+- **Language mapping**: `en→en` (native), `tl→es` (Spanish phoneme approximation), `ceb→es` (same)
+- **No intermediate WAV**: numpy array → pydub `AudioSegment` → MP3 at 128kbps directly in memory
+- **Chunking**: XTTS v2 has a ~200-char synthesis limit; long scripts are split on sentence boundaries, arrays concatenated before export
+- **Preprocessing**: multi-pass markdown stripper that removes stage directions (`**(Sound effect:...)**`), role labels (`**BROADCASTER:**`, `**Boses:**`), headings converted to plain spoken sentences, list markers stripped — nothing in the text that shouldn't be read aloud
+
+### Key decisions
+
+- Spanish phoneme (`es`) for Tagalog/Cebuano: Filipino shares the same 5-vowel system and consonant inventory as Spanish — significantly better than English mode for Filipino words
+- Community Coqui Tagalog model (`tts_models/tl/...`) noted as a future alternative — trade-off is native phoneme accuracy vs. inconsistent voice
+- Functions (`preprocess_for_tts`, `synthesize_to_mp3`) are **Modal-ready**: pure inputs (str, Path), no notebook globals — designed for direct extraction to `@app.function`
+- `COQUI_TOS_AGREED=1` env var set in notebook to bypass interactive license prompt in Jupyter
+
+### Infrastructure
+
+- Added `coqui-tts>=0.25.0`, `pydub>=0.25.1`, `numpy>=1.26.0` to `pyproject.toml`
+- `transformers>=4.43.0,<=4.46.2` pinned for coqui-tts 0.25.x compatibility
+- `tests/test_tts_preprocess.py` — 9 unit tests for the preprocessing function (includes regression test for `***` horizontal rule / bold interaction bug caught in code review)
+- Added `CLAUDE.md` — project context auto-loads every Claude Code session, no more manual init needed
+- Design spec: `docs/superpowers/specs/2026-04-13-tts-experiment-design.md`
+- Implementation plan: `docs/superpowers/plans/2026-04-13-notebook-07-tts-experiment.md`
+
+### Audio quality notes
+
+- Output quality is acceptable for an experiment — XTTS v2 on CPU is slow (~500s per bulletin file)
+- Spanish phoneme for Tagalog/Cebuano produces intelligible output; not native-quality
+- TTS quality is a known limitation for Phase 1; Google Cloud TTS (already planned) will replace this in production
+- Tested on `PAGASA_20-19W_Pepito_SWB#01_radio_ceb.md` — intermediate plain text saved alongside MP3 for inspection
+
+### Next steps
+
+- Evaluate Google Cloud TTS for Tagalog (native support) as production replacement
+- Deploy Step 3 (TTS) to Modal alongside Steps 1–2
+- Wire up full ETL pipeline trigger (PAGASA bulletin detection TBD)
+
+---
