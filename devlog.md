@@ -361,3 +361,84 @@ Working on 2 bulletins:
 - Wire up full ETL pipeline trigger (PAGASA bulletin detection TBD)
 
 ---
+
+## PR #7 — TTS Experiment: Facebook MMS TTS + SpeechT5 (All 3 Languages)
+**Date:** 2026-04-15
+**Branch:** `feature/tts-experiment`
+**Commit:** `03538c5`
+**Status:** In progress
+
+### What we built
+
+`08-mms-tts-experiment.ipynb` — evaluates **Facebook MMS TTS** as a replacement for Coqui XTTS v2. Key motivation: MMS provides native Cebuano and Tagalog models, eliminating the Spanish phoneme approximation hack from PR #6.
+
+### Models used
+
+| Language | Model | Notes |
+|---|---|---|
+| Cebuano | `facebook/mms-tts-ceb` (VITS, 36.3M) | Native phonemes |
+| Tagalog | `facebook/mms-tts-tgl` (VITS, 36.3M) | Native phonemes |
+| English | `microsoft/speecht5_tts` | Better than `facebook/mms-tts-eng` |
+
+### Approach
+
+- **Sentence-level synthesis**: each sentence synthesised separately, then silence-stitched via pydub into a single MP3
+- **Silence stitching**: 250ms between sentences, 400ms at paragraph boundaries (CEB/TL); 300ms/500ms (EN)
+- **Speech speed**: 1.15× for Cebuano/Tagalog to match news bulletin pace; English at 1.0×
+- **Auto-generate missing TTS text**: if `_tts_{lang}.txt` doesn't exist, Gemma 4 E4B generates it from the radio markdown — keeps the pipeline self-contained
+
+### SpeechT5 bug fixed: silent English MP3
+
+The initial English MP3 was full silence (but had proper filesize). Root cause: the synthesis function treated SpeechT5 as a VITS model — calling `model(**inputs).waveform` which produced NaN values without speaker embeddings. Fix required three changes:
+
+1. Load `SpeechT5HifiGan` vocoder (`microsoft/speecht5_hifigan`) — VITS outputs waveforms directly; SpeechT5 outputs mel-spectrograms that must be vocoded
+2. Provide speaker embeddings (random 512-dim tensor — dataset loading had a compatibility issue with newer `datasets` library)
+3. Use `model.generate_speech(input_ids, speaker_embeddings)` → vocoder path instead of `model(**inputs).waveform`
+
+### Language-specific sentence preparation
+
+VITS models (MMS) require lowercase, punctuation-stripped input. SpeechT5 handles normal English better. Split into two functions:
+
+- `prepare_mms_sentences()` — lowercase, strip punctuation (CEB/TL)
+- `prepare_english_sentences()` — preserve capitalisation and punctuation (EN)
+
+English now benefits from proper prosody at sentence boundaries (comma pauses, question inflection, etc.) because punctuation context is preserved.
+
+### Pacing improvements
+
+Added `speech_speed` parameter to `synthesize_with_mms()`. Uses pydub `speedup()` for post-synthesis time-stretching. Per-language config dict makes it easy to tweak without touching the synthesis function:
+
+```python
+synthesis_config = {
+    "ceb": {"sentence_pause_ms": 250, "paragraph_pause_ms": 400, "speech_speed": 1.15},
+    "tl":  {"sentence_pause_ms": 250, "paragraph_pause_ms": 400, "speech_speed": 1.15},
+    "en":  {"sentence_pause_ms": 300, "paragraph_pause_ms": 500, "speech_speed": 1.0},
+}
+```
+
+### MMS vs XTTS v2 comparison
+
+| Model | Lang | Synthesis time | Audio duration | Model size |
+|---|---|---|---|---|
+| MMS | Cebuano | ~42s | ~6 min | ~140 MB |
+| MMS | Tagalog | ~36s | ~5.6 min | ~140 MB |
+| MMS + SpeechT5 | English | ~66s | ~3.3 min | ~200 MB |
+| XTTS v2 | Cebuano | 821s | 7.8 min | 1.87 GB |
+
+MMS is **~20× faster** for Cebuano and uses **4× less storage** across all three languages combined vs XTTS v2 alone.
+
+### Key decisions
+
+- SpeechT5 replaces `facebook/mms-tts-eng` for English: measurably better pronunciation, handles proper nouns and punctuation naturally
+- Random speaker embedding is acceptable for now; a named speaker from CMU Arctic xvectors would give a more consistent voice identity in production
+- Speech speed applied as post-processing (pydub) rather than model parameter — keeps the approach model-agnostic and easy to tune per language
+- VITS punctuation stripping is a hard model requirement, not a quality choice — documented clearly to avoid future confusion
+
+### Next steps
+
+- Listen and score all 3 MP3s (quality + naturalness rubric in notebook cell 4)
+- Decide: replace XTTS v2 with MMS for production, or keep XTTS v2 for higher quality?
+- If MMS is chosen: extract `synthesize_with_mms` + `prepare_*_sentences` into a Modal function
+- Investigate named speaker embeddings for consistent English voice identity
+
+---

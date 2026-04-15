@@ -45,6 +45,7 @@ logs/
 # Data & media (large files)
 *.mp3
 !notebooks/07-tts-experiment/*.mp3
+!notebooks/08-mms-tts-experiment/*.mp3
 *.mp4
 *.pdf
 data/
@@ -54,6 +55,8 @@ audio_cache/
 notebooks/*/
 !notebooks/07-tts-experiment/
 !notebooks/07-tts-experiment/**
+!notebooks/08-mms-tts-experiment/
+!notebooks/08-mms-tts-experiment/**
 
 # Claude Code
 .claude/
