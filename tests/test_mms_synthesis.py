@@ -13,42 +13,42 @@ from pydub import AudioSegment
 
 
 def synthesize_with_mms(
-    text: str,
+    sentences: list[tuple[str, bool]],
     model,
     tokenizer,
     output_path: Path,
     sample_rate: int | None = None,
+    sentence_pause_ms: int = 500,
+    paragraph_pause_ms: int = 750,
 ) -> Path:
-    """Synthesize plain text to MP3 using a HuggingFace VitsModel.
-
-    Modal-ready: all inputs are primitive types + Path; no notebook globals.
+    """Synthesize sentences to MP3 using a HuggingFace VitsModel with silence stitching.
 
     Args:
-        text: Plain text (no markdown). Use preprocess_for_tts() first.
+        sentences: List of (sentence, is_paragraph_end) from prepare_mms_sentences().
         model: Loaded VitsModel instance.
         tokenizer: Loaded AutoTokenizer instance.
         output_path: Destination MP3 path.
         sample_rate: Override model's native sample rate if needed.
+        sentence_pause_ms: Silence after each non-final sentence in a paragraph (ms).
+        paragraph_pause_ms: Silence after the last sentence of each paragraph (ms).
 
     Returns:
         output_path on success.
     """
-    inputs = tokenizer(text, return_tensors="pt")
-    with torch.no_grad():
-        waveform = model(**inputs).waveform
-
     rate = sample_rate or model.config.sampling_rate
-
-    # float32 [-1, 1] → int16 PCM for pydub
-    pcm = (waveform.squeeze().numpy() * 32_767).clip(-32_768, 32_767).astype(np.int16)
-
-    segment = AudioSegment(
-        pcm.tobytes(),
-        frame_rate=rate,
-        sample_width=2,  # 16-bit = 2 bytes
-        channels=1,
-    )
-    segment.export(str(output_path), format="mp3", bitrate="128k")
+    combined = AudioSegment.empty()
+    for sentence, is_paragraph_end in sentences:
+        if not sentence.strip():
+            continue
+        inputs = tokenizer(sentence, return_tensors="pt")
+        with torch.no_grad():
+            waveform = model(**inputs).waveform
+        pcm = (waveform.squeeze().numpy() * 32_767).clip(-32_768, 32_767).astype(np.int16)
+        segment = AudioSegment(pcm.tobytes(), frame_rate=rate, sample_width=2, channels=1)
+        combined += segment
+        pause_ms = paragraph_pause_ms if is_paragraph_end else sentence_pause_ms
+        combined += AudioSegment.silent(duration=pause_ms, frame_rate=rate)
+    combined.export(str(output_path), format="mp3", bitrate="128k")
     return output_path
 
 
@@ -70,7 +70,7 @@ def _make_mock_tokenizer():
 def test_synthesize_creates_mp3_file(tmp_path):
     output_path = tmp_path / "output.mp3"
     synthesize_with_mms(
-        "hello world",
+        [("hello world", True)],
         _make_mock_model(),
         _make_mock_tokenizer(),
         output_path,
@@ -81,7 +81,7 @@ def test_synthesize_creates_mp3_file(tmp_path):
 def test_synthesize_returns_output_path(tmp_path):
     output_path = tmp_path / "output.mp3"
     result = synthesize_with_mms(
-        "hello world",
+        [("hello world", True)],
         _make_mock_model(),
         _make_mock_tokenizer(),
         output_path,
@@ -92,7 +92,7 @@ def test_synthesize_returns_output_path(tmp_path):
 def test_synthesize_mp3_is_non_empty(tmp_path):
     output_path = tmp_path / "output.mp3"
     synthesize_with_mms(
-        "hello world",
+        [("hello world", True)],
         _make_mock_model(num_samples=16_000),
         _make_mock_tokenizer(),
         output_path,
@@ -103,9 +103,8 @@ def test_synthesize_mp3_is_non_empty(tmp_path):
 def test_synthesize_respects_sample_rate_override(tmp_path):
     """sample_rate kwarg overrides model.config.sampling_rate."""
     output_path = tmp_path / "output.mp3"
-    # Model reports 16kHz but we override to 22050
     result = synthesize_with_mms(
-        "test",
+        [("test", True)],
         _make_mock_model(num_samples=22_050, sample_rate=16_000),
         _make_mock_tokenizer(),
         output_path,
@@ -183,3 +182,53 @@ def test_prepare_mms_sentences_lowercase_and_no_punctuation():
     result = prepare_mms_sentences("PAGASA Signal Number TWO warns!")
     assert len(result) == 1
     assert result[0][0] == "pagasa signal number two warns"
+
+
+def test_synthesize_paragraph_pause_longer_than_sentence_pause(tmp_path):
+    """MP3 with paragraph pause (750ms) is longer than with sentence pause (500ms)."""
+    sentence_path = tmp_path / "sentence.mp3"
+    paragraph_path = tmp_path / "paragraph.mp3"
+    mock_model = _make_mock_model(num_samples=8000)
+    mock_tok = _make_mock_tokenizer()
+    synthesize_with_mms(
+        [("hello world", False)],
+        mock_model,
+        mock_tok,
+        sentence_path,
+        sentence_pause_ms=500,
+        paragraph_pause_ms=750,
+    )
+    synthesize_with_mms(
+        [("hello world", True)],
+        mock_model,
+        mock_tok,
+        paragraph_path,
+        sentence_pause_ms=500,
+        paragraph_pause_ms=750,
+    )
+    sentence_dur = len(AudioSegment.from_mp3(str(sentence_path)))
+    paragraph_dur = len(AudioSegment.from_mp3(str(paragraph_path)))
+    assert paragraph_dur > sentence_dur
+
+
+def test_synthesize_two_sentences_longer_than_one(tmp_path):
+    """Two sentences produce a longer MP3 than one sentence."""
+    one_path = tmp_path / "one.mp3"
+    two_path = tmp_path / "two.mp3"
+    mock_model = _make_mock_model(num_samples=8000)
+    mock_tok = _make_mock_tokenizer()
+    synthesize_with_mms(
+        [("hello world", True)],
+        mock_model,
+        mock_tok,
+        one_path,
+    )
+    synthesize_with_mms(
+        [("hello world", False), ("goodbye world", True)],
+        mock_model,
+        mock_tok,
+        two_path,
+    )
+    one_dur = len(AudioSegment.from_mp3(str(one_path)))
+    two_dur = len(AudioSegment.from_mp3(str(two_path)))
+    assert two_dur > one_dur
