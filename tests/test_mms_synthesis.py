@@ -35,6 +35,8 @@ def synthesize_with_mms(
     Returns:
         output_path on success.
     """
+    if not sentences:
+        raise ValueError("sentences list is empty — nothing to synthesize")
     rate = sample_rate or model.config.sampling_rate
     combined = AudioSegment.empty()
     for sentence, is_paragraph_end in sentences:
@@ -232,3 +234,13 @@ def test_synthesize_two_sentences_longer_than_one(tmp_path):
     one_dur = len(AudioSegment.from_mp3(str(one_path)))
     two_dur = len(AudioSegment.from_mp3(str(two_path)))
     assert two_dur > one_dur
+
+
+def test_synthesize_raises_on_empty_sentences(tmp_path):
+    with pytest.raises(ValueError, match="empty"):
+        synthesize_with_mms(
+            [],
+            _make_mock_model(),
+            _make_mock_tokenizer(),
+            tmp_path / "output.mp3",
+        )
