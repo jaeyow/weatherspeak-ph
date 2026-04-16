@@ -17,6 +17,8 @@ The WeatherSpeak PH pipeline (PDF → OCR → radio scripts → MP3) has been va
 2. Store all generated artifacts in a Modal Volume accessible by the future website
 3. Process the newest N severe weather events (latest bulletin per event) from the `pagasa-parser/bulletin-archive` GitHub repo
 4. Keep TTS model implementations behind a clean interface so they can be swapped later without touching pipeline logic
+5. Extract the storm track chart from each bulletin PDF as a PNG for display on the website
+6. Generate a structured JSON metadata file per bulletin for the website to display bulletin details
 
 ---
 
@@ -41,6 +43,8 @@ pagasa-parser/bulletin-archive (GitHub)
   ├─► step1_ocr.remote(pdf_url)          GPU container (A10G)
   │     Ollama + gemma4:e4b
   │     PDF → ocr.md → saved to Volume
+  │          → chart.png (storm track map page) → saved to Volume
+  │          → metadata.json (structured bulletin data) → saved to Volume
   │     returns: stem
   │
   ├─► step2_scripts.remote(stem)         GPU container (A10G)
@@ -86,7 +90,9 @@ All artifacts stored under `/output/{stem}/` in the `weatherspeak-output` Volume
 
 ```
 /output/PAGASA_22-TC02_Basyang_TCA#01/
-  ocr.md
+  ocr.md                 ← Step 1: full bulletin markdown
+  chart.png              ← Step 1: storm track map page (identified by Gemma 4)
+  metadata.json          ← Step 1: structured bulletin data (PAGASA_JSON_SCHEMA)
   radio_en.md
   radio_tl.md
   radio_ceb.md
@@ -100,6 +106,43 @@ All artifacts stored under `/output/{stem}/` in the `weatherspeak-output` Volume
 
 ---
 
+## Step 1 Additions: Chart Extraction + JSON Metadata
+
+Both additions happen inside `Step1OCR.run()` — the same Ollama container that already processes the PDF. No extra containers or steps.
+
+### Storm Track Chart Extraction (`chart.png`)
+
+PAGASA bulletin PDFs embed a storm track map on one of their pages. Its position varies across bulletin types (SWB, TCA, TCB), so Gemma 4 identifies it.
+
+**Process:**
+1. During the OCR pass, each page is already converted to a PNG image
+2. A single additional Gemma 4 call is made with all page thumbnails (or just metadata about content) asking: *"Which page (0-indexed) contains the storm track map or weather disturbance chart?"*
+3. Gemma 4 returns the page index
+4. That page's full-resolution PNG is saved to `chart.png` in the Volume
+
+**Output:** `/output/{stem}/chart.png` — the full-resolution page image of the storm track map, suitable for direct display on the website.
+
+### Structured JSON Metadata (`metadata.json`)
+
+Notebook 04 already implements this as Step 2: Gemma 4 reads the OCR markdown and outputs structured JSON using `PAGASA_JSON_SCHEMA` with constrained decoding (Modal passes the schema to Ollama's `format` field, guaranteeing schema-valid output).
+
+The schema captures:
+- Storm name, ID, bulletin type, bulletin number
+- Storm category (tropical depression / storm / typhoon / super typhoon)
+- Maximum sustained winds and gustiness (kph)
+- Storm centre coordinates (lat/lon)
+- Movement speed and direction
+- Areas under public storm warning signals (Signal 1–4)
+- Affected provinces and regions
+- Forecast track (next 12h, 24h, 48h, 72h positions)
+- Bulletin issuance datetime
+
+**Process:** After OCR markdown is saved, a second Gemma 4 call with the markdown + `PAGASA_JSON_SCHEMA` in the `format` field produces the structured JSON. Same pattern as notebook 04 Step 2 — copy the schema and prompt verbatim.
+
+**Output:** `/output/{stem}/metadata.json` — consumed by the website to display bulletin details alongside the chart and audio players.
+
+---
+
 ## Modal Infrastructure
 
 ### Volumes
@@ -108,7 +151,7 @@ All artifacts stored under `/output/{stem}/` in the `weatherspeak-output` Volume
 |---|---|
 | `weatherspeak-ollama` | Gemma 4 E4B model weights (pulled once, reused across runs) |
 | `weatherspeak-tts-models` | MMS and SpeechT5 HuggingFace weights (downloaded once, reused) |
-| `weatherspeak-output` | All generated artifacts (ocr.md, radio .md, tts .txt, .mp3) |
+| `weatherspeak-output` | All generated artifacts (ocr.md, chart.png, metadata.json, radio .md, tts .txt, .mp3) |
 
 ### Container Images
 

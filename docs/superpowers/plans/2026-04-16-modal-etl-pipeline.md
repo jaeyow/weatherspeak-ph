@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Deploy the WeatherSpeak PH 3-step ETL pipeline (PDF → OCR → radio scripts → MP3) as a batch Modal app that processes the newest N PAGASA severe weather events and stores all artifacts in Modal Volumes.
+**Goal:** Deploy the WeatherSpeak PH 3-step ETL pipeline (PDF → OCR + chart + metadata → radio scripts → MP3) as a batch Modal app that processes the newest N PAGASA severe weather events and stores all artifacts in Modal Volumes.
 
-**Architecture:** Three separate Modal functions — `Step1OCR` (GPU, Ollama + Gemma 4 E4B), `Step2Scripts` (GPU, Ollama + Gemma 4 E4B), and `step3_tts` (CPU, MMS + SpeechT5) — chained sequentially per bulletin by a local entrypoint. TTS models are behind a `TTSSynthesizer` protocol so any model can be swapped by updating one line in config. All artifacts (markdown, TTS text, MP3) are stored in a Modal Volume keyed by bulletin stem.
+**Architecture:** Three separate Modal functions — `Step1OCR` (GPU, Ollama + Gemma 4 E4B), `Step2Scripts` (GPU, Ollama + Gemma 4 E4B), and `step3_tts` (CPU, MMS + SpeechT5) — chained sequentially per bulletin by a local entrypoint. TTS models are behind a `TTSSynthesizer` protocol so any model can be swapped by updating one line in config. Step 1 also extracts the storm track chart as `chart.png` and generates structured `metadata.json` using `PAGASA_JSON_SCHEMA` with Ollama constrained decoding. All artifacts are stored in a Modal Volume keyed by bulletin stem.
 
 **Tech Stack:** Modal, Ollama, `gemma4:e4b`, `facebook/mms-tts-ceb`, `facebook/mms-tts-tgl`, `microsoft/speecht5_tts`, `transformers`, `pydub`, `pdf2image`, `requests`, `uv`
 
@@ -25,7 +25,7 @@
 | `modal_etl/synthesizers/mms.py` | Create | `MMSSynthesizer` wrapping MMS VITS models |
 | `modal_etl/synthesizers/speecht5.py` | Create | `SpeechT5Synthesizer` wrapping SpeechT5 + HiFiGAN |
 | `modal_etl/step3_tts.py` | Create | Sentence prep utilities + `step3_tts` Modal function |
-| `modal_etl/step1_ocr.py` | Create | `Step1OCR` Modal class — Ollama OCR → `ocr.md` |
+| `modal_etl/step1_ocr.py` | Create | `Step1OCR` Modal class — Ollama OCR → `ocr.md`, `chart.png`, `metadata.json` |
 | `modal_etl/step2_scripts.py` | Create | `Step2Scripts` Modal class — radio `.md` + TTS `.txt` |
 | `modal_etl/setup_volumes.py` | Create | One-time volume init: pull Ollama model, cache HF weights |
 | `modal_etl/run_batch.py` | Create | `@app.local_entrypoint` — orchestrates full pipeline |
@@ -1096,9 +1096,13 @@ git commit -m "feat: add step3_tts Modal function with sentence prep utilities"
 **Files:**
 - Create: `modal_etl/step1_ocr.py`
 
-Logic extracted from `notebooks/04-gemma4.ipynb`. The notebook uses Ollama at `http://localhost:11434/api/generate` with `gemma4:e4b`. Reference the notebook for the exact OCR prompt text.
+Logic extracted from `notebooks/04-gemma4.ipynb`. The notebook uses Ollama at `http://localhost:11434/api/generate` with `gemma4:e4b`. Step 1 now produces three outputs per bulletin: `ocr.md` (full markdown), `chart.png` (storm track map page), and `metadata.json` (structured bulletin data using `PAGASA_JSON_SCHEMA` with Ollama constrained decoding — same as notebook 04 Step 2).
 
-- [ ] **Step 1: Write `modal_etl/step1_ocr.py`**
+- [ ] **Step 1: Copy `PAGASA_JSON_SCHEMA` from notebook 04**
+
+Open `notebooks/04-gemma4.ipynb`. Find the cell that defines `PAGASA_JSON_SCHEMA` (the JSON schema passed to Ollama's `format` field in Step 2). Copy it — you'll paste it into `step1_ocr.py` in the next step.
+
+- [ ] **Step 2: Write `modal_etl/step1_ocr.py`**
 
 ```python
 import base64
@@ -1117,6 +1121,12 @@ from modal_etl.config import OLLAMA_MODELS_PATH, OUTPUT_PATH, GEMMA_MODEL
 OLLAMA_URL = "http://localhost:11434"
 OLLAMA_TIMEOUT = 120  # seconds per page
 
+# Paste PAGASA_JSON_SCHEMA verbatim from notebooks/04-gemma4.ipynb (Step 2 cell).
+# It is the schema dict passed to Ollama's `format` field for constrained decoding.
+PAGASA_JSON_SCHEMA = {
+    # --- paste schema here ---
+}
+
 
 def _wait_for_ollama(retries: int = 60, delay: float = 1.0) -> None:
     """Block until Ollama server responds or raise RuntimeError."""
@@ -1129,15 +1139,17 @@ def _wait_for_ollama(retries: int = 60, delay: float = 1.0) -> None:
     raise RuntimeError("Ollama server did not start within timeout")
 
 
-def _call_ollama(prompt: str, images_b64: list[str] | None = None) -> str:
+def _call_ollama(
+    prompt: str,
+    images_b64: list[str] | None = None,
+    fmt: dict | None = None,
+) -> str:
     """Send a generate request to Ollama. Returns the response text."""
-    payload = {
-        "model": GEMMA_MODEL,
-        "prompt": prompt,
-        "stream": False,
-    }
+    payload: dict = {"model": GEMMA_MODEL, "prompt": prompt, "stream": False}
     if images_b64:
         payload["images"] = images_b64
+    if fmt:
+        payload["format"] = fmt
     resp = requests.post(
         f"{OLLAMA_URL}/api/generate",
         json=payload,
@@ -1147,31 +1159,28 @@ def _call_ollama(prompt: str, images_b64: list[str] | None = None) -> str:
     return resp.json()["response"]
 
 
-def _pdf_to_images_b64(pdf_bytes: bytes) -> list[str]:
-    """Convert PDF bytes to a list of base64-encoded PNG images (one per page)."""
+def _pdf_to_pil_pages(pdf_bytes: bytes, dpi: int = 200):
+    """Convert PDF bytes to a list of PIL Image objects (one per page)."""
     from pdf2image import convert_from_bytes
-    from PIL import Image
-
-    pages = convert_from_bytes(pdf_bytes, dpi=200)
-    result = []
-    for page in pages:
-        buf = io.BytesIO()
-        page.save(buf, format="PNG")
-        result.append(base64.b64encode(buf.getvalue()).decode("utf-8"))
-    return result
+    return convert_from_bytes(pdf_bytes, dpi=dpi)
 
 
-def _ocr_pdf(pdf_bytes: bytes) -> str:
-    """Run Gemma 4 E4B OCR on a PDF and return the combined markdown.
+def _page_to_b64(pil_image) -> str:
+    """Encode a PIL image as base64 PNG string."""
+    buf = io.BytesIO()
+    pil_image.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode("utf-8")
 
-    Prompt copied from notebooks/04-gemma4.ipynb (Step 1 cell).
+
+def _ocr_pdf(pages) -> str:
+    """Run Gemma 4 E4B OCR on each page and return combined markdown.
+
+    Copy the OCR prompt verbatim from notebooks/04-gemma4.ipynb (Step 1 cell).
     """
-    images_b64 = _pdf_to_images_b64(pdf_bytes)
     pages_md = []
-    for i, img_b64 in enumerate(images_b64):
+    for i, page in enumerate(pages):
+        img_b64 = _page_to_b64(page)
         # Copy the OCR prompt verbatim from notebook 04, Step 1 cell.
-        # The prompt instructs Gemma 4 to extract all text as markdown,
-        # preserving structure, tables, and describing any charts/maps.
         prompt = (
             "You are a document OCR assistant. Extract all text from this PAGASA "
             "weather bulletin page as clean Markdown. Preserve all section headings, "
@@ -1181,6 +1190,43 @@ def _ocr_pdf(pdf_bytes: bytes) -> str:
         page_md = _call_ollama(prompt, images_b64=[img_b64])
         pages_md.append(f"<!-- Page {i + 1} -->\n\n{page_md}")
     return "\n\n---\n\n".join(pages_md)
+
+
+def _find_chart_page(pages) -> int:
+    """Ask Gemma 4 which page (0-indexed) contains the storm track map.
+
+    Sends all page images in a single call. Returns the page index as int.
+    Falls back to the last page if the response cannot be parsed.
+    """
+    all_b64 = [_page_to_b64(p) for p in pages]
+    prompt = (
+        f"This PAGASA weather bulletin has {len(pages)} pages (0-indexed: "
+        f"0 to {len(pages) - 1}). "
+        "Which page contains the storm track map or weather disturbance chart? "
+        "Reply with a single integer — the 0-based page index only. No explanation."
+    )
+    response = _call_ollama(prompt, images_b64=all_b64).strip()
+    try:
+        idx = int(response.split()[0])
+        return max(0, min(idx, len(pages) - 1))
+    except (ValueError, IndexError):
+        return len(pages) - 1  # fallback: last page
+
+
+def _generate_metadata(markdown: str) -> dict:
+    """Extract structured bulletin data from OCR markdown using constrained decoding.
+
+    Uses PAGASA_JSON_SCHEMA with Ollama's format field — same as notebook 04 Step 2.
+    Copy the metadata extraction prompt verbatim from notebook 04 Step 2 cell.
+    """
+    prompt = (
+        "Extract structured data from this PAGASA weather bulletin markdown. "
+        "Return valid JSON matching the schema exactly. "
+        "Use null for any field not mentioned in the bulletin.\n\n"
+        f"{markdown}"
+    )
+    raw = _call_ollama(prompt, fmt=PAGASA_JSON_SCHEMA)
+    return json.loads(raw)
 
 
 @app.cls(
@@ -1201,9 +1247,9 @@ class Step1OCR:
 
     @modal.method()
     def run(self, pdf_url: str) -> str:
-        """Download PDF from pdf_url, OCR with Gemma 4 E4B, save ocr.md to Volume.
+        """Download PDF and produce ocr.md, chart.png, and metadata.json.
 
-        Skips processing if ocr.md already exists for this stem.
+        Skips processing if all three outputs already exist for this stem.
 
         Returns:
             stem string (filename without .pdf extension).
@@ -1211,9 +1257,11 @@ class Step1OCR:
         stem = pdf_url.split("/")[-1].replace(".pdf", "")
         out_dir = OUTPUT_PATH / stem
         ocr_path = out_dir / "ocr.md"
+        chart_path = out_dir / "chart.png"
+        metadata_path = out_dir / "metadata.json"
 
-        if ocr_path.exists():
-            print(f"[Step1OCR] {stem}: ocr.md already exists, skipping")
+        if ocr_path.exists() and chart_path.exists() and metadata_path.exists():
+            print(f"[Step1OCR] {stem}: all Step 1 outputs exist, skipping")
             return stem
 
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -1222,15 +1270,43 @@ class Step1OCR:
         resp.raise_for_status()
         pdf_bytes = resp.content
 
-        markdown = _ocr_pdf(pdf_bytes)
-        ocr_path.write_text(markdown, encoding="utf-8")
-        output_volume.commit()
+        pages = _pdf_to_pil_pages(pdf_bytes)
 
-        print(f"[Step1OCR] {stem}: wrote {ocr_path} ({len(markdown)} chars)")
+        # 1. OCR → markdown
+        if not ocr_path.exists():
+            markdown = _ocr_pdf(pages)
+            ocr_path.write_text(markdown, encoding="utf-8")
+            print(f"[Step1OCR] {stem}: wrote ocr.md ({len(markdown)} chars)")
+        else:
+            markdown = ocr_path.read_text(encoding="utf-8")
+
+        # 2. Chart extraction → chart.png
+        if not chart_path.exists():
+            chart_idx = _find_chart_page(pages)
+            pages[chart_idx].save(str(chart_path), format="PNG")
+            print(f"[Step1OCR] {stem}: saved chart.png (page {chart_idx})")
+
+        # 3. Structured metadata → metadata.json
+        if not metadata_path.exists():
+            metadata = _generate_metadata(markdown)
+            metadata_path.write_text(
+                json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+            print(f"[Step1OCR] {stem}: wrote metadata.json")
+
+        output_volume.commit()
         return stem
 ```
 
-- [ ] **Step 2: Verify the file parses without import errors**
+- [ ] **Step 3: Paste `PAGASA_JSON_SCHEMA` from notebook 04**
+
+In `step1_ocr.py`, replace the `# --- paste schema here ---` comment inside `PAGASA_JSON_SCHEMA = { }` with the actual schema dict from `notebooks/04-gemma4.ipynb` Step 2 cell.
+
+- [ ] **Step 4: Copy the metadata extraction prompt from notebook 04**
+
+In `_generate_metadata()`, replace the placeholder prompt with the exact prompt from notebook 04 Step 2 cell (the one passed to Ollama alongside `PAGASA_JSON_SCHEMA`).
+
+- [ ] **Step 5: Verify the file parses without import errors**
 
 ```bash
 uv run python -c "from modal_etl.step1_ocr import Step1OCR; print('OK')"
@@ -1238,11 +1314,11 @@ uv run python -c "from modal_etl.step1_ocr import Step1OCR; print('OK')"
 
 Expected: `OK` (Modal decorators are no-ops locally).
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add modal_etl/step1_ocr.py
-git commit -m "feat: add Step1OCR Modal class — Ollama/Gemma 4 E4B PDF OCR"
+git commit -m "feat: add Step1OCR — OCR, storm chart extraction, and JSON metadata"
 ```
 
 ---
@@ -1662,7 +1738,9 @@ git commit -m "feat: add run_batch local entrypoint — complete Modal ETL pipel
 
 | Spec requirement | Covered by |
 |---|---|
-| 3-step pipeline (OCR → scripts → TTS) | Tasks 6, 7, 5 |
+| 3-step pipeline (OCR + chart + metadata → scripts → TTS) | Tasks 6, 7, 5 |
+| Storm track chart extracted as chart.png | Task 6 (`_find_chart_page` + PIL save) |
+| Structured metadata.json per bulletin | Task 6 (`_generate_metadata` + PAGASA_JSON_SCHEMA) |
 | Ollama + gemma4:e4b on GPU | Tasks 6, 7 (Ollama in container, weights in Volume) |
 | MMS for CEB/TL, SpeechT5 for EN | Tasks 3, 4 |
 | TTSSynthesizer protocol (swappable) | Task 3 — protocol + SYNTHESIZER_MAP in step3_tts |
