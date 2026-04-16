@@ -56,6 +56,12 @@ def test_speecht5_synthesize_raises_on_empty(tmp_path):
         synth.synthesize([], tmp_path / "out.mp3")
 
 
+def test_speecht5_synthesize_raises_on_all_blank(tmp_path):
+    synth = _loaded_synthesizer()
+    with pytest.raises(ValueError, match="blank"):
+        synth.synthesize([("   ", False), ("\t", True)], tmp_path / "out.mp3")
+
+
 def test_speecht5_paragraph_pause_longer_than_sentence_pause(tmp_path):
     synth = _loaded_synthesizer()
     out_s = tmp_path / "sentence.mp3"
