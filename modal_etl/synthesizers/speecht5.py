@@ -47,8 +47,13 @@ class SpeechT5Synthesizer:
         self._vocoder = SpeechT5HifiGan.from_pretrained(
             self.vocoder_id, cache_dir=self.cache_dir
         )
-        # Neutral speaker embedding — consistent across all synthesis calls
-        self._speaker_embeddings = torch.zeros(1, 512)
+        # Fixed random speaker embedding — within the statistical distribution
+        # SpeechT5 expects (real x-vectors are roughly unit-normal).
+        # torch.zeros produces a degenerate vector outside this distribution
+        # and causes scratchy / degraded audio.
+        gen = torch.Generator()
+        gen.manual_seed(42)
+        self._speaker_embeddings = torch.randn(1, 512, generator=gen)
 
     def synthesize(
         self,
