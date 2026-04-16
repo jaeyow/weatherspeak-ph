@@ -85,5 +85,8 @@ class MMSSynthesizer:
             )
             combined += AudioSegment.silent(duration=pause_ms, frame_rate=rate)
 
+        if len(combined) == 0:
+            raise ValueError("sentences list produced no audio — all entries were blank")
+
         combined.export(str(output_path), format="mp3", bitrate="128k")
         return output_path
