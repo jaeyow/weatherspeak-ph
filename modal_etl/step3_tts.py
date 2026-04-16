@@ -1,10 +1,7 @@
 import re
-from pathlib import Path
-
-import modal
 
 from modal_etl.app import app, tts_image, TTS_MOUNTS, output_volume
-from modal_etl.config import TTS_MODELS_PATH, OUTPUT_PATH, LANGUAGES
+from modal_etl.config import TTS_MODELS_PATH, OUTPUT_PATH
 from modal_etl.synthesizers.mms import MMSSynthesizer
 from modal_etl.synthesizers.speecht5 import SpeechT5Synthesizer
 
@@ -43,12 +40,12 @@ def prepare_mms_sentences(text: str) -> list[tuple[str, bool]]:
         sentences = [s.strip() for s in sentences if s.strip()]
         for idx, sentence in enumerate(sentences):
             is_last = idx == len(sentences) - 1
-            sentence = sentence.lower()
-            s = re.sub(r"[^\w\s'\-]", " ", sentence)
-            s = re.sub(r"(?<!\w)['\-]|['\-](?!\w)", " ", s)
-            sentence = re.sub(r"\s+", " ", s).strip()
-            if sentence:
-                result.append((sentence, is_last))
+            cleaned = sentence.lower()
+            cleaned = re.sub(r"[^\w\s'\-]", " ", cleaned)
+            cleaned = re.sub(r"(?<!\w)['\-]|['\-](?!\w)", " ", cleaned)
+            cleaned = re.sub(r"\s+", " ", cleaned).strip()
+            if cleaned:
+                result.append((cleaned, is_last))
     return result
 
 
@@ -98,6 +95,16 @@ def step3_tts(stem: str, language: str) -> str:
     if mp3_path.exists():
         print(f"[step3_tts] {stem}/{language}: already exists, skipping")
         return stem
+
+    if language not in SYNTHESIZER_MAP:
+        raise ValueError(
+            f"[step3_tts] Unknown language '{language}'. Expected one of: {list(SYNTHESIZER_MAP)}"
+        )
+
+    if not tts_txt_path.exists():
+        raise FileNotFoundError(
+            f"[step3_tts] Input not found: {tts_txt_path}. Run step2 first."
+        )
 
     text = tts_txt_path.read_text(encoding="utf-8")
 

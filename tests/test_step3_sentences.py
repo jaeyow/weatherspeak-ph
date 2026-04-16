@@ -24,12 +24,12 @@ def test_mms_apostrophe_in_word_preserved():
 
 def test_mms_standalone_quotes_stripped():
     result = prepare_mms_sentences("'Hello world'.")
-    assert "'" not in result[0][0]
+    assert result[0][0] == "hello world"
 
 
 def test_mms_em_dash_stripped():
     result = prepare_mms_sentences("Ang bagyo—mabilis.")
-    assert "—" not in result[0][0]
+    assert result[0][0] == "ang bagyo mabilis"
 
 
 def test_mms_fully_lowercase_no_punctuation():
