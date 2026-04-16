@@ -12,6 +12,77 @@
 
 ---
 
+## Deployment Guide
+
+Complete sequence for first-time setup and subsequent batch runs. All commands run locally.
+
+### Prerequisites
+
+- Modal account at [modal.com](https://modal.com) with credits available
+- `uv` installed (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
+- Python 3.12+ (`uv python install 3.12`)
+- Git clone of this repo on the `feature/modal-etl` branch
+
+### One-Time Setup (run once per machine)
+
+```bash
+# 1. Install project dependencies (including modal)
+uv pip install -e .
+
+# 2. Authenticate with Modal (opens browser, saves token locally)
+uv run modal setup
+
+# 3. Verify Modal is connected
+uv run modal profile current
+```
+
+### One-Time Volume Initialisation (run once per Modal account)
+
+These commands spin up Modal containers to pull model weights into persistent Volumes.
+They only need to be run once — weights persist across all future batch runs.
+
+```bash
+# Pull gemma4:e4b into the weatherspeak-ollama Volume (~5GB, A10G GPU, ~5-10 min)
+uv run modal run modal_etl/setup_volumes.py::setup_ollama_volume
+
+# Download MMS + SpeechT5 weights into weatherspeak-tts-models Volume (~500MB, CPU, ~3-5 min)
+uv run modal run modal_etl/setup_volumes.py::setup_tts_volume
+```
+
+### Running a Batch Conversion
+
+```bash
+# Process newest 10 severe weather events (default)
+uv run modal run modal_etl/run_batch.py
+
+# Process fewer events (useful for testing)
+uv run modal run modal_etl/run_batch.py --n 3
+
+# Process a single event (smoke test)
+uv run modal run modal_etl/run_batch.py --n 1
+```
+
+### Inspecting and Downloading Artifacts
+
+```bash
+# List all bulletins processed in the output volume
+uv run modal volume ls weatherspeak-output
+
+# List artifacts for a specific bulletin
+uv run modal volume ls weatherspeak-output/PAGASA_22-TC02_Basyang_TCA#01
+
+# Download a specific file locally
+uv run modal volume get weatherspeak-output PAGASA_22-TC02_Basyang_TCA#01/audio_ceb.mp3 ./audio_ceb.mp3
+uv run modal volume get weatherspeak-output PAGASA_22-TC02_Basyang_TCA#01/chart.png ./chart.png
+uv run modal volume get weatherspeak-output PAGASA_22-TC02_Basyang_TCA#01/metadata.json ./metadata.json
+```
+
+### Re-Running After Failures
+
+The pipeline is idempotent — all three steps check for existing output files before processing. If a batch run fails partway through, simply re-run the same command and it will skip already-completed bulletins and resume from where it left off.
+
+---
+
 ## File Map
 
 | File | Action | Responsibility |
