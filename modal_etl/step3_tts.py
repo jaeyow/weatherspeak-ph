@@ -75,7 +75,7 @@ def prepare_english_sentences(text: str) -> list[tuple[str, bool]]:
 @app.function(
     image=tts_image,
     volumes=TTS_MOUNTS,
-    timeout=600,
+    timeout=1800,  # XTTS v2 English synthesis ~500s on CPU; 1800s gives safe margin
 )
 def step3_tts(stem: str, language: str) -> str:
     """Synthesize TTS plain text for one bulletin + language to MP3.
