@@ -3,7 +3,7 @@ import re
 from modal_etl.app import app, tts_image, TTS_MOUNTS, output_volume
 from modal_etl.config import TTS_MODELS_PATH, OUTPUT_PATH
 from modal_etl.synthesizers.mms import MMSSynthesizer
-from modal_etl.synthesizers.speecht5 import SpeechT5Synthesizer
+from modal_etl.synthesizers.xtts import CoquiXTTSSynthesizer
 
 # Language → synthesizer mapping. To swap a model, update this dict only.
 SYNTHESIZER_MAP = {
@@ -15,7 +15,7 @@ SYNTHESIZER_MAP = {
         "facebook/mms-tts-tgl",
         cache_dir=TTS_MODELS_PATH,
     ),
-    "en": SpeechT5Synthesizer(
+    "en": CoquiXTTSSynthesizer(
         cache_dir=TTS_MODELS_PATH,
     ),
 }

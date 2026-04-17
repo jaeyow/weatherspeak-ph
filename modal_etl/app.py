@@ -49,8 +49,7 @@ tts_image = (
         "transformers>=4.43.0,<=4.46.2",
         "pydub>=0.25.1",
         "numpy>=1.26.0",
-        "datasets>=2.19.0",
-        "sentencepiece>=0.1.99",
+        "coqui-tts>=0.25.0",
     )
     .add_local_python_source("modal_etl")
 )

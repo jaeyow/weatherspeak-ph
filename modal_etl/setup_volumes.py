@@ -54,17 +54,12 @@ def setup_ollama_volume() -> None:
     timeout=3600,
 )
 def setup_tts_volume() -> None:
-    """Download MMS and SpeechT5 model weights into the weatherspeak-tts-models Volume.
+    """Download MMS (CEB/TL) and Coqui XTTS v2 (EN) weights into the weatherspeak-tts-models Volume.
 
     Run once: uv run modal run modal_etl/setup_volumes.py::setup_tts_volume
     """
-    from transformers import (
-        VitsModel,
-        AutoTokenizer,
-        SpeechT5Processor,
-        SpeechT5ForTextToSpeech,
-        SpeechT5HifiGan,
-    )
+    import os
+    from transformers import VitsModel, AutoTokenizer
 
     print("Downloading facebook/mms-tts-ceb...")
     AutoTokenizer.from_pretrained("facebook/mms-tts-ceb", cache_dir=TTS_MODELS_PATH)
@@ -74,10 +69,11 @@ def setup_tts_volume() -> None:
     AutoTokenizer.from_pretrained("facebook/mms-tts-tgl", cache_dir=TTS_MODELS_PATH)
     VitsModel.from_pretrained("facebook/mms-tts-tgl", cache_dir=TTS_MODELS_PATH)
 
-    print("Downloading microsoft/speecht5_tts...")
-    SpeechT5Processor.from_pretrained("microsoft/speecht5_tts", cache_dir=TTS_MODELS_PATH)
-    SpeechT5ForTextToSpeech.from_pretrained("microsoft/speecht5_tts", cache_dir=TTS_MODELS_PATH)
-    SpeechT5HifiGan.from_pretrained("microsoft/speecht5_hifigan", cache_dir=TTS_MODELS_PATH)
+    print("Downloading Coqui XTTS v2 (English)...")
+    os.environ["COQUI_TOS_AGREED"] = "1"
+    os.environ["TTS_HOME"] = str(TTS_MODELS_PATH)
+    from TTS.api import TTS
+    TTS("tts_models/multilingual/multi-dataset/xtts_v2")
 
     tts_volume.commit()
     print("Done — all TTS models are in weatherspeak-tts-models volume")
