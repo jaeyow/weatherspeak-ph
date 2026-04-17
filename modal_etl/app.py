@@ -41,11 +41,15 @@ ollama_image = (
 )
 
 # Container image for step 3 (MMS + Coqui XTTS v2) — GPU for fast XTTS v2 synthesis
+# torch must be installed with CUDA support — default PyPI torch is CPU-only
 tts_image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install("ffmpeg")
     .pip_install(
         "torch>=2.2.0",
+        extra_index_url="https://download.pytorch.org/whl/cu121",
+    )
+    .pip_install(
         "transformers>=4.43.0,<=4.46.2",
         "pydub>=0.25.1",
         "numpy>=1.26.0",
