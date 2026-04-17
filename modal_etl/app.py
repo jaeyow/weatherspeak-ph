@@ -30,7 +30,7 @@ TTS_MOUNTS = {
 # Container image for steps 1 & 2 (Ollama + Gemma 4)
 ollama_image = (
     modal.Image.debian_slim(python_version="3.12")
-    .apt_install("curl", "poppler-utils", "ffmpeg")
+    .apt_install("curl", "poppler-utils", "ffmpeg", "zstd")
     .run_commands("curl -fsSL https://ollama.ai/install.sh | sh")
     .pip_install(
         "requests>=2.32.0",
