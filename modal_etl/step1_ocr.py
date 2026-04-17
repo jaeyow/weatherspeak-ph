@@ -250,10 +250,10 @@ class Step1OCR:
         print("[Step1OCR] Ollama ready")
 
     @modal.method()
-    def run(self, pdf_url: str) -> str:
+    def run(self, pdf_url: str, force: bool = False) -> str:
         """Download PDF and produce ocr.md, chart.png, and metadata.json.
 
-        Skips processing if all three outputs already exist for this stem.
+        Skips processing if all three outputs already exist, unless force=True.
 
         Returns:
             stem string (filename without .pdf extension).
@@ -264,7 +264,7 @@ class Step1OCR:
         chart_path = out_dir / "chart.png"
         metadata_path = out_dir / "metadata.json"
 
-        if ocr_path.exists() and chart_path.exists() and metadata_path.exists():
+        if ocr_path.exists() and chart_path.exists() and metadata_path.exists() and not force:
             print(f"[Step1OCR] {stem}: all Step 1 outputs exist, skipping")
             return stem
 

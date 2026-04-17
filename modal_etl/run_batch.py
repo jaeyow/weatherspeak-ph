@@ -24,7 +24,7 @@ from modal_etl.step3_tts import step3_tts
 
 
 @app.local_entrypoint()
-def main(n: int = N_EVENTS) -> None:
+def main(n: int = N_EVENTS, force: bool = False) -> None:
     """Process the newest N severe weather events end-to-end.
 
     For each event:
@@ -33,6 +33,10 @@ def main(n: int = N_EVENTS) -> None:
       3. Synthesize MP3s in parallel (CEB, TL, EN) → audio_{lang}.mp3
 
     All artifacts are stored in the weatherspeak-output Modal Volume.
+
+    Args:
+        n:     Number of most-recent bulletins to process (default: N_EVENTS).
+        force: Re-run all steps even if outputs already exist in the volume.
     """
     print(f"Selecting newest {n} severe weather events from bulletin archive...")
     bulletins = get_latest_bulletins(n)
@@ -41,7 +45,7 @@ def main(n: int = N_EVENTS) -> None:
         print("No bulletins found. Check ARCHIVE_API_URL in config.py.")
         sys.exit(1)
 
-    print(f"Processing {len(bulletins)} bulletins:")
+    print(f"Processing {len(bulletins)} bulletins{' (force=True)' if force else ''}:")
     for b in bulletins:
         print(f"  {b.stem}")
 
@@ -52,13 +56,13 @@ def main(n: int = N_EVENTS) -> None:
         print(f"\n--- {bulletin.stem} ---")
 
         print("  Step 1: OCR + chart + metadata...")
-        stem = ocr.run.remote(bulletin.pdf_url)
+        stem = ocr.run.remote(bulletin.pdf_url, force=force)
 
         print("  Step 2: Radio scripts + TTS text...")
-        stem = scripts.run.remote(stem)
+        stem = scripts.run.remote(stem, force=force)
 
         print("  Step 3: TTS synthesis (3 languages in parallel)...")
-        list(step3_tts.starmap([(stem, lang) for lang in LANGUAGES]))
+        list(step3_tts.starmap([(stem, lang, force) for lang in LANGUAGES]))
 
         print(f"  Done: {stem}")
 

@@ -78,13 +78,13 @@ def prepare_english_sentences(text: str) -> list[tuple[str, bool]]:
     volumes=TTS_MOUNTS,
     timeout=600,  # cold start + XTTS v2 model load ~120s, synthesis ~60s on GPU
 )
-def step3_tts(stem: str, language: str) -> str:
+def step3_tts(stem: str, language: str, force: bool = False) -> str:
     """Synthesize TTS plain text for one bulletin + language to MP3.
 
     Reads:  /output/{stem}/tts_{language}.txt
     Writes: /output/{stem}/audio_{language}.mp3
 
-    Skips synthesis if audio_{language}.mp3 already exists in the Volume.
+    Skips synthesis if audio_{language}.mp3 already exists, unless force=True.
 
     Returns:
         stem on success.
@@ -93,7 +93,7 @@ def step3_tts(stem: str, language: str) -> str:
     tts_txt_path = out_dir / f"tts_{language}.txt"
     mp3_path = out_dir / f"audio_{language}.mp3"
 
-    if mp3_path.exists():
+    if mp3_path.exists() and not force:
         print(f"[step3_tts] {stem}/{language}: already exists, skipping")
         return stem
 

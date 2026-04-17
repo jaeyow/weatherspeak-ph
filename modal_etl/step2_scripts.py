@@ -122,8 +122,8 @@ _TTS_PROMPTS = {
             "- Basahin ang markdown radio script na ibinigay\n"
             "- Isulat muli ito bilang natural na flowing prose SA TAGALOG LAMANG — walang markdown\n"
             "- WALANG markdown: walang headings (#), walang bullet points (-), walang asterisks (*), walang bold/italic\n"
-            "- Para sa mga English proper nouns o teknikal na termino, i-spell ang mga ito nang phonetically sa Tagalog:\n"
-            "  - PAGASA → pa-ga-sa\n"
+            "- Para sa lahat ng English words o teknikal na termino, i-spell ang mga ito nang phonetically sa Tagalog:\n"
+            "  - PAGASA → pag-asa\n"
             "  - Northern Luzon → nor-dern lu-son\n"
             "  - Signal Number One / Two / Three → sig-nal nam-ber wan / tu / tri\n"
             "  - tropical depression → tro-pi-kal di-pre-syon\n"
@@ -148,14 +148,15 @@ _TTS_PROMPTS = {
             "- Basaha ang markdown radio script nga gihatag\n"
             "- Isulat kini pag-usab isip natural nga flowing prose SA CEBUANO LAMANG — walay markdown\n"
             "- WALA markdown: wala headings (#), wala bullet points (-), wala asterisks (*), wala bold/italic\n"
-            "- Para sa mga English proper nouns o teknikal nga termino, i-spell sila phonetically sa Cebuano:\n"
-            "  - PAGASA → pa-ga-sa\n"
+            "- Para sa tanan nga English words o teknikal nga termino, i-spell sila phonetically sa Cebuano:\n"
+            "  - PAGASA → pag-asa\n"
             "  - Northern Luzon → nor-dern lu-son\n"
             "  - Signal Number One / Two / Three → sig-nal nam-ber wan / tu / tri\n"
             "  - tropical depression → tro-pi-kal di-pre-syon\n"
             "  - tropical storm → tro-pi-kal storm\n"
             "  - kilometers per hour → ki-lo-me-tros sa usa ka oras\n"
             "  - northeast / southeast / northwest / southwest → nor-ist / sow-ist / nor-west / sow-west\n"
+            "  - update → ap-deyt\n"
             "- Pahimusa ang paragraph structure: blank lines tali sa mga paragraph\n"
             "- AYAW pagdugang og bisan unsa nga texto nga wala sa orihinal nga script\n"
             "- Output: plain text lamang, walay bisan unsang markup o formatting characters"
@@ -232,14 +233,14 @@ class Step2Scripts:
         print("[Step2Scripts] Ollama ready")
 
     @modal.method()
-    def run(self, stem: str) -> str:
+    def run(self, stem: str, force: bool = False) -> str:
         """Generate radio scripts and TTS plain text for all 3 languages.
 
         Reads:   /output/{stem}/ocr.md
         Writes:  /output/{stem}/radio_{lang}.md   (× 3)
                  /output/{stem}/tts_{lang}.txt     (× 3)
 
-        Skips a language if both output files already exist.
+        Skips a language if both output files already exist, unless force=True.
 
         Returns:
             stem string.
@@ -251,7 +252,7 @@ class Step2Scripts:
             radio_path = out_dir / f"radio_{lang}.md"
             tts_path = out_dir / f"tts_{lang}.txt"
 
-            if radio_path.exists() and tts_path.exists():
+            if radio_path.exists() and tts_path.exists() and not force:
                 print(f"[Step2Scripts] {stem}/{lang}: already exists, skipping")
                 continue
 
