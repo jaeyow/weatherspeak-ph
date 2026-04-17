@@ -141,13 +141,13 @@ _METADATA_SYSTEM = (
 )
 
 
-def _wait_for_ollama(retries: int = 60, delay: float = 1.0) -> None:
+def _wait_for_ollama(retries: int = 60, delay: float = 2.0) -> None:
     """Block until Ollama server responds or raise RuntimeError."""
     for _ in range(retries):
         try:
-            requests.get(f"{OLLAMA_URL}/api/tags", timeout=2)
+            requests.get(f"{OLLAMA_URL}/api/tags", timeout=5)
             return
-        except requests.exceptions.ConnectionError:
+        except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
             time.sleep(delay)
     raise RuntimeError("Ollama server did not start within timeout")
 
