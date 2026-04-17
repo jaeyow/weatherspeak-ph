@@ -12,7 +12,7 @@ from modal_etl.app import app, ollama_image, OLLAMA_MOUNTS, output_volume
 from modal_etl.config import OLLAMA_MODELS_PATH, OUTPUT_PATH, GEMMA_MODEL
 
 OLLAMA_URL = "http://localhost:11434"
-OLLAMA_TIMEOUT = 120  # seconds per page
+OLLAMA_TIMEOUT = 600  # seconds per page — vision inference on A10G can take 2-5 min
 
 PAGASA_JSON_SCHEMA = {
     "type": "object",
