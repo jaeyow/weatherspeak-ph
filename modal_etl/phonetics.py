@@ -80,6 +80,20 @@ _COMMON: list[Sub] = [
     Sub(r"\bkph\b", "ki-lo-me-tro ba-wat o-ras"),
     Sub(r"\bkilometers?\b", "ki-lo-me-tro"),
 
+    # PAGASA full name components -----------------------------------------
+    Sub(r"\bGeophysical\b", "dyi-o-pi-si-kal"),
+    Sub(r"\bAstronomical\b", "as-tro-nom-i-kal"),
+    Sub(r"\bAtmospher(?:e|ic|ics)\b", "at-mos-pi-rik"),
+    Sub(r"\bAdministration\b", "ad-mi-nis-trey-syon"),
+    Sub(r"\bServices\b", "ser-bi-ses"),
+
+    # Pressure / meteorological units -------------------------------------
+    Sub(r"\bLow\s+Pressure\s+Area\b", "low pre-shur e-ri-ya"),
+    Sub(r"\bLPA\b", "el pi-ey"),
+    Sub(r"\bhPa\b", "ek-to-pas-kal"),
+    Sub(r"\bpressure\b", "pre-shur"),
+    Sub(r"\bcentral\b", "sen-tral"),
+
     # Common weather/emergency terms --------------------------------------
     Sub(r"\bforecast\b", "pore-kast"),
     Sub(r"\bbulletin\b", "bu-le-tin"),
@@ -96,7 +110,15 @@ _COMMON: list[Sub] = [
     Sub(r"\bsustained\b", "sos-teyn-d"),
     Sub(r"\bintensif(?:y|ying|ied|ication)\b", "in-ten-si-pay"),
     Sub(r"\bintensity\b", "in-ten-si-ti"),
-    Sub(r"\batmospher(?:e|ic)\b", "at-mos-pi-rik"),
+    Sub(r"\bweaken(?:ed|ing|s)?\b", "wi-ken"),
+    Sub(r"\bflash\s+flood(?:s|ing)?\b", "plash plud"),
+    Sub(r"\blow-lying\b", "low-lay-ing"),
+    Sub(r"\btrack\b", "trak"),
+    Sub(r"\bstatus\b", "sta-tus"),
+    Sub(r"\bestimate\b", "es-ti-meyt"),
+    Sub(r"\bsummary\b", "sa-ma-ri"),
+    Sub(r"\bmonitor\b", "mo-ni-tor"),
+    Sub(r"\bsecure\b", "si-kyur"),
 
     # Emergency preparedness words ----------------------------------------
     Sub(r"\bemergency\b", "i-mer-chen-si"),
@@ -121,7 +143,7 @@ _COMMON: list[Sub] = [
     Sub(r"\bPhilippine\b", "pi-li-pin"),
     Sub(r"\bArea\s+of\s+Responsibility\b", "i-yer ov ris-pon-si-bi-li-ti"),
 
-    # LGU / government acronyms (commonly used in Filipino context) -------
+    # LGU / government acronyms -------------------------------------------
     Sub(r"\bLGU\b", "el-dyi-yu"),
 ]
 

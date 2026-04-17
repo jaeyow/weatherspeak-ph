@@ -186,3 +186,90 @@ def test_pagasa_all_caps(lang):
 def test_pagasa_hyphenated(lang):
     result = apply_phonetics("PAG-ASA issued a warning", lang)
     assert "pag-asa" in result
+
+
+# ---------------------------------------------------------------------------
+# PAGASA full name components
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("lang", ["tl", "ceb"])
+def test_geophysical(lang):
+    result = apply_phonetics("Geophysical and Astronomical Services Administration", lang)
+    assert "dyi-o-pi-si-kal" in result
+    assert "as-tro-nom-i-kal" in result
+    assert "ser-bi-ses" in result
+    assert "ad-mi-nis-trey-syon" in result
+
+
+# ---------------------------------------------------------------------------
+# Pressure / meteorological units
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("lang", ["tl", "ceb"])
+def test_low_pressure_area(lang):
+    result = apply_phonetics("Low Pressure Area", lang)
+    assert "low pre-shur e-ri-ya" in result
+    assert "Low Pressure Area" not in result
+
+
+@pytest.mark.parametrize("lang", ["tl", "ceb"])
+def test_lpa(lang):
+    result = apply_phonetics("now classified as LPA", lang)
+    assert "el pi-ey" in result
+    assert "LPA" not in result
+
+
+@pytest.mark.parametrize("lang", ["tl", "ceb"])
+def test_hpa(lang):
+    result = apply_phonetics("central pressure of 1004 hPa", lang)
+    assert "ek-to-pas-kal" in result
+    assert "hPa" not in result
+
+
+# ---------------------------------------------------------------------------
+# Weather / action terms added in second pass
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("lang", ["tl", "ceb"])
+def test_flash_flood(lang):
+    result = apply_phonetics("risk of flash floods", lang)
+    assert "plash plud" in result
+    assert "flash flood" not in result
+
+
+@pytest.mark.parametrize("lang", ["tl", "ceb"])
+def test_low_lying(lang):
+    result = apply_phonetics("low-lying areas", lang)
+    assert "low-lay-ing" in result
+
+
+@pytest.mark.parametrize("lang", ["tl", "ceb"])
+def test_weakened(lang):
+    result = apply_phonetics("the system has weakened", lang)
+    assert "wi-ken" in result
+    assert "weakened" not in result
+
+
+@pytest.mark.parametrize("lang", ["tl", "ceb"])
+def test_secure(lang):
+    result = apply_phonetics("secure loose objects", lang)
+    assert "si-kyur" in result
+
+
+@pytest.mark.parametrize("lang", ["tl", "ceb"])
+def test_secure_with_prefix(lang):
+    # Filipino verb prefix "i-secure" — "secure" part should still convert
+    result = apply_phonetics("i-secure ang mga butang", lang)
+    assert "si-kyur" in result
+
+
+@pytest.mark.parametrize("lang", ["tl", "ceb"])
+def test_monitor(lang):
+    result = apply_phonetics("monitor the situation", lang)
+    assert "mo-ni-tor" in result
+
+
+@pytest.mark.parametrize("lang", ["tl", "ceb"])
+def test_summary(lang):
+    result = apply_phonetics("here is a summary", lang)
+    assert "sa-ma-ri" in result
