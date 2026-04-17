@@ -21,7 +21,7 @@ GEMMA_MODEL = "gemma4:e4b"
 
 # GitHub archive
 ARCHIVE_REPO = "pagasa-parser/bulletin-archive"
-ARCHIVE_RAW_BASE = "https://raw.githubusercontent.com/pagasa-parser/bulletin-archive/main"
+ARCHIVE_RAW_BASE = "https://raw.githubusercontent.com/pagasa-parser/bulletin-archive/master"
 ARCHIVE_API_URL = (
     "https://api.github.com/repos/pagasa-parser/bulletin-archive/"
     "git/trees/HEAD?recursive=1"
