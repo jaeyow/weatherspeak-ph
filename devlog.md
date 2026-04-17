@@ -442,3 +442,65 @@ MMS is **~20× faster** for Cebuano and uses **4× less storage** across all thr
 - Investigate named speaker embeddings for consistent English voice identity
 
 ---
+
+## PR #8 — Modal ETL Pipeline (Step1OCR + Step2Scripts + step3_tts + run_batch)
+**Date:** 2026-04-17
+**Branch:** `feature/modal-etl`
+**PR:** jaeyow/weatherspeak-ph#8
+**Status:** In review — pending Modal smoke test
+
+### What we built
+
+Full 3-step WeatherSpeak PH ETL pipeline as a batch Modal app. All compute runs on Modal serverless infrastructure; the local entrypoint only orchestrates.
+
+```
+pagasa-parser/bulletin-archive (GitHub)
+  ↓  bulletin_selector.py
+
+[Local] run_batch.py  ←  @app.local_entrypoint
+  ├─► Step1OCR.run.remote(pdf_url)         A10G GPU
+  │     Ollama + gemma4:e4b
+  │     → ocr.md, chart.png, metadata.json
+  ├─► Step2Scripts.run.remote(stem)        A10G GPU
+  │     Ollama + gemma4:e4b
+  │     → radio_{lang}.md + tts_{lang}.txt × 3
+  └─► step3_tts.starmap(stem, langs)       CPU × 3 parallel
+        MMS VITS (CEB/TL) + SpeechT5 (EN)
+        → audio_{lang}.mp3 × 3
+```
+
+### Key modules
+
+| File | Responsibility |
+|---|---|
+| `modal_etl/bulletin_selector.py` | GitHub API → newest N events → latest bulletin each |
+| `modal_etl/step1_ocr.py` | Gemma 4 E4B OCR → `ocr.md`, `chart.png`, `metadata.json` |
+| `modal_etl/step2_scripts.py` | Radio scripts + TTS plain text (EN/TL/CEB) |
+| `modal_etl/step3_tts.py` | MMS + SpeechT5 → MP3 per language |
+| `modal_etl/synthesizers/` | `TTSSynthesizer` Protocol + `MMSSynthesizer` + `SpeechT5Synthesizer` |
+| `modal_etl/setup_volumes.py` | One-time volume init (Ollama model + TTS weights) |
+| `modal_etl/run_batch.py` | Local entrypoint — orchestrates all three steps |
+
+### Key decisions
+
+- **Idempotent**: every step checks for existing output before running — safe to re-run after partial failures
+- **TTS abstraction**: `TTSSynthesizer` Protocol — swap any model by updating one line in `SYNTHESIZER_MAP`
+- **Parallel TTS**: `step3_tts.starmap` runs all 3 languages in parallel per bulletin
+- **Step 1 extras**: chart extraction and JSON metadata happen inside the same Ollama container as OCR
+
+### Output per bulletin stem
+
+All artifacts in `weatherspeak-output` Modal Volume under `/output/{stem}/`:
+`ocr.md`, `chart.png`, `metadata.json`, `radio_en.md`, `radio_tl.md`, `radio_ceb.md`, `tts_en.txt`, `tts_tl.txt`, `tts_ceb.txt`, `audio_en.mp3`, `audio_tl.mp3`, `audio_ceb.mp3`
+
+### Tests
+
+54 unit tests passing. Smoke test pending.
+
+### Next steps
+
+- Run Modal smoke test and verify artifacts
+- Merge PR #8 after smoke test passes
+- Begin website phase (Next.js + Supabase Storage integration)
+
+---
