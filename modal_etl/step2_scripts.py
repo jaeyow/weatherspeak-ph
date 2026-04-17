@@ -7,6 +7,7 @@ import requests
 
 from modal_etl.app import app, ollama_image, OLLAMA_MOUNTS, output_volume
 from modal_etl.config import OLLAMA_MODELS_PATH, OUTPUT_PATH, GEMMA_MODEL, LANGUAGES
+from modal_etl.phonetics import apply_phonetics
 
 OLLAMA_URL = "http://localhost:11434"
 OLLAMA_TIMEOUT = 300  # seconds per language prompt
@@ -209,12 +210,17 @@ def _generate_radio_script(markdown: str, language: str) -> str:
 
 
 def _generate_tts_text(radio_md: str, language: str) -> str:
-    """Convert radio script markdown to TTS-optimised dialect-pure plain text."""
+    """Convert radio script markdown to TTS-optimised dialect-pure plain text.
+
+    Applies deterministic phonetic post-processing after the LLM pass to
+    catch any English words the model failed to phonetically spell.
+    """
     p = _TTS_PROMPTS[language]
-    return _call_ollama_chat(
+    text = _call_ollama_chat(
         system=p["system"],
         user=p["user"].format(markdown=radio_md),
     )
+    return apply_phonetics(text, language)
 
 
 @app.cls(
