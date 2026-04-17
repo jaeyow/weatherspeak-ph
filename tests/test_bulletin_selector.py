@@ -96,3 +96,14 @@ def test_get_latest_bulletins_pdf_url_is_raw_github():
     for r in results:
         assert r.pdf_url.startswith("https://raw.githubusercontent.com")
         assert r.pdf_url.endswith(".pdf")
+
+
+def test_get_latest_bulletins_hash_in_url_is_encoded():
+    """# in bulletin filenames must be encoded as %23 or requests strips the fragment."""
+    with patch("modal_etl.bulletin_selector.requests.get") as mock_get:
+        mock_get.return_value.json.return_value = FAKE_TREE
+        mock_get.return_value.raise_for_status = lambda: None
+        results = get_latest_bulletins(n=10)
+    for r in results:
+        assert "#" not in r.pdf_url
+        assert "%23" in r.pdf_url

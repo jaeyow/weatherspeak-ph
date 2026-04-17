@@ -1,6 +1,7 @@
 import re
 import requests
 from dataclasses import dataclass
+from urllib.parse import quote
 from modal_etl.config import ARCHIVE_API_URL, ARCHIVE_RAW_BASE
 
 
@@ -60,8 +61,8 @@ def get_latest_bulletins(n: int) -> list[BulletinInfo]:
         info = parse_bulletin_filename(path)
         if info is None:
             continue
-        # Build raw GitHub URL from the path in the tree
-        info.pdf_url = f"{ARCHIVE_RAW_BASE}/{path}"
+        # Build raw GitHub URL — encode # as %23 so it isn't treated as a fragment
+        info.pdf_url = f"{ARCHIVE_RAW_BASE}/{quote(path, safe='/')}"
         bulletins.append(info)
 
     groups = group_by_event(bulletins)
