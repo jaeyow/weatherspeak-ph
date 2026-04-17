@@ -26,16 +26,19 @@ class MMSSynthesizer:
         self.speech_speed = speech_speed
         self._model = None
         self._tokenizer = None
+        self._device = None
 
     def load(self) -> None:
-        """Load VITS model and tokenizer from HuggingFace (or cache_dir)."""
+        """Load VITS model and tokenizer onto GPU if available, otherwise CPU."""
         from transformers import VitsModel, AutoTokenizer
+        self._device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"[MMSSynthesizer] loading {self.model_id} on {self._device}")
         self._tokenizer = AutoTokenizer.from_pretrained(
             self.model_id, cache_dir=self.cache_dir
         )
         self._model = VitsModel.from_pretrained(
             self.model_id, cache_dir=self.cache_dir
-        )
+        ).to(self._device)
 
     def synthesize(
         self,
@@ -62,10 +65,11 @@ class MMSSynthesizer:
             if not text.strip():
                 continue
             inputs = self._tokenizer(text, return_tensors="pt")
+            inputs = {k: v.to(self._device) for k, v in inputs.items()}
             with torch.no_grad():
                 waveform = self._model(**inputs).waveform
             pcm = (
-                waveform.squeeze().numpy() * 32_767
+                waveform.squeeze().cpu().numpy() * 32_767
             ).clip(-32_768, 32_767).astype(np.int16)
 
             segment = AudioSegment(
