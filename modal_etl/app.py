@@ -37,6 +37,7 @@ ollama_image = (
         "Pillow>=10.0.0",
         "pdf2image>=1.17.0",
     )
+    .add_local_python_source("modal_etl")
 )
 
 # Container image for step 3 (MMS + SpeechT5)
@@ -50,4 +51,5 @@ tts_image = (
         "numpy>=1.26.0",
         "datasets>=2.19.0",
     )
+    .add_local_python_source("modal_etl")
 )
