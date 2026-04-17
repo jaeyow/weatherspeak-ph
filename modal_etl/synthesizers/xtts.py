@@ -31,13 +31,16 @@ class CoquiXTTSSynthesizer:
         self._tts = None
 
     def load(self) -> None:
-        """Load XTTS v2 model. Sets TTS_HOME to cache_dir if provided."""
+        """Load XTTS v2 model onto GPU if available, otherwise CPU."""
         import os
+        import torch
         os.environ["COQUI_TOS_AGREED"] = "1"
         if self.cache_dir:
             os.environ["TTS_HOME"] = str(self.cache_dir)
         from TTS.api import TTS
-        self._tts = TTS(self.model_name)
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"[CoquiXTTSSynthesizer] loading on {device}")
+        self._tts = TTS(self.model_name).to(device)
 
     def synthesize(
         self,
