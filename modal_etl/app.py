@@ -40,7 +40,7 @@ ollama_image = (
     .add_local_python_source("modal_etl")
 )
 
-# Container image for step 3 (MMS + SpeechT5)
+# Container image for step 3 (MMS + Coqui XTTS v2) — GPU for fast XTTS v2 synthesis
 tts_image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install("ffmpeg")
