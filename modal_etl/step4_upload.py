@@ -24,6 +24,7 @@ import json
 import os
 import re
 from pathlib import Path
+from urllib.parse import unquote
 
 from modal_etl.app import app, upload_image, SUPABASE_SECRET, output_volume
 from modal_etl.config import OUTPUT_PATH, LANGUAGES, STORAGE_BUCKET
@@ -115,22 +116,27 @@ def step4_upload(stem: str, force: bool = False) -> str:
     # ------------------------------------------------------------------
     # Skip check
     # ------------------------------------------------------------------
+    decoded_stem = unquote(stem)
+
     if not force:
         existing = (
             client.table("bulletin_media")
             .select("id, status, bulletins!inner(stem)")
-            .eq("bulletins.stem", stem)
+            .eq("bulletins.stem", decoded_stem)
             .eq("status", "ready")
             .execute()
         )
         if len(existing.data) >= len(LANGUAGES):
-            print(f"[Step4Upload] {stem}: all media ready, skipping")
+            print(f"[Step4Upload] {decoded_stem}: all media ready, skipping")
             return stem
 
     # ------------------------------------------------------------------
     # Parse stem and load metadata
+    # stem may arrive URL-encoded (e.g. %23 instead of #) from older runs.
+    # decoded_stem is used for parsing, DB values, and Storage paths.
+    # stem (original) is used only for Modal volume file lookups.
     # ------------------------------------------------------------------
-    parsed = _parse_stem(stem)
+    parsed = _parse_stem(decoded_stem)
     out_dir = OUTPUT_PATH / stem
     metadata_path = out_dir / "metadata.json"
 
@@ -158,7 +164,7 @@ def step4_upload(stem: str, force: bool = False) -> str:
         .execute()
     )
     storm_id = storm_result.data[0]["id"]
-    print(f"[Step4Upload] {stem}: storm_id={storm_id}")
+    print(f"[Step4Upload] {decoded_stem}: storm_id={storm_id}")
 
     # ------------------------------------------------------------------
     # Upload chart
@@ -167,9 +173,9 @@ def step4_upload(stem: str, force: bool = False) -> str:
     chart_storage_path = None
     if chart_path_local.exists():
         chart_storage_path = _upload_file(
-            client, chart_path_local, f"charts/{stem}/chart.png"
+            client, chart_path_local, f"charts/{decoded_stem}/chart.png"
         )
-        print(f"[Step4Upload] {stem}: uploaded chart.png")
+        print(f"[Step4Upload] {decoded_stem}: uploaded chart.png")
 
     # ------------------------------------------------------------------
     # Upsert bulletin row
@@ -189,7 +195,7 @@ def step4_upload(stem: str, force: bool = False) -> str:
 
     bulletin_row = {
         "storm_id":                storm_id,
-        "stem":                    stem,
+        "stem":                    decoded_stem,
         "bulletin_type":           btype,
         "bulletin_number":         parsed["bulletin_number"],
         "issued_at":               _parse_issued_at(issuance.get("datetime")),
@@ -230,16 +236,16 @@ def step4_upload(stem: str, force: bool = False) -> str:
 
         if audio_local.exists():
             audio_storage_path = _upload_file(
-                client, audio_local, f"audio/{stem}/audio_{lang}.mp3"
+                client, audio_local, f"audio/{decoded_stem}/audio_{lang}.mp3"
             )
             duration = _audio_duration(audio_local)
-            print(f"[Step4Upload] {stem}/{lang}: uploaded audio ({duration}s)")
+            print(f"[Step4Upload] {decoded_stem}/{lang}: uploaded audio ({duration}s)")
 
         if script_local.exists():
             script_storage_path = _upload_file(
-                client, script_local, f"scripts/{stem}/radio_{lang}.md"
+                client, script_local, f"scripts/{decoded_stem}/radio_{lang}.md"
             )
-            print(f"[Step4Upload] {stem}/{lang}: uploaded script")
+            print(f"[Step4Upload] {decoded_stem}/{lang}: uploaded script")
 
         if audio_storage_path:
             status = "ready"
@@ -256,5 +262,5 @@ def step4_upload(stem: str, force: bool = False) -> str:
             media_row, on_conflict="bulletin_id,language"
         ).execute()
 
-    print(f"[Step4Upload] {stem}: done")
+    print(f"[Step4Upload] {decoded_stem}: done")
     return stem

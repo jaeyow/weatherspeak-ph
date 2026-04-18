@@ -258,7 +258,8 @@ class Step1OCR:
         Returns:
             stem string (filename without .pdf extension).
         """
-        stem = pdf_url.split("/")[-1].replace(".pdf", "")
+        from urllib.parse import unquote
+        stem = unquote(pdf_url.split("/")[-1].replace(".pdf", ""))
         out_dir = OUTPUT_PATH / stem
         ocr_path = out_dir / "ocr.md"
         chart_path = out_dir / "chart.png"
