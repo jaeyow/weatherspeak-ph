@@ -16,6 +16,12 @@ describe('audioUrl', () => {
   it('handles paths without a leading slash', async () => {
     const { audioUrl } = await import('@/lib/audio-url');
     const url = audioUrl('somepath/audio_tl.mp3');
-    expect(url).toContain('/storage/v1/object/public/weatherspeak-public/somepath/audio_tl.mp3');
+    expect(url).toBe('https://test.supabase.co/storage/v1/object/public/weatherspeak-public/somepath/audio_tl.mp3');
+  });
+
+  it('throws when NEXT_PUBLIC_SUPABASE_URL is not set', async () => {
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const { audioUrl } = await import('@/lib/audio-url');
+    expect(() => audioUrl('path/audio_en.mp3')).toThrow('NEXT_PUBLIC_SUPABASE_URL is not set');
   });
 });
