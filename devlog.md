@@ -443,10 +443,63 @@ MMS is **~20× faster** for Cebuano and uses **4× less storage** across all thr
 
 ---
 
-## PR #8 — Modal ETL Pipeline — Complete (Steps 1–4 + Supabase)
+## PR #8 — TTS Pacing & Phonetic Spelling Improvements
+**Date:** 2026-04-16
+**Branch:** `feature/tts-experiment`
+**Status:** Complete ✅
+
+### What we improved
+
+Tuned notebook 08 (`08-mms-tts-experiment.ipynb`) for better audio quality across Cebuano and Tagalog — two areas that were poor after the initial MMS integration:
+
+1. **Speech speed calibrated per language** — the MMS VITS models speak at different natural rates. Tuned separately until each felt right at radio broadcast pace:
+   - Cebuano: `1.40×` (was `1.15×` — too slow; `1.5×` was chipmunk territory)
+   - Tagalog: `1.35×` (confirmed good at this rate)
+   - English (SpeechT5): `1.0×` (already well-paced, untouched)
+
+2. **Tighter silence stitching for CEB/TL** — reduced inter-sentence and paragraph pauses:
+   - Sentence pause: `250ms → 150ms`
+   - Paragraph pause: `400ms → 250ms`
+
+3. **Phonetic TTS text generation — Cebuano** — rewrote the Gemma 4 prompt in Cebuano (for stricter adherence) with 30+ phonetic mappings covering the English words that were leaking through:
+   - `PAGASA → PAG-ASA` (was incorrectly `pa-ga-sa`)
+   - `forecast → pore-kast`, `coastal → kos-tal`, `signal → sig-nal`
+   - All cardinal directions: `northwest → nor-wes`, `westward → wes-ward`, etc.
+   - `first aid kit → pirst eyd kit`, `rescue kit → res-kyuw kit`, `evacuation → i-ba-kyu-we-yon`
+   - Hard rule enforced: no English word left unspelled phonetically
+
+4. **Phonetic TTS text generation — Tagalog** — applied the same treatment in Tagalog with language-appropriate phonetic variants (e.g. `evacuation → i-ba-kyu-we-syon`, `station → is-tas-yon`, `province → pro-bins-ya`).
+
+5. **`FORCE_REGEN` mechanism** — added a `FORCE_REGEN = ["ceb"]` list to the text generation cell so specific languages can be re-generated without deleting files or editing the skip logic each time.
+
+### Final synthesis config
+
+```python
+synthesis_config = {
+    "ceb": {"sentence_pause_ms": 150, "paragraph_pause_ms": 250, "speech_speed": 1.40},
+    "tl":  {"sentence_pause_ms": 150, "paragraph_pause_ms": 250, "speech_speed": 1.35},
+    "en":  {"sentence_pause_ms": 300, "paragraph_pause_ms": 500, "speech_speed": 1.0},
+}
+```
+
+### Key decisions
+
+- Speed resampling (frame-rate approach) introduces a small pitch shift at higher multipliers — `1.5×` was audibly chipmunk; `1.40×` is the highest usable value for the CEB VITS voice before quality degrades
+- Phonetic guide is written in the target language (Cebuano / Tagalog) inside each system prompt — Gemma 4 follows native-language instructions more strictly than English instructions for this task
+- TTS text `.txt` files committed alongside the notebook — they take ~60s each to generate via Gemma 4 and the phonetic rules are stable enough to treat them as build artifacts
+
+### Next steps
+
+- Evaluate the second bulletin (`PAGASA_22-TC02_Basyang_TCA#01`) through the same pipeline
+- Consider named speaker embeddings for SpeechT5 (consistent English voice identity)
+- Begin Modal deployment: wrap `synthesize_with_mms` + `prepare_*_sentences` in `@app.function`
+
+---
+
+## PR #9 — Modal ETL Pipeline — Complete (Steps 1–4 + Supabase)
 **Date:** 2026-04-17 / 2026-04-18
 **Branch:** `feature/modal-etl`
-**PR:** jaeyow/weatherspeak-ph#8
+**PR:** jaeyow/weatherspeak-ph#9
 **Status:** Complete ✅ — smoke tested end-to-end
 
 ### What we built
