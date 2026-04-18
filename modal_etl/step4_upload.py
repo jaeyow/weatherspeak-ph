@@ -230,9 +230,11 @@ def step4_upload(stem: str, force: bool = False) -> str:
     for lang in LANGUAGES:
         audio_local  = out_dir / f"audio_{lang}.mp3"
         script_local = out_dir / f"radio_{lang}.md"
+        tts_local    = out_dir / f"tts_{lang}.txt"
 
         audio_storage_path  = None
         script_storage_path = None
+        tts_storage_path    = None
         duration = None
         status   = "failed"
 
@@ -249,6 +251,12 @@ def step4_upload(stem: str, force: bool = False) -> str:
             )
             print(f"[Step4Upload] {decoded_stem}/{lang}: uploaded script")
 
+        if tts_local.exists():
+            tts_storage_path = _upload_file(
+                client, tts_local, f"{storage_stem}/tts_{lang}.txt"
+            )
+            print(f"[Step4Upload] {decoded_stem}/{lang}: uploaded tts text")
+
         if audio_storage_path:
             status = "ready"
 
@@ -257,6 +265,7 @@ def step4_upload(stem: str, force: bool = False) -> str:
             "language":                lang,
             "audio_path":              audio_storage_path,
             "script_path":             script_storage_path,
+            "tts_path":                tts_storage_path,
             "audio_duration_seconds":  duration,
             "status":                  status,
         }

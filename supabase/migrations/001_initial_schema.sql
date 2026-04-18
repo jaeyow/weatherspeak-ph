@@ -97,7 +97,8 @@ CREATE TABLE bulletin_media (
   bulletin_id            uuid NOT NULL REFERENCES bulletins(id) ON DELETE CASCADE,
   language               language_code NOT NULL,
   audio_path             text,   -- "audio/{stem}/audio_en.mp3"
-  script_path            text,   -- "scripts/{stem}/radio_en.md"
+  script_path            text,   -- "{stem}/radio_en.md"
+  tts_path               text,   -- "{stem}/tts_en.txt"
   audio_duration_seconds int,
   status                 media_status NOT NULL DEFAULT 'pending',
   created_at             timestamptz NOT NULL DEFAULT now(),
