@@ -137,6 +137,8 @@ def step4_upload(stem: str, force: bool = False) -> str:
     # stem (original) is used only for Modal volume file lookups.
     # ------------------------------------------------------------------
     parsed = _parse_stem(decoded_stem)
+    # Storage paths must not contain # (treated as URL fragment by browsers).
+    storage_stem = decoded_stem.replace("#", "_")
     out_dir = OUTPUT_PATH / stem
     metadata_path = out_dir / "metadata.json"
 
@@ -173,7 +175,7 @@ def step4_upload(stem: str, force: bool = False) -> str:
     chart_storage_path = None
     if chart_path_local.exists():
         chart_storage_path = _upload_file(
-            client, chart_path_local, f"charts/{decoded_stem}/chart.png"
+            client, chart_path_local, f"charts/{storage_stem}/chart.png"
         )
         print(f"[Step4Upload] {decoded_stem}: uploaded chart.png")
 
@@ -236,14 +238,14 @@ def step4_upload(stem: str, force: bool = False) -> str:
 
         if audio_local.exists():
             audio_storage_path = _upload_file(
-                client, audio_local, f"audio/{decoded_stem}/audio_{lang}.mp3"
+                client, audio_local, f"audio/{storage_stem}/audio_{lang}.mp3"
             )
             duration = _audio_duration(audio_local)
             print(f"[Step4Upload] {decoded_stem}/{lang}: uploaded audio ({duration}s)")
 
         if script_local.exists():
             script_storage_path = _upload_file(
-                client, script_local, f"scripts/{decoded_stem}/radio_{lang}.md"
+                client, script_local, f"scripts/{storage_stem}/radio_{lang}.md"
             )
             print(f"[Step4Upload] {decoded_stem}/{lang}: uploaded script")
 
