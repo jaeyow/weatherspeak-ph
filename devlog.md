@@ -443,30 +443,33 @@ MMS is **~20× faster** for Cebuano and uses **4× less storage** across all thr
 
 ---
 
-## PR #8 — Modal ETL Pipeline (Step1OCR + Step2Scripts + step3_tts + run_batch)
-**Date:** 2026-04-17
+## PR #8 — Modal ETL Pipeline — Complete (Steps 1–4 + Supabase)
+**Date:** 2026-04-17 / 2026-04-18
 **Branch:** `feature/modal-etl`
 **PR:** jaeyow/weatherspeak-ph#8
-**Status:** In review — pending Modal smoke test
+**Status:** Complete ✅ — smoke tested end-to-end
 
 ### What we built
 
-Full 3-step WeatherSpeak PH ETL pipeline as a batch Modal app. All compute runs on Modal serverless infrastructure; the local entrypoint only orchestrates.
+Full 4-step WeatherSpeak PH ETL pipeline as a batch Modal app. All compute runs on Modal serverless GPU/CPU; Step 4 publishes artifacts to Supabase.
 
 ```
 pagasa-parser/bulletin-archive (GitHub)
   ↓  bulletin_selector.py
 
 [Local] run_batch.py  ←  @app.local_entrypoint
-  ├─► Step1OCR.run.remote(pdf_url)         A10G GPU
+  ├─► Step1OCR.run.remote(pdf_url)            A10G GPU
   │     Ollama + gemma4:e4b
   │     → ocr.md, chart.png, metadata.json
-  ├─► Step2Scripts.run.remote(stem)        A10G GPU
+  ├─► Step2Scripts.run.remote(stem)           A10G GPU
   │     Ollama + gemma4:e4b
   │     → radio_{lang}.md + tts_{lang}.txt × 3
-  └─► step3_tts.starmap(stem, langs)       CPU × 3 parallel
-        MMS VITS (CEB/TL) + SpeechT5 (EN)
-        → audio_{lang}.mp3 × 3
+  ├─► Step3TTS.starmap(stem, langs)           A10G GPU × 3 parallel
+  │     MMS VITS (CEB/TL) + Coqui XTTS v2 (EN)
+  │     → audio_{lang}.mp3 × 3
+  └─► Step4Upload.remote(stem)                CPU
+        → Supabase Storage (audio + scripts + tts text)
+        → Supabase DB (storms, bulletins, bulletin_media)
 ```
 
 ### Key modules
@@ -476,31 +479,58 @@ pagasa-parser/bulletin-archive (GitHub)
 | `modal_etl/bulletin_selector.py` | GitHub API → newest N events → latest bulletin each |
 | `modal_etl/step1_ocr.py` | Gemma 4 E4B OCR → `ocr.md`, `chart.png`, `metadata.json` |
 | `modal_etl/step2_scripts.py` | Radio scripts + TTS plain text (EN/TL/CEB) |
-| `modal_etl/step3_tts.py` | MMS + SpeechT5 → MP3 per language |
-| `modal_etl/synthesizers/` | `TTSSynthesizer` Protocol + `MMSSynthesizer` + `SpeechT5Synthesizer` |
+| `modal_etl/step3_tts.py` | MMS VITS + Coqui XTTS v2 → MP3 per language |
+| `modal_etl/step4_upload.py` | Upload to Supabase Storage + write DB rows |
+| `modal_etl/synthesizers/` | `MMSSynthesizer` + `CoquiXTTSSynthesizer` |
+| `modal_etl/phonetics.py` | Deterministic phonetic post-processing for TL/CEB |
 | `modal_etl/setup_volumes.py` | One-time volume init (Ollama model + TTS weights) |
-| `modal_etl/run_batch.py` | Local entrypoint — orchestrates all three steps |
+| `modal_etl/run_batch.py` | Local entrypoint — orchestrates all four steps |
+| `supabase/migrations/001_initial_schema.sql` | Full DB schema |
 
 ### Key decisions
 
-- **Idempotent**: every step checks for existing output before running — safe to re-run after partial failures
-- **TTS abstraction**: `TTSSynthesizer` Protocol — swap any model by updating one line in `SYNTHESIZER_MAP`
-- **Parallel TTS**: `step3_tts.starmap` runs all 3 languages in parallel per bulletin
-- **Step 1 extras**: chart extraction and JSON metadata happen inside the same Ollama container as OCR
+- **Idempotent + force flag**: every step skips if output exists; `--force` re-runs all steps
+- **All steps on GPU**: MMS (CEB/TL) and Coqui XTTS v2 (EN) both explicitly load onto CUDA
+- **TTS model swap**: SpeechT5 (scratchy) → Coqui XTTS v2 for English (much better quality)
+- **Phonetic post-processing**: `phonetics.py` deterministically converts English terms to phonetic equivalents after Gemma generates TTS text — catches what the LLM misses consistently
+- **Strengthened prompts**: radio and TTS prompts for TL/CEB now open with hard "NO ENGLISH" constraint and a 20+ item mandatory phonetic spellings list
+- **Storage structure**: flat `{stem}/` folder per bulletin in `weatherspeak-public` bucket; `#` replaced with `_` in storage paths (URL fragment issue)
+- **Supabase schema**: `storms` → `bulletins` → `bulletin_media`; `is_active` derived via `storms_with_status` view (no stale flags); all tables public-read, service-role-only write
+
+### Supabase schema
+
+```
+storms          (storm_code, storm_name, ...)
+  └── bulletins (stem, category, wind_signal, affected_areas jsonb, ...)
+        └── bulletin_media (language, audio_path, script_path, tts_path, status)
+
+storms_with_status  VIEW  (is_active derived, current_signal, current_category)
+```
 
 ### Output per bulletin stem
 
-All artifacts in `weatherspeak-output` Modal Volume under `/output/{stem}/`:
-`ocr.md`, `chart.png`, `metadata.json`, `radio_en.md`, `radio_tl.md`, `radio_ceb.md`, `tts_en.txt`, `tts_tl.txt`, `tts_ceb.txt`, `audio_en.mp3`, `audio_tl.mp3`, `audio_ceb.mp3`
+Modal Volume `/output/{stem}/`: `ocr.md`, `chart.png`, `metadata.json`, `radio_{lang}.md` × 3, `tts_{lang}.txt` × 3, `audio_{lang}.mp3` × 3
+
+Supabase Storage `weatherspeak-public/{stem}/`: `audio_{lang}.mp3` × 3, `radio_{lang}.md` × 3, `tts_{lang}.txt` × 3, `chart.png`
+
+### Bug fixes during smoke test
+
+- `ReadTimeout` in `_wait_for_ollama` — caught alongside `ConnectionError`
+- `#` in PDF URL treated as fragment — URL-encoded with `urllib.parse.quote`
+- `ARCHIVE_RAW_BASE` pointed to `main` branch — corrected to `master`
+- `OLLAMA_TIMEOUT` increased to 600s — vision OCR exceeds 120s per page
+- MMS/XTTS running on CPU despite A10G — fixed by installing CUDA torch and calling `.to(device)`
+- Stem `%23` URL encoding — decoded in Step 1 and Step 4
+- `#` in Supabase Storage paths — replaced with `_`
 
 ### Tests
 
-54 unit tests passing. Smoke test pending.
+65 unit tests passing across all modules.
 
 ### Next steps
 
-- Run Modal smoke test and verify artifacts
-- Merge PR #8 after smoke test passes
-- Begin website phase (Next.js + Supabase Storage integration)
+- Build Next.js frontend (Vercel, PWA, mobile-first)
+- Connect to Supabase for storm listing and audio playback
+- Design Lola-first UX: active storm cards → storm page → audio player
 
 ---
