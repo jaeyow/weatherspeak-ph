@@ -175,7 +175,7 @@ def step4_upload(stem: str, force: bool = False) -> str:
     chart_storage_path = None
     if chart_path_local.exists():
         chart_storage_path = _upload_file(
-            client, chart_path_local, f"charts/{storage_stem}/chart.png"
+            client, chart_path_local, f"{storage_stem}/chart.png"
         )
         print(f"[Step4Upload] {decoded_stem}: uploaded chart.png")
 
@@ -238,14 +238,14 @@ def step4_upload(stem: str, force: bool = False) -> str:
 
         if audio_local.exists():
             audio_storage_path = _upload_file(
-                client, audio_local, f"audio/{storage_stem}/audio_{lang}.mp3"
+                client, audio_local, f"{storage_stem}/audio_{lang}.mp3"
             )
             duration = _audio_duration(audio_local)
             print(f"[Step4Upload] {decoded_stem}/{lang}: uploaded audio ({duration}s)")
 
         if script_local.exists():
             script_storage_path = _upload_file(
-                client, script_local, f"scripts/{storage_stem}/radio_{lang}.md"
+                client, script_local, f"{storage_stem}/radio_{lang}.md"
             )
             print(f"[Step4Upload] {decoded_stem}/{lang}: uploaded script")
 
