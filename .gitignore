@@ -60,3 +60,6 @@ notebooks/*/
 
 # Claude Code
 .claude/
+
+# Visual brainstorming sessions
+.superpowers/
