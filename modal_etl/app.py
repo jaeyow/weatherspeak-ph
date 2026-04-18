@@ -8,6 +8,8 @@ from modal_etl.config import (
     OUTPUT_PATH,
 )
 
+SUPABASE_SECRET = modal.Secret.from_name("weatherspeak-supabase")
+
 app = modal.App("weatherspeak-etl")
 
 # Persistent volumes — created on first access
@@ -36,6 +38,17 @@ ollama_image = (
         "requests>=2.32.0",
         "Pillow>=10.0.0",
         "pdf2image>=1.17.0",
+    )
+    .add_local_python_source("modal_etl")
+)
+
+# Container image for step 4 (Supabase upload) — lightweight, no ML deps
+upload_image = (
+    modal.Image.debian_slim(python_version="3.12")
+    .pip_install(
+        "supabase>=2.0.0",
+        "python-dateutil>=2.9.0",
+        "mutagen>=1.47.0",
     )
     .add_local_python_source("modal_etl")
 )

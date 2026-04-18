@@ -19,6 +19,9 @@ OUTPUT_PATH = Path("/output")
 # Gemma model served by Ollama
 GEMMA_MODEL = "gemma4:e4b"
 
+# Supabase Storage
+STORAGE_BUCKET = "weatherspeak-public"
+
 # GitHub archive
 ARCHIVE_REPO = "pagasa-parser/bulletin-archive"
 ARCHIVE_RAW_BASE = "https://raw.githubusercontent.com/pagasa-parser/bulletin-archive/master"

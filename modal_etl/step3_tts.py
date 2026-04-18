@@ -94,17 +94,17 @@ def step3_tts(stem: str, language: str, force: bool = False) -> str:
     mp3_path = out_dir / f"audio_{language}.mp3"
 
     if mp3_path.exists() and not force:
-        print(f"[step3_tts] {stem}/{language}: already exists, skipping")
+        print(f"[Step3TTS] {stem}/{language}: already exists, skipping")
         return stem
 
     if language not in SYNTHESIZER_MAP:
         raise ValueError(
-            f"[step3_tts] Unknown language '{language}'. Expected one of: {list(SYNTHESIZER_MAP)}"
+            f"[Step3TTS] Unknown language '{language}'. Expected one of: {list(SYNTHESIZER_MAP)}"
         )
 
     if not tts_txt_path.exists():
         raise FileNotFoundError(
-            f"[step3_tts] Input not found: {tts_txt_path}. Run step2 first."
+            f"[Step3TTS] Input not found: {tts_txt_path}. Run step2 first."
         )
 
     text = tts_txt_path.read_text(encoding="utf-8")
@@ -120,5 +120,5 @@ def step3_tts(stem: str, language: str, force: bool = False) -> str:
     synthesizer.synthesize(sentences, mp3_path)
     output_volume.commit()
 
-    print(f"[step3_tts] {stem}/{language}: wrote {mp3_path}")
+    print(f"[Step3TTS] {stem}/{language}: wrote {mp3_path}")
     return stem
