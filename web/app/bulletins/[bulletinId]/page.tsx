@@ -3,20 +3,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getBulletin } from '@/lib/supabase/queries';
 import { audioUrl } from '@/lib/audio-url';
+import { formatDate } from '@/lib/format-date';
 import BulletinAudioSection from '@/components/BulletinAudioSection';
 import AffectedAreas from '@/components/AffectedAreas';
 import DistancePill from '@/components/DistancePill';
 
 export const revalidate = 600; // 10 minutes
-
-function formatDate(iso: string | null): string {
-  if (!iso) return '';
-  return new Date(iso).toLocaleString('en-PH', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'Asia/Manila',
-  });
-}
 
 interface Props {
   params: { bulletinId: string };

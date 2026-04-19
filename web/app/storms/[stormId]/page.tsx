@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getStormDetail } from '@/lib/supabase/queries';
 import { audioUrl } from '@/lib/audio-url';
+import { formatDate } from '@/lib/format-date';
 import BulletinAudioSection from '@/components/BulletinAudioSection';
 import AffectedAreas from '@/components/AffectedAreas';
 import DistancePill from '@/components/DistancePill';
@@ -19,15 +20,6 @@ const SIGNAL_BG: Record<number, string> = {
 
 function heroBg(signal: number | null): string {
   return signal != null ? (SIGNAL_BG[signal] ?? 'from-gray-900 to-gray-800') : 'from-gray-900 to-gray-800';
-}
-
-function formatDate(iso: string | null): string {
-  if (!iso) return '';
-  return new Date(iso).toLocaleString('en-PH', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'Asia/Manila',
-  });
 }
 
 interface Props {
