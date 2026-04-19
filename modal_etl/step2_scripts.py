@@ -330,7 +330,7 @@ def _call_ollama_chat(system: str, user: str) -> str:
 
 
 def _generate_radio_script(markdown: str, language: str) -> str:
-    """Generate a ~750-word radio broadcast script in the target language."""
+    """Generate a ~300-word spoken weather announcement in the target language."""
     p = _RADIO_PROMPTS[language]
     return _call_ollama_chat(
         system=p["system"],
