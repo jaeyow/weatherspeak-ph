@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import type { Language, MediaByLang } from '@/types';
 import AudioPlayer from './AudioPlayer';
 import { audioUrl } from '@/lib/audio-url';
@@ -63,9 +64,9 @@ export default function BulletinAudioSection({ media, stem }: Props) {
           <summary className="text-xs font-semibold text-gray-400 uppercase tracking-wide cursor-pointer">
             {t('read_bulletin')}
           </summary>
-          <p className="mt-3 text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
-            {scriptText}
-          </p>
+          <div className="mt-3 text-sm text-gray-300 leading-relaxed prose prose-invert prose-sm max-w-none">
+            <ReactMarkdown>{scriptText}</ReactMarkdown>
+          </div>
         </details>
       )}
     </div>

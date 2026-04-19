@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
 import { getBulletin } from '@/lib/supabase/queries';
 import { audioUrl } from '@/lib/audio-url';
@@ -50,18 +49,15 @@ export default async function BulletinDetailPage({ params }: Props) {
       {/* Chart */}
       {chartUrl && (
         <div className="rounded-xl overflow-hidden bg-white/5">
-          <p className="text-xs text-gray-400 uppercase tracking-wide px-3 pt-3">
+          <p className="text-xs text-gray-400 uppercase tracking-wide px-3 pt-3 pb-2">
             <PageLabel k="storm_track" />
           </p>
-          <div className="relative w-full aspect-[4/3]">
-            <Image
-              src={chartUrl}
-              alt="Storm track chart"
-              fill
-              className="object-contain"
-              sizes="(max-width: 512px) 100vw, 512px"
-            />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={chartUrl}
+            alt="Storm track chart"
+            className="w-full h-auto"
+          />
         </div>
       )}
 
