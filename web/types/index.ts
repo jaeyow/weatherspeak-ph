@@ -72,6 +72,8 @@ export interface StormWithStatus extends Storm {
   current_signal: number | null;
   current_category: string | null;
   current_reference: string | null;
+  current_lat: number | null;
+  current_lon: number | null;
 }
 
 // Parsed signal section for the AffectedAreas accordion
