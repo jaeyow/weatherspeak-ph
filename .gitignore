@@ -63,3 +63,6 @@ notebooks/*/
 
 # Visual brainstorming sessions
 .superpowers/
+
+# Playwright MCP
+.playwright-mcp/
