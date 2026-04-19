@@ -63,4 +63,3 @@ notebooks/*/
 
 # Visual brainstorming sessions
 .superpowers/
-data/etl_reports/*.md
