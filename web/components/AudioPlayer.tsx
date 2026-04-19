@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { useTranslation } from './LanguageProvider';
 
 interface Props {
   audioUrl: string | null;
@@ -18,10 +19,11 @@ export default function AudioPlayer({ audioUrl, durationSeconds, filename }: Pro
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const [current, setCurrent] = useState(0);
+  const { t } = useTranslation();
 
   if (!audioUrl) {
     return (
-      <p className="text-gray-400 text-sm py-4">Audio not yet available for this language.</p>
+      <p className="text-gray-400 text-sm py-4">{t('audio_not_available')}</p>
     );
   }
 
@@ -85,7 +87,7 @@ export default function AudioPlayer({ audioUrl, durationSeconds, filename }: Pro
           download={filename}
           className="text-sm text-gray-300 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-colors"
         >
-          ⬇ Download
+          ⬇ {t('download')}
         </a>
       </div>
     </div>

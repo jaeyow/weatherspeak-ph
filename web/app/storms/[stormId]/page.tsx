@@ -7,6 +7,7 @@ import { formatDate } from '@/lib/format-date';
 import BulletinAudioSection from '@/components/BulletinAudioSection';
 import AffectedAreas from '@/components/AffectedAreas';
 import DistancePill from '@/components/DistancePill';
+import PageLabel from '@/components/PageLabel';
 
 export const revalidate = 600; // 10 minutes
 
@@ -37,7 +38,7 @@ export default async function StormDetailPage({ params }: Props) {
     <div className="space-y-6">
       {/* Back */}
       <Link href="/" className="text-sm text-gray-400 hover:text-white transition-colors">
-        ← All Storms
+        <PageLabel k="all_storms" />
       </Link>
 
       {/* Hero banner */}
@@ -63,7 +64,9 @@ export default async function StormDetailPage({ params }: Props) {
       {/* Storm track chart */}
       {chartUrl && (
         <div className="rounded-xl overflow-hidden bg-white/5">
-          <p className="text-xs text-gray-400 uppercase tracking-wide px-3 pt-3">Storm Track</p>
+          <p className="text-xs text-gray-400 uppercase tracking-wide px-3 pt-3">
+            <PageLabel k="storm_track" />
+          </p>
           <div className="relative w-full aspect-[4/3]">
             <Image
               src={chartUrl}
@@ -83,7 +86,7 @@ export default async function StormDetailPage({ params }: Props) {
       {bulletinHistory.length > 0 && (
         <section>
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
-            Past Bulletins
+            <PageLabel k="past_bulletins" />
           </h2>
           <div className="space-y-1">
             {bulletinHistory.map(b => (
@@ -102,8 +105,8 @@ export default async function StormDetailPage({ params }: Props) {
 
       {/* Mode 2 stub */}
       <div className="rounded-2xl border border-white/5 bg-white/3 p-5 opacity-40">
-        <div className="text-sm font-semibold text-white">🎙 Storm Summary Audio</div>
-        <div className="text-xs text-gray-400 mt-1">Coming soon — full storm narrative in your language.</div>
+        <div className="text-sm font-semibold text-white">🎙 <PageLabel k="storm_summary_audio" /></div>
+        <div className="text-xs text-gray-400 mt-1"><PageLabel k="coming_soon" /></div>
       </div>
     </div>
   );

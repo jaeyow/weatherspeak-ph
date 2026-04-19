@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { parseAffectedAreas } from '@/lib/affected-areas';
 import type { AffectedAreas as AffectedAreasType } from '@/types';
+import { useTranslation } from './LanguageProvider';
 
 const SIGNAL_COLORS: Record<number, string> = {
   1: 'bg-blue-900/40 border-blue-700',
@@ -19,13 +20,14 @@ interface Props {
 export default function AffectedAreas({ areas }: Props) {
   const [open, setOpen] = useState<number | null>(null);
   const sections = parseAffectedAreas(areas);
+  const { t } = useTranslation();
 
   if (sections.length === 0) return null;
 
   return (
     <div className="space-y-2">
       <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-        Affected Areas
+        {t('affected_areas')}
       </h3>
       {sections.map(({ signal, areas: list }) => (
         <div
@@ -40,7 +42,7 @@ export default function AffectedAreas({ areas }: Props) {
               Signal #{signal}
             </span>
             <span className="text-gray-400 text-xs">
-              {list.length} area{list.length !== 1 ? 's' : ''} {open === signal ? '▲' : '▼'}
+              {list.length} {list.length !== 1 ? t('areas') : t('area')} {open === signal ? '▲' : '▼'}
             </span>
           </button>
           {open === signal && (
