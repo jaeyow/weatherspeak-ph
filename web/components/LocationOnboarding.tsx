@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { getProvinces, getCitiesForProvince, getCityCoords } from '@/lib/geography';
 import type { Language } from '@/types';
+import { useTranslation } from './LanguageProvider';
 
 const LANGUAGES: { code: Language; label: string }[] = [
-  { code: 'tl', label: 'Tagalog' },
   { code: 'ceb', label: 'Cebuano' },
+  { code: 'tl', label: 'Tagalog' },
   { code: 'en', label: 'English' },
 ];
 
@@ -14,8 +15,9 @@ export default function LocationOnboarding() {
   const [show, setShow] = useState(false);
   const [province, setProvince] = useState('');
   const [city, setCity] = useState('');
-  const [language, setLanguage] = useState<Language>('tl');
+  const [language, setLanguage] = useState<Language>('ceb');
   const provinces = getProvinces();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!localStorage.getItem('ws_province')) setShow(true);
@@ -51,13 +53,13 @@ export default function LocationOnboarding() {
         <div className="text-center">
           <div className="text-4xl mb-2">🌀</div>
           <h2 className="text-xl font-bold text-white">WeatherSpeak PH</h2>
-          <p className="text-sm text-gray-400 mt-1">Setup — takes 10 seconds</p>
+          <p className="text-sm text-gray-400 mt-1">{t('setup_subtitle')}</p>
         </div>
 
         {/* Location */}
         <div className="space-y-2">
           <label className="text-xs font-semibold text-gray-300 uppercase tracking-wide">
-            📍 Your location
+            📍 {t('your_location')}
           </label>
           <select
             value={province}
@@ -110,7 +112,7 @@ export default function LocationOnboarding() {
           disabled={!province || !city}
           className="w-full bg-red-600 hover:bg-red-500 disabled:opacity-40 text-white font-bold py-3 rounded-lg transition-colors"
         >
-          Get Started
+          {t('get_started')}
         </button>
       </div>
     </div>

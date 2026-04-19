@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import type { Language } from '@/types';
 
-const LABELS: Record<Language, string> = { tl: 'TL', ceb: 'CEB', en: 'EN' };
-const LANGUAGES: Language[] = ['tl', 'ceb', 'en'];
+const LABELS: Record<Language, string> = { ceb: 'CEB', tl: 'TL', en: 'EN' };
+const LANGUAGES: Language[] = ['ceb', 'tl', 'en'];
 
 export default function LanguageToggle() {
-  const [selected, setSelected] = useState<Language>('tl');
+  const [selected, setSelected] = useState<Language>('ceb');
 
   useEffect(() => {
     const stored = localStorage.getItem('ws_language') as Language | null;

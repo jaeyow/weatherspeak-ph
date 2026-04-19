@@ -587,3 +587,60 @@ Supabase Storage `weatherspeak-public/{stem}/`: `audio_{lang}.mp3` × 3, `radio_
 - Design Lola-first UX: active storm cards → storm page → audio player
 
 ---
+
+## PR #10 — Frontend UX Fixes: i18n, Storm Track, Read Bulletin
+**Date:** 2026-04-19
+**Branch:** `feature/frontend-ux-fixes`
+**Status:** Complete ✅
+
+### What we fixed
+
+Three UX issues found while reviewing the live app, addressed in one PR.
+
+---
+
+#### 1. Full i18n — EN / TL / CEB
+
+Every static label and bulletin text now switches language in real time when the visitor changes language.
+
+**How it works:**
+- `web/lib/translations.ts` — 19 translation keys across EN, Tagalog, Cebuano
+- `web/components/LanguageProvider.tsx` — React context that reads `ws_language` from `localStorage` on mount and listens for `ws:language-change` events
+- `web/components/PageLabel.tsx` — thin client component used inside server pages to translate a key without making the whole page a client component
+- All three pages (`/`, `/storms/[id]`, `/bulletins/[id]`) and all relevant components wired up
+
+**Language order / default changed:** Cebuano → Tagalog → English (was English-first). Default is now Cebuano.
+
+#### 2. Storm Track Chart — fixed broken display
+
+**Problem:** The "Storm Track" section rendered the full PAGASA bulletin PDF page (portrait, 1654×2339 A4) inside a forced landscape `aspect-[4/3]` container. With `object-contain`, the portrait image was letterboxed into a narrow rectangle surrounding by dark space — appearing empty or broken.
+
+**Fix:** Replaced Next.js `<Image fill>` + fixed aspect ratio with a plain `<img className="w-full h-auto">` in both the storm and bulletin detail pages. The chart now renders at full width with its natural portrait proportions.
+
+#### 3. Read Bulletin — Markdown rendering
+
+**Problem:** The "Read bulletin" collapsible section displayed the raw Markdown radio script with `**`, `#`, `*` syntax as literal characters.
+
+**Fix:** Installed `react-markdown` + `@tailwindcss/typography`. Script source is `script_path` (full Markdown radio script) — `tts_path` was considered but rejected because it contains phonetically spelled words (`ki-lo-me-tros`) that look odd on screen.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `web/lib/translations.ts` | New — 19 i18n keys × 3 languages |
+| `web/components/LanguageProvider.tsx` | New — React context + `useTranslation` hook |
+| `web/components/PageLabel.tsx` | New — thin client label for server pages |
+| `web/app/layout.tsx` | Wrap body in `<LanguageProvider>` |
+| `web/app/page.tsx` | Replace static strings with `<PageLabel>` |
+| `web/app/storms/[stormId]/page.tsx` | `<PageLabel>` + chart display fix |
+| `web/app/bulletins/[bulletinId]/page.tsx` | `<PageLabel>` + chart display fix |
+| `web/components/AudioPlayer.tsx` | `useTranslation()` for labels |
+| `web/components/AffectedAreas.tsx` | `useTranslation()` for labels |
+| `web/components/LocationOnboarding.tsx` | `useTranslation()` for labels |
+| `web/components/LanguageToggle.tsx` | CEB default, reorder to CEB→TL→EN |
+| `web/components/BulletinAudioSection.tsx` | `useTranslation()` + `react-markdown` render |
+| `web/lib/audio-url.ts` | Guard against missing `NEXT_PUBLIC_SUPABASE_URL` |
+| `web/tailwind.config.ts` | Add `@tailwindcss/typography` plugin |
+| `web/package.json` | Add `react-markdown`, `@tailwindcss/typography` |
+
+---

@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
 import { getStormDetail } from '@/lib/supabase/queries';
 import { audioUrl } from '@/lib/audio-url';
@@ -7,6 +6,7 @@ import { formatDate } from '@/lib/format-date';
 import BulletinAudioSection from '@/components/BulletinAudioSection';
 import AffectedAreas from '@/components/AffectedAreas';
 import DistancePill from '@/components/DistancePill';
+import PageLabel from '@/components/PageLabel';
 
 export const revalidate = 600; // 10 minutes
 
@@ -37,7 +37,7 @@ export default async function StormDetailPage({ params }: Props) {
     <div className="space-y-6">
       {/* Back */}
       <Link href="/" className="text-sm text-gray-400 hover:text-white transition-colors">
-        ← All Storms
+        <PageLabel k="all_storms" />
       </Link>
 
       {/* Hero banner */}
@@ -63,16 +63,15 @@ export default async function StormDetailPage({ params }: Props) {
       {/* Storm track chart */}
       {chartUrl && (
         <div className="rounded-xl overflow-hidden bg-white/5">
-          <p className="text-xs text-gray-400 uppercase tracking-wide px-3 pt-3">Storm Track</p>
-          <div className="relative w-full aspect-[4/3]">
-            <Image
-              src={chartUrl}
-              alt={`Storm track chart for ${storm.storm_name}`}
-              fill
-              className="object-contain"
-              sizes="(max-width: 512px) 100vw, 512px"
-            />
-          </div>
+          <p className="text-xs text-gray-400 uppercase tracking-wide px-3 pt-3 pb-2">
+            <PageLabel k="storm_track" />
+          </p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={chartUrl}
+            alt={`Storm track chart for ${storm.storm_name}`}
+            className="w-full h-auto"
+          />
         </div>
       )}
 
@@ -83,7 +82,7 @@ export default async function StormDetailPage({ params }: Props) {
       {bulletinHistory.length > 0 && (
         <section>
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
-            Past Bulletins
+            <PageLabel k="past_bulletins" />
           </h2>
           <div className="space-y-1">
             {bulletinHistory.map(b => (
@@ -102,8 +101,8 @@ export default async function StormDetailPage({ params }: Props) {
 
       {/* Mode 2 stub */}
       <div className="rounded-2xl border border-white/5 bg-white/3 p-5 opacity-40">
-        <div className="text-sm font-semibold text-white">🎙 Storm Summary Audio</div>
-        <div className="text-xs text-gray-400 mt-1">Coming soon — full storm narrative in your language.</div>
+        <div className="text-sm font-semibold text-white">🎙 <PageLabel k="storm_summary_audio" /></div>
+        <div className="text-xs text-gray-400 mt-1"><PageLabel k="coming_soon" /></div>
       </div>
     </div>
   );
