@@ -588,6 +588,64 @@ Supabase Storage `weatherspeak-public/{stem}/`: `audio_{lang}.mp3` × 3, `radio_
 
 ---
 
+## PR #11 — Prompt Quality: Low-Literacy Audience + 2-Minute Bulletins
+**Date:** 2026-04-19
+**Branch:** `main`
+**Status:** Complete ✅
+
+### What we improved
+
+Rewrote all Gemma 4 prompts in the ETL pipeline and notebooks to better serve the target audience — Filipinos with low literacy, limited education, and no English background — and shortened the bulletin target from 5 minutes to 2 minutes.
+
+---
+
+#### 1. Bulletin length: 5 minutes → 2 minutes (300 words)
+
+Five-minute bulletins were too long for the target demographic. A clear, direct 2-minute announcement is more likely to be understood and acted upon.
+
+- `notebooks/06-radio-bulletin.ipynb`: `TARGET_WORDS = 750 → 300`, all language references updated (lima ka minuto → duha ka minuto, limang minuto → dalawang minuto)
+- All prompts in `_RADIO_PROMPTS` and `_TTS_PROMPTS`: word count target updated to ~300 words / two minutes
+
+#### 2. ETL `_RADIO_PROMPTS` — reframed as formal PAGASA announcement
+
+**Problem:** Prompts framed the model as a "radio broadcaster", causing it to invent station names, radio sign-offs, and placeholders like `[insert program name here]`.
+
+**Fix:** Reframed all three language prompts as a formal PAGASA severe weather announcement. Key changes across EN / TL / CEB:
+- Explicit prohibition: no placeholders, no radio show language, no greetings, no sign-offs
+- Audience framing: "People with low literacy, limited education, and no English background — write as if speaking to a farmer or fisherman"
+- Simple words / short sentences — one idea per sentence
+- Phonetic spelling lists retained and tightened (TL/CEB)
+- Section headings simplified to plain questions: "Where Is The Storm", "Who Is In Danger", "What To Do" (EN); "Nasaan ang Bagyo", "Ano ang Gagawin" (TL); "Asa ang Bagyo", "Unsa ang Buhaton" (CEB)
+
+#### 3. ETL `_TTS_PROMPTS` — same audience framing + prohibitions applied
+
+TTS prompts convert the radio Markdown script into plain text for synthesis. The EN prompt was weakest — no audience framing, no prohibition on placeholders.
+
+**Fix across all three languages:**
+- EN: rewritten with audience framing, no-placeholder rule, no-radio-show rule, simple words / short sentences
+- TL/CEB: added explicit no-placeholder and no-radio-show rules on top of existing phonetic spelling requirements
+
+#### 4. Notebook 08 TTS prompts synced to ETL
+
+`notebooks/08-mms-tts-experiment.ipynb` cell `0f4d4183` now uses identical prompts to the ETL (audience framing, no placeholders, no radio show language, full phonetic spelling lists).
+
+#### 5. Notebook 08 updated to reflect Coqui XTTS v2 as English TTS
+
+Documented the full history of English TTS options tried:
+- MMS English (`facebook/mms-tts-eng`) — ❌ robotic, rejected
+- Microsoft SpeechT5 + HiFiGAN — ❌ scratchy, inconsistent voice, rejected
+- Coqui XTTS v2 (`Damien Black`) — ✅ selected, matches production ETL
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `modal_etl/step2_scripts.py` | `_RADIO_PROMPTS` rewritten; `_TTS_PROMPTS` updated with audience framing + prohibitions; `~750-word` docstring fixed |
+| `notebooks/06-radio-bulletin.ipynb` | Word target 750 → 300, time references updated to 2 minutes |
+| `notebooks/08-mms-tts-experiment.ipynb` | TTS prompts synced to ETL; English TTS history documented (MMS ❌, SpeechT5 ❌, XTTS v2 ✅) |
+
+---
+
 ## PR #10 — Frontend UX Fixes: i18n, Storm Track, Read Bulletin
 **Date:** 2026-04-19
 **Branch:** `feature/frontend-ux-fixes`
