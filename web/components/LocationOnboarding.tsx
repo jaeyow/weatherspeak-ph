@@ -5,8 +5,8 @@ import { getProvinces, getCitiesForProvince, getCityCoords } from '@/lib/geograp
 import type { Language } from '@/types';
 
 const LANGUAGES: { code: Language; label: string }[] = [
-  { code: 'tl', label: 'Tagalog' },
   { code: 'ceb', label: 'Cebuano' },
+  { code: 'tl', label: 'Tagalog' },
   { code: 'en', label: 'English' },
 ];
 
@@ -14,7 +14,7 @@ export default function LocationOnboarding() {
   const [show, setShow] = useState(false);
   const [province, setProvince] = useState('');
   const [city, setCity] = useState('');
-  const [language, setLanguage] = useState<Language>('tl');
+  const [language, setLanguage] = useState<Language>('ceb');
   const provinces = getProvinces();
 
   useEffect(() => {

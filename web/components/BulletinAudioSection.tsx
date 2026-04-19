@@ -11,7 +11,7 @@ interface Props {
 }
 
 export default function BulletinAudioSection({ media, stem }: Props) {
-  const [language, setLanguage] = useState<Language>('tl');
+  const [language, setLanguage] = useState<Language>('ceb');
 
   useEffect(() => {
     const stored = localStorage.getItem('ws_language') as Language | null;
