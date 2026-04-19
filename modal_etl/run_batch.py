@@ -55,7 +55,9 @@ def _write_report(
     """Write a Markdown ETL run report and return the file path."""
     total_elapsed = (run_end - run_start).total_seconds()
     timestamp = run_start.strftime("%Y%m%d_%H%M%S")
-    report_path = Path(f"etl_report_{timestamp}.md")
+    reports_dir = Path("data/etl_reports")
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    report_path = reports_dir / f"etl_report_{timestamp}.md"
 
     ok_count = sum(1 for r in results if r["overall"] == "ok")
     fail_count = len(results) - ok_count
