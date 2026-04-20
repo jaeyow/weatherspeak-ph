@@ -9,9 +9,17 @@ AI-powered multilingual severe weather communications for the Philippines.
 
 PAGASA issues typhoon bulletins in English only. Most Filipinos most at risk — farmers, fisherfolk, rural communities — speak Tagalog or Cebuano (Bisaya), not English. When a typhoon is approaching, they may not understand the warning in time to act.
 
+**But the language barrier is only half the problem.**
+
+Even a Tagalog or Cebuano translation in text form leaves millions behind. According to the Philippine Statistics Authority's 2019 Functional Literacy, Education and Mass Media Survey (FLEMMS), roughly **8–9 million Filipinos aged 10–64 are functionally illiterate** — meaning they cannot read with sufficient comprehension to act on written instructions. In rural and coastal communities hardest hit by typhoons, that share is even higher.
+
+A bulletin on a screen — in any language — cannot reach someone who cannot read it.
+
 ## What It Does
 
 WeatherSpeak PH ingests PAGASA PDF bulletins, translates them into Tagalog and Cebuano, and generates MP3 audio so communities can *hear* the warning in their own language — on any phone, with no reading required.
+
+> **Audio is the equaliser.** It crosses the language barrier *and* the literacy barrier in one step. A farmer in Leyte with a basic mobile phone and no schooling can press play and understand exactly what is coming and what to do.
 
 ---
 
