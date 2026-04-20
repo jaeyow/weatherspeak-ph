@@ -71,7 +71,10 @@ uv run modal run modal_etl/run_batch.py --n 1 --force
 # Use --detach when processing many bulletins — submits the job to Modal and
 # returns immediately so your local terminal doesn't time out waiting for logs.
 # The ETL continues running on Modal's infrastructure in the background.
-uv run modal run --detach modal_etl/run_batch.py --n 10
+uv run modal run --detach modal_etl/run_batch.py --n 5
+
+# Force re-run all steps across multiple bulletins without risking a local timeout:
+uv run modal run --detach modal_etl/run_batch.py --n 5 --force
 ```
 
 ETL run reports are saved to `data/etl_reports/etl_report_{timestamp}.md`.
