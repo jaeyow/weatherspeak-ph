@@ -1,7 +1,85 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from './LanguageProvider';
+
+function Waveform({
+  playing,
+  analyser,
+}: {
+  playing: boolean;
+  analyser: AnalyserNode | null;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d')!;
+
+    const drawIdle = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const barCount = 32; // matches half * 2 in the live draw loop
+      const step = canvas.width / barCount;
+      const barW = Math.floor(step * 0.6);
+      const centerY = canvas.height / 2;
+      ctx.fillStyle = 'rgba(239,68,68,0.25)';
+      for (let i = 0; i < barCount; i++) {
+        const x = i * step + (step - barW) / 2;
+        ctx.beginPath();
+        ctx.roundRect(x, centerY - 1, barW, 2, 1);
+        ctx.fill();
+      }
+    };
+
+    if (!playing || !analyser) {
+      cancelAnimationFrame(rafRef.current);
+      drawIdle();
+      return;
+    }
+
+    const data = new Uint8Array(analyser.frequencyBinCount);
+
+    const draw = () => {
+      analyser.getByteFrequencyData(data);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Mirror from center: bin 0 (low freq) sits at the middle,
+      // higher frequencies spread outward to the left and right.
+      const half = 16;                    // 16 bins per side = 32 bars total
+      const barCount = half * 2;
+      const step = canvas.width / barCount;
+      const barW = Math.floor(step * 0.6);
+      const centerY = canvas.height / 2;
+      const maxH = centerY - 2;
+
+      ctx.fillStyle = '#ef4444';
+      for (let i = 0; i < half; i++) {
+        const barH = Math.max(2, (data[i] / 255) * maxH);
+
+        // Right side: bin 0 is just right of center, bin half-1 is far right
+        const rx = (half + i) * step + (step - barW) / 2;
+        ctx.beginPath();
+        ctx.roundRect(rx, centerY - barH, barW, barH * 2, 2);
+        ctx.fill();
+
+        // Left side: mirror of right (bin 0 is just left of center)
+        const lx = (half - 1 - i) * step + (step - barW) / 2;
+        ctx.beginPath();
+        ctx.roundRect(lx, centerY - barH, barW, barH * 2, 2);
+        ctx.fill();
+      }
+
+      rafRef.current = requestAnimationFrame(draw);
+    };
+
+    draw();
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [playing, analyser]);
+
+  return <canvas ref={canvasRef} width={400} height={64} className="w-full h-16" />;
+}
 
 interface Props {
   audioUrl: string | null;
@@ -17,9 +95,15 @@ function formatTime(seconds: number): string {
 
 export default function AudioPlayer({ audioUrl, durationSeconds, filename }: Props) {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const [playing, setPlaying] = useState(false);
   const [current, setCurrent] = useState(0);
   const { t } = useTranslation();
+
+  useEffect(() => {
+    return () => { audioCtxRef.current?.close(); };
+  }, []);
 
   if (!audioUrl) {
     return (
@@ -31,10 +115,36 @@ export default function AudioPlayer({ audioUrl, durationSeconds, filename }: Pro
 
   const handlePlayPause = () => {
     if (!audioRef.current) return;
+
+    // Lazily create AudioContext + AnalyserNode on first play, synchronously
+    // inside the click handler so browsers don't suspend the context.
+    // crossOrigin="anonymous" on the <audio> element is required for
+    // createMediaElementSource to work with remote (Supabase) URLs.
+    if (!audioCtxRef.current) {
+      try {
+        const audioCtx = new AudioContext();
+        const node = audioCtx.createAnalyser();
+        node.fftSize = 64;
+        node.smoothingTimeConstant = 0.75;
+        const source = audioCtx.createMediaElementSource(audioRef.current);
+        source.connect(node);
+        node.connect(audioCtx.destination);
+        audioCtxRef.current = audioCtx;
+        setAnalyser(node); // triggers re-render so Waveform gets the node
+      } catch {
+        // Web Audio unavailable or CORS error — audio still plays via <audio>
+      }
+    }
+
     if (playing) {
       audioRef.current.pause();
+      audioCtxRef.current?.suspend();
     } else {
-      audioRef.current.play();
+      if (audioCtxRef.current) {
+        audioCtxRef.current.resume().then(() => audioRef.current?.play());
+      } else {
+        audioRef.current.play();
+      }
     }
     setPlaying(!playing);
   };
@@ -43,19 +153,28 @@ export default function AudioPlayer({ audioUrl, durationSeconds, filename }: Pro
     if (audioRef.current) setCurrent(Math.floor(audioRef.current.currentTime));
   };
 
-  const handleEnded = () => setPlaying(false);
+  const handleEnded = () => {
+    setPlaying(false);
+    audioCtxRef.current?.suspend();
+  };
 
   const progress = total > 0 ? (current / total) * 100 : 0;
 
   return (
     <div className="bg-white/5 rounded-xl p-4 space-y-3">
+      {/* crossOrigin="anonymous" is required for createMediaElementSource
+          to process audio from a cross-origin URL (Supabase storage) */}
       <audio
         ref={audioRef}
         src={audioUrl}
+        crossOrigin="anonymous"
         onTimeUpdate={handleTimeUpdate}
         onEnded={handleEnded}
         preload="metadata"
       />
+
+      {/* Waveform */}
+      <Waveform playing={playing} analyser={analyser} />
 
       {/* Progress bar */}
       <div className="w-full bg-white/10 h-1 rounded-full">
