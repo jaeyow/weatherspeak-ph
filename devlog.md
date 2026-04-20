@@ -702,3 +702,68 @@ Every static label and bulletin text now switches language in real time when the
 | `web/package.json` | Add `react-markdown`, `@tailwindcss/typography` |
 
 ---
+
+## PR #12 — ETL Quality Fixes: Radio Script, Phonetics, Number Formatting, ETL Report
+**Date:** 2026-04-19  
+**Branch:** `main` (direct commits)  
+**Commits:** `a1c4ce5`, `b7fc6af`, `a905c78`, `d5caf77`, `b41053e`
+
+### What we fixed
+
+#### 1. Radio script no longer shows phonetic spellings on screen
+
+**Problem:** The "Read bulletin" section on the website displayed phonetically spelled words (`ki-lo-me-tros`, `tro-pi-kal`) because `_RADIO_PROMPTS` incorrectly included phonetic spelling lists — those belong only in `_TTS_PROMPTS`.
+
+**Fix:** Removed all phonetic spelling lists from `_RADIO_PROMPTS` (CEB + TL). Replaced with natural language equivalents (e.g. `kph → kilometros sa usa ka oras`).
+
+**Two-prompt rule clarified:**
+- `_RADIO_PROMPTS` → `radio_{lang}.md` → displayed on screen — must use proper readable language
+- `_TTS_PROMPTS` → `tts_{lang}.txt` → fed to audio synthesizer — uses phonetic spellings
+
+#### 2. Numbers: digits in radio scripts, phonetic words in TTS
+
+**Problem:** The LLM was instructed to spell out all numbers in Cebuano words, producing wrong output like `duha ka ka-lima` for 25.
+
+**Fix:**
+- `_RADIO_PROMPTS` (CEB + TL): now instructs to write numbers as digits + Cebuano/Tagalog unit words (e.g. `25 kilometros sa usa ka oras`)
+- `_TTS_PROMPTS` (CEB + TL): added phonetic number tables using Spanish-borrowed words common in Filipino speech (baynte singko, isyento treynta, etc.)
+
+#### 3. ETL run report
+
+Added a local Markdown run report saved to `data/etl_reports/etl_report_{timestamp}.md` after each batch. Shows per-bulletin, per-step status, elapsed time, and files created. Useful for diagnosing failures without digging into Modal logs.
+
+#### 4. Notebook 08 synced
+
+TTS prompts in `notebooks/08-mms-tts-experiment.ipynb` synced to match ETL: number phonetics tables added for both CEB and TL.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `modal_etl/step2_scripts.py` | Remove phonetics from `_RADIO_PROMPTS`; digits rule + phonetic number tables in `_TTS_PROMPTS` |
+| `modal_etl/run_batch.py` | Add `_write_report()`, timing + try/except per step, report saved to `data/etl_reports/` |
+| `notebooks/08-mms-tts-experiment.ipynb` | Sync TTS prompts — phonetic number tables for CEB + TL |
+
+---
+
+## PR #13 — Parallelize Step 2 by Language
+**Date:** 2026-04-20  
+**Branch:** `feature/parallel-step2`  
+**Commit:** `1bf626c`
+
+### What we did
+
+Step 2 (radio script + TTS text generation) previously ran all 3 languages sequentially in a single Modal container. Since Ollama handles one inference request at a time, EN → TL → CEB queued on the same GPU — ~4 minutes wall time.
+
+Refactored Step 2 to match the pattern already used by Step 3: one Modal container per language, dispatched concurrently via `starmap`. Each container starts its own Ollama instance and processes a single language independently.
+
+**Expected improvement:** ~4 min → ~1.5 min wall time for Step 2. GPU cost unchanged (same total GPU-minutes, distributed across 3 containers).
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `modal_etl/step2_scripts.py` | `Step2Scripts` class → `step2_scripts` `@app.function(stem, language, force)` — timeout 3600s → 600s |
+| `modal_etl/run_batch.py` | `scripts.run.remote()` → `step2_scripts.starmap(...)`, remove `Step2Scripts` instance, update ETL report label |
+
+---
