@@ -2,7 +2,6 @@ import subprocess
 import time
 from pathlib import Path
 
-import modal
 import requests
 
 from modal_etl.app import app, ollama_image, OLLAMA_MOUNTS, output_volume
@@ -28,7 +27,7 @@ _RADIO_PROMPTS = {
             "- This is a PAGASA severe weather announcement. It is serious. No greetings, no closings.\n"
             "- Use SHORT sentences. One idea per sentence.\n"
             "- Use SIMPLE words. Avoid technical jargon. If a technical term is needed, explain it simply.\n"
-            "- Spell out all numbers (e.g. 'one hundred thirty kilometres per hour', 'Signal Number Two').\n"
+            "- Spell out all numbers (e.g. 'one hundred thirty kilometres per hour', 'Signal Number Two'). Use plain words — no hyphens or phonetic spelling.\n"
             "- Cover only what matters: where the storm is, where it is going, who is in danger, what to do.\n"
             "- Do NOT add information that is not in the source bulletin.\n\n"
             "FORMATTING: Output in Markdown for readability.\n"
@@ -55,39 +54,21 @@ _RADIO_PROMPTS = {
             "- Ito ay isang seryosong pahayag ng PAGASA. Walang bati, walang pagtatapos na parirala.\n"
             "- MAIIKLING pangungusap. Isang ideya lang sa bawat pangungusap.\n"
             "- SIMPLENG salita. Iwasan ang mahirap na termino. Kung kailangan ang teknikal na salita, ipaliwanag nang simple.\n"
-            "- I-spell out ang lahat ng numero (hal. 'isandaan at tatlumpung ki-lo-me-tro bawat oras').\n"
+            "- Gamitin ang mga digit para sa mga numero, kasunod ng Tagalog na yunit (hal. '25 kilometro bawat oras', '130 kilometro bawat oras').\n"
             "- Sabihin lamang ang mahalaga: nasaan ang bagyo, saan ito pupunta, sino ang nasa panganib, ano ang gagawin.\n"
             "- HUWAG magdagdag ng impormasyon na wala sa orihinal na bulletin.\n\n"
             "WIKA: TAGALOG LAMANG. Huwag gumamit ng Ingles maliban sa mga pangalan ng tao at lugar.\n"
-            "Para sa lahat ng teknikal na termino, gamitin ang phonetically spelled na anyo:\n"
-            "  - Tropical Depression → tro-pi-kal di-pre-syon\n"
-            "  - Tropical Storm → tro-pi-kal storm\n"
-            "  - Severe Tropical Storm → se-beer tro-pi-kal storm\n"
-            "  - Typhoon → tai-pun\n"
-            "  - Super Typhoon → su-per tai-pun\n"
-            "  - PAGASA → pag-asa\n"
-            "  - forecast → pore-kast\n"
-            "  - advisory → ad-bay-so-ri\n"
-            "  - bulletin → bu-le-tin\n"
-            "  - warning → wor-ning\n"
-            "  - update → ap-deyt\n"
-            "  - Signal Number One / Two / Three / Four / Five → sig-nal nam-ber wan / tu / tri / por / payb\n"
-            "  - kilometers per hour / kph → ki-lo-me-tro bawat oras\n"
-            "  - northeast / southeast / northwest / southwest → nor-ist / sow-ist / nor-west / sow-west\n"
-            "  - northern / southern / eastern / western → nor-dern / sow-dern / is-tern / wes-tern\n"
+            "Gumamit ng tamang Tagalog na salita para sa mga teknikal na termino:\n"
+            "  - Tropical Depression → Tropical Depression (iwanang Ingles — kilala ito)\n"
+            "  - Tropical Storm / Typhoon / Super Typhoon → gamitin ang Tagalog na paglalarawan kung kailangan\n"
+            "  - Signal Number One / Two → Signal Bilang Isa / Dalawa\n"
+            "  - kilometers per hour / kph → kilometro bawat oras\n"
             "  - Low Pressure Area / LPA → mababang presyon\n"
-            "  - hPa → ek-to-pas-kal\n"
-            "  - coastal → kos-tal\n"
-            "  - landfall → land-pol\n"
-            "  - storm surge → storm serj\n"
-            "  - flash flood → plash plud\n"
-            "  - emergency → i-mer-chen-si\n"
-            "  - evacuation → i-bak-yu-ey-syon\n"
-            "  - center → sen-ter\n"
-            "  - official → o-pi-syal\n"
-            "  - Luzon → lu-son\n"
-            "  - Visayas → bi-sa-yas\n"
-            "  - Mindanao → min-da-naw\n\n"
+            "  - storm surge → malakas na alon mula sa dagat\n"
+            "  - flash flood → biglang baha\n"
+            "  - evacuation → paglipat sa ligtas na lugar\n"
+            "  - landfall → pagdating ng bagyo sa lupa\n"
+            "  - coastal → baybaying-dagat\n\n"
             "FORMATTING: Mag-output sa Markdown para madaling basahin.\n"
             "- Isang top-level heading: pangalan ng bagyo at uri ng bulletin\n"
             "- Second-level headings para sa: Nasaan ang Bagyo, Saan Ito Pupunta, Sino ang Nasa Panganib, Ano ang Gagawin\n"
@@ -112,39 +93,20 @@ _RADIO_PROMPTS = {
             "- Kini usa ka seryosong pahayag sa PAGASA. Walay pangamusta, walay pagtapos nga pakiana.\n"
             "- MUBO NGA MGA SENTENCE. Usa lang ka ideya sa matag sentence.\n"
             "- SIMPLE NGA MGA PULONG. Likayi ang lisod nga termino. Kung kinahanglan ang teknikal nga pulong, ipasabot kini sa simple nga paagi.\n"
-            "- I-spell out ang tanan nga numero (pananglitan: 'usa ka gatos ug katluan ka ki-lo-me-tros sa usa ka oras').\n"
+            "- Gamiton ang mga digit para sa mga numero, sundan sa Cebuano nga yunit (pananglitan: '25 kilometros sa usa ka oras', '130 kilometros sa usa ka oras').\n"
             "- Isulti lamang ang importante: asa ang bagyo, asa kini padulong, kinsa ang anaa sa peligro, unsa ang buhaton.\n"
             "- AYAW pagdugang og impormasyon nga wala sa orihinal nga bulletin.\n\n"
             "PINULONGAN: CEBUANO/BISAYA LAMANG. Ayaw gamiton ang English gawas sa mga pangalan sa tawo ug lugar.\n"
-            "Para sa tanan nga teknikal nga termino, gamita ang phonetically spelled nga porma:\n"
-            "  - Tropical Depression → tro-pi-kal di-pre-syon\n"
-            "  - Tropical Storm → tro-pi-kal storm\n"
-            "  - Severe Tropical Storm → se-beer tro-pi-kal storm\n"
-            "  - Typhoon → tai-pun\n"
-            "  - Super Typhoon → su-per tai-pun\n"
-            "  - PAGASA → pag-asa\n"
-            "  - forecast → pore-kast\n"
-            "  - advisory → ad-bay-so-ri\n"
-            "  - bulletin → bu-le-tin\n"
-            "  - warning → wor-ning\n"
-            "  - update → ap-deyt\n"
-            "  - Signal Number One / Two / Three / Four / Five → sig-nal nam-ber wan / tu / tri / por / payb\n"
-            "  - kilometers per hour / kph → ki-lo-me-tros sa usa ka oras\n"
-            "  - northeast / southeast / northwest / southwest → nor-ist / sow-ist / nor-west / sow-west\n"
-            "  - northern / southern / eastern / western → nor-dern / sow-dern / is-tern / wes-tern\n"
+            "Gamiton ang hustong Cebuano nga pulong para sa mga teknikal nga termino:\n"
+            "  - Tropical Depression → Tropical Depression (ibiyo kini — nahibaloan na kini)\n"
+            "  - Signal Number One / Two → Signal Numero Uno / Dos\n"
+            "  - kilometers per hour / kph → kilometros sa usa ka oras\n"
             "  - Low Pressure Area / LPA → ubos nga presyon\n"
-            "  - hPa → ek-to-pas-kal\n"
-            "  - coastal → kos-tal\n"
-            "  - landfall → land-pol\n"
-            "  - storm surge → storm serj\n"
-            "  - flash flood → plash plud\n"
-            "  - emergency → i-mer-chen-si\n"
-            "  - evacuation → i-bak-yu-ey-syon\n"
-            "  - center → sen-ter\n"
-            "  - official → o-pi-syal\n"
-            "  - Luzon → lu-son\n"
-            "  - Visayas → bi-sa-yas\n"
-            "  - Mindanao → min-da-naw\n\n"
+            "  - storm surge → kusog nga balud gikan sa dagat\n"
+            "  - flash flood → biglang baha\n"
+            "  - evacuation → paglikas sa luwas nga dapit\n"
+            "  - landfall → pag-abot sa yuta\n"
+            "  - coastal → baybayon\n\n"
             "FORMATTING: Mag-output sa Markdown aron dali mabasahan.\n"
             "- Usa ka top-level heading: ngalan sa bagyo ug matang sa bulletin\n"
             "- Second-level headings para sa: Asa ang Bagyo, Asa Kini Padulong, Kinsa ang Anaa sa Peligro, Unsa ang Buhaton\n"
@@ -214,6 +176,17 @@ _TTS_PROMPTS = {
             "  - north / south / east → nor / sow / ist\n"
             "  - northern / southern / eastern / western → nor-dern / sow-dern / is-tern / wes-tern\n"
             "  - Low Pressure Area / LPA → mababang presyon\n"
+            "PARA SA MGA NUMERO — gamita ang Filipino/Spanish na mga salita:\n"
+            "  - 25 km/h → beinte singko ki-lo-me-tro ba-wat o-ras\n"
+            "  - 65 km/h → sisenta y singko ki-lo-me-tro ba-wat o-ras\n"
+            "  - 95 km/h → nobenta y singko ki-lo-me-tro ba-wat o-ras\n"
+            "  - 120 km/h → isang daan at dalawampu ki-lo-me-tro ba-wat o-ras\n"
+            "  - 130 km/h → isang daan at tatlumpu ki-lo-me-tro ba-wat o-ras\n"
+            "  - 150 km/h → isang daan at limampu ki-lo-me-tro ba-wat o-ras\n"
+            "  - 200 km/h → dalawang daan ki-lo-me-tro ba-wat o-ras\n"
+            "  - Para sa iba pang numero: singko=5, diyes=10, kinse=15, beinte=20,\n"
+            "    treynta=30, kuwarenta=40, singkwenta=50, sisenta=60,\n"
+            "    sitenta=70, otsenta=80, nobenta=90, isang daan=100\n\n"
             "  - hPa → ek-to-pas-kal\n"
             "  - coastal → kos-tal\n"
             "  - landfall → land-pol\n"
@@ -270,6 +243,17 @@ _TTS_PROMPTS = {
             "  - north / south / east → nor / sow / ist\n"
             "  - northern / southern / eastern / western → nor-dern / sow-dern / is-tern / wes-tern\n"
             "  - Low Pressure Area / LPA → ubos nga presyon\n"
+            "PARA SA MGA NUMERO — gamita ang Cebuano/Spanish nga mga pulong:\n"
+            "  - 25 km/h → baynte singko ki-lo-me-tros sa usa ka oras\n"
+            "  - 65 km/h → sisenta y singko ki-lo-me-tros sa usa ka oras\n"
+            "  - 95 km/h → nobenta y singko ki-lo-me-tros sa usa ka oras\n"
+            "  - 120 km/h → isyento baynte ki-lo-me-tros sa usa ka oras\n"
+            "  - 130 km/h → isyento treynta ki-lo-me-tros sa usa ka oras\n"
+            "  - 150 km/h → isyento singkwenta ki-lo-me-tros sa usa ka oras\n"
+            "  - 200 km/h → dos siyentos ki-lo-me-tros sa usa ka oras\n"
+            "  - Para sa ubang numero: singko=5, diyes=10, kinse=15, baynte=20,\n"
+            "    treynta=30, kuwarenta=40, singkwenta=50, sisenta=60,\n"
+            "    sitenta=70, otsenta=80, nobenta=90, isyento=100\n\n"
             "  - hPa → ek-to-pas-kal\n"
             "  - coastal → kos-tal\n"
             "  - landfall → land-pol\n"
@@ -352,52 +336,49 @@ def _generate_tts_text(radio_md: str, language: str) -> str:
     return apply_phonetics(text, language)
 
 
-@app.cls(
+@app.function(
     image=ollama_image,
     gpu="A10G",
     volumes=OLLAMA_MOUNTS,
-    timeout=3600,
+    timeout=600,
 )
-class Step2Scripts:
-    @modal.enter()
-    def start_ollama(self) -> None:
-        import os
-        os.environ["OLLAMA_MODELS"] = str(OLLAMA_MODELS_PATH)
-        subprocess.Popen(["ollama", "serve"])
-        _wait_for_ollama()
-        print("[Step2Scripts] Ollama ready")
+def step2_scripts(stem: str, language: str, force: bool = False) -> str:
+    """Generate radio script and TTS plain text for one bulletin + language.
 
-    @modal.method()
-    def run(self, stem: str, force: bool = False) -> str:
-        """Generate radio scripts and TTS plain text for all 3 languages.
+    Runs one language per container so all three languages execute in parallel
+    via starmap (same pattern as step3_tts).
 
-        Reads:   /output/{stem}/ocr.md
-        Writes:  /output/{stem}/radio_{lang}.md   (× 3)
-                 /output/{stem}/tts_{lang}.txt     (× 3)
+    Reads:   /output/{stem}/ocr.md
+    Writes:  /output/{stem}/radio_{language}.md
+             /output/{stem}/tts_{language}.txt
 
-        Skips a language if both output files already exist, unless force=True.
+    Skips if both output files already exist, unless force=True.
 
-        Returns:
-            stem string.
-        """
-        out_dir = OUTPUT_PATH / stem
-        ocr_md = (out_dir / "ocr.md").read_text(encoding="utf-8")
+    Returns:
+        stem string.
+    """
+    import os
+    os.environ["OLLAMA_MODELS"] = str(OLLAMA_MODELS_PATH)
+    subprocess.Popen(["ollama", "serve"])
+    _wait_for_ollama()
+    print(f"[Step2Scripts] Ollama ready ({language})")
 
-        for lang in LANGUAGES:
-            radio_path = out_dir / f"radio_{lang}.md"
-            tts_path = out_dir / f"tts_{lang}.txt"
+    out_dir = OUTPUT_PATH / stem
+    radio_path = out_dir / f"radio_{language}.md"
+    tts_path = out_dir / f"tts_{language}.txt"
 
-            if radio_path.exists() and tts_path.exists() and not force:
-                print(f"[Step2Scripts] {stem}/{lang}: already exists, skipping")
-                continue
-
-            radio_md = _generate_radio_script(ocr_md, lang)
-            radio_path.write_text(radio_md, encoding="utf-8")
-
-            tts_text = _generate_tts_text(radio_md, lang)
-            tts_path.write_text(tts_text, encoding="utf-8")
-
-            print(f"[Step2Scripts] {stem}/{lang}: wrote radio + tts files")
-
-        output_volume.commit()
+    if radio_path.exists() and tts_path.exists() and not force:
+        print(f"[Step2Scripts] {stem}/{language}: already exists, skipping")
         return stem
+
+    ocr_md = (out_dir / "ocr.md").read_text(encoding="utf-8")
+
+    radio_md = _generate_radio_script(ocr_md, language)
+    radio_path.write_text(radio_md, encoding="utf-8")
+
+    tts_text = _generate_tts_text(radio_md, language)
+    tts_path.write_text(tts_text, encoding="utf-8")
+
+    output_volume.commit()
+    print(f"[Step2Scripts] {stem}/{language}: wrote radio + tts files")
+    return stem
