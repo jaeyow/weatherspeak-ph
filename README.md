@@ -17,16 +17,78 @@ WeatherSpeak PH ingests PAGASA PDF bulletins, translates them into Tagalog and C
 
 ## Architecture
 
-```
-PAGASA PDF bulletin
-  → Step 1: Gemma 4 E4B (OCR + storm chart comprehension) → ocr.md, chart.png, metadata.json
-  → Step 2: Gemma 4 E4B (radio scripts + TTS text) → radio_{lang}.md, tts_{lang}.txt  [3 languages in parallel]
-  → Step 3: Facebook MMS VITS / Coqui XTTS v2 (speech synthesis) → audio_{lang}.mp3  [3 languages in parallel]
-  → Step 4: Supabase Storage + PostgreSQL → public URLs + DB rows
-  → Next.js PWA (mobile-first) → playback + download for communities
+### ETL Pipeline
+
+Batch ETL runs on **Modal** (serverless GPU). Steps 2 and 3 each spin up one container per language and run all three concurrently.
+
+```mermaid
+flowchart LR
+    PDF([PAGASA PDF\nBulletin])
+
+    subgraph Step1["Step 1 — OCR & Extraction"]
+        G1["🤖 Gemma 4 E4B\n(vision + OCR)"]
+        OCR["ocr.md\nchart.png\nmetadata.json"]
+        G1 --> OCR
+    end
+
+    subgraph Step2["Step 2 — Script Generation  ‹parallel × 3 languages›"]
+        G2["🤖 Gemma 4 E4B\n(translation + phonetics)"]
+        S2OUT["radio_en.md · radio_tl.md · radio_ceb.md\ntts_en.txt · tts_tl.txt · tts_ceb.txt"]
+        G2 --> S2OUT
+    end
+
+    subgraph Step3["Step 3 — Speech Synthesis  ‹parallel × 3 languages›"]
+        TTS1["Facebook MMS VITS\n(Tagalog + Cebuano)"]
+        TTS2["Coqui XTTS v2\n(English)"]
+        MP3["audio_en.mp3\naudio_tl.mp3\naudio_ceb.mp3"]
+        TTS1 --> MP3
+        TTS2 --> MP3
+    end
+
+    subgraph Step4["Step 4 — Publish"]
+        SB["Supabase Storage\n+ PostgreSQL"]
+    end
+
+    PDF --> Step1 --> Step2 --> Step3 --> Step4
 ```
 
-Batch ETL runs on **Modal** (serverless GPU). No real-time inference — bulletins are processed when PAGASA publishes them.
+### End-to-End Flow
+
+Shows the full journey from PAGASA publishing a bulletin to a community member hearing it in their language, and where Gemma 4 is used.
+
+```mermaid
+flowchart TD
+    PAGASA(["🌀 PAGASA publishes\ntyphoon bulletin PDF"])
+
+    subgraph ETL["Modal ETL  —  serverless GPU batch job"]
+        direction TB
+        OCR["Step 1\n🤖 Gemma 4 E4B reads the PDF\nExtracts bulletin text + storm track chart\nOutputs structured metadata"]
+        SCRIPTS["Step 2  ‹EN · TL · CEB in parallel›\n🤖 Gemma 4 E4B translates + adapts\nWrites 300-word radio scripts\nPhonetically spells words for TTS"]
+        TTS["Step 3  ‹EN · TL · CEB in parallel›\nMMS VITS synthesises Tagalog + Cebuano audio\nXTTS v2 synthesises English audio"]
+        UPLOAD["Step 4\nUploads MP3s + scripts + chart\nto Supabase Storage + PostgreSQL"]
+        OCR --> SCRIPTS --> TTS --> UPLOAD
+    end
+
+    subgraph WEB["Next.js PWA  —  Vercel"]
+        direction TB
+        SITE["weatherspeak-ph.vercel.app"]
+        PLAYER["Audio player\n(EN · TL · CEB)"]
+        SCRIPT["Read bulletin\n(Markdown radio script)"]
+        SITE --> PLAYER
+        SITE --> SCRIPT
+    end
+
+    USER(["👨‍🌾 Filipino farmer /\nfisherfolk / community member\nhears warning in their language"])
+
+    PAGASA --> ETL --> WEB --> USER
+
+    style OCR fill:#fef3c7,stroke:#d97706,color:#000
+    style SCRIPTS fill:#fef3c7,stroke:#d97706,color:#000
+    style PAGASA fill:#fee2e2,stroke:#dc2626,color:#000
+    style USER fill:#dcfce7,stroke:#16a34a,color:#000
+```
+
+> 🤖 **Gemma 4 E4B** is used in Steps 1 and 2 — it reads the raw English PDF, understands the storm track chart, and produces natural-sounding Tagalog and Cebuano radio scripts with correct phonetic spellings for the TTS synthesisers.
 
 ---
 
