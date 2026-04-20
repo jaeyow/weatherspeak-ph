@@ -67,6 +67,9 @@ uv run modal run modal_etl/run_batch.py --n 3
 
 # Force re-run all steps even if outputs exist:
 uv run modal run modal_etl/run_batch.py --n 1 --force
+
+# Fire and forget — submit the job and return immediately (no log streaming):
+uv run modal run --detach modal_etl/run_batch.py --n 3
 ```
 
 ETL run reports are saved to `data/etl_reports/etl_report_{timestamp}.md`.
