@@ -2,7 +2,6 @@ import subprocess
 import time
 from pathlib import Path
 
-import modal
 import requests
 
 from modal_etl.app import app, ollama_image, OLLAMA_MOUNTS, output_volume
@@ -337,52 +336,49 @@ def _generate_tts_text(radio_md: str, language: str) -> str:
     return apply_phonetics(text, language)
 
 
-@app.cls(
+@app.function(
     image=ollama_image,
     gpu="A10G",
     volumes=OLLAMA_MOUNTS,
-    timeout=3600,
+    timeout=600,
 )
-class Step2Scripts:
-    @modal.enter()
-    def start_ollama(self) -> None:
-        import os
-        os.environ["OLLAMA_MODELS"] = str(OLLAMA_MODELS_PATH)
-        subprocess.Popen(["ollama", "serve"])
-        _wait_for_ollama()
-        print("[Step2Scripts] Ollama ready")
+def step2_scripts(stem: str, language: str, force: bool = False) -> str:
+    """Generate radio script and TTS plain text for one bulletin + language.
 
-    @modal.method()
-    def run(self, stem: str, force: bool = False) -> str:
-        """Generate radio scripts and TTS plain text for all 3 languages.
+    Runs one language per container so all three languages execute in parallel
+    via starmap (same pattern as step3_tts).
 
-        Reads:   /output/{stem}/ocr.md
-        Writes:  /output/{stem}/radio_{lang}.md   (× 3)
-                 /output/{stem}/tts_{lang}.txt     (× 3)
+    Reads:   /output/{stem}/ocr.md
+    Writes:  /output/{stem}/radio_{language}.md
+             /output/{stem}/tts_{language}.txt
 
-        Skips a language if both output files already exist, unless force=True.
+    Skips if both output files already exist, unless force=True.
 
-        Returns:
-            stem string.
-        """
-        out_dir = OUTPUT_PATH / stem
-        ocr_md = (out_dir / "ocr.md").read_text(encoding="utf-8")
+    Returns:
+        stem string.
+    """
+    import os
+    os.environ["OLLAMA_MODELS"] = str(OLLAMA_MODELS_PATH)
+    subprocess.Popen(["ollama", "serve"])
+    _wait_for_ollama()
+    print(f"[Step2Scripts] Ollama ready ({language})")
 
-        for lang in LANGUAGES:
-            radio_path = out_dir / f"radio_{lang}.md"
-            tts_path = out_dir / f"tts_{lang}.txt"
+    out_dir = OUTPUT_PATH / stem
+    radio_path = out_dir / f"radio_{language}.md"
+    tts_path = out_dir / f"tts_{language}.txt"
 
-            if radio_path.exists() and tts_path.exists() and not force:
-                print(f"[Step2Scripts] {stem}/{lang}: already exists, skipping")
-                continue
-
-            radio_md = _generate_radio_script(ocr_md, lang)
-            radio_path.write_text(radio_md, encoding="utf-8")
-
-            tts_text = _generate_tts_text(radio_md, lang)
-            tts_path.write_text(tts_text, encoding="utf-8")
-
-            print(f"[Step2Scripts] {stem}/{lang}: wrote radio + tts files")
-
-        output_volume.commit()
+    if radio_path.exists() and tts_path.exists() and not force:
+        print(f"[Step2Scripts] {stem}/{language}: already exists, skipping")
         return stem
+
+    ocr_md = (out_dir / "ocr.md").read_text(encoding="utf-8")
+
+    radio_md = _generate_radio_script(ocr_md, language)
+    radio_path.write_text(radio_md, encoding="utf-8")
+
+    tts_text = _generate_tts_text(radio_md, language)
+    tts_path.write_text(tts_text, encoding="utf-8")
+
+    output_volume.commit()
+    print(f"[Step2Scripts] {stem}/{language}: wrote radio + tts files")
+    return stem

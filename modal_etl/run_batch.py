@@ -23,7 +23,7 @@ from modal_etl.app import app
 from modal_etl.bulletin_selector import get_latest_bulletins
 from modal_etl.config import N_EVENTS, LANGUAGES
 from modal_etl.step1_ocr import Step1OCR
-from modal_etl.step2_scripts import Step2Scripts
+from modal_etl.step2_scripts import step2_scripts
 from modal_etl.step3_tts import step3_tts
 from modal_etl.step4_upload import step4_upload
 
@@ -110,7 +110,7 @@ def _write_report(
         # Step 2
         s2 = steps.get("step2_scripts", {})
         icon = "✅" if s2.get("status") == "ok" else "❌"
-        lines.append(f"### {icon} Step 2 — Scripts  `{_fmt_elapsed(s2.get('elapsed_s', 0))}`")
+        lines.append(f"### {icon} Step 2 — Scripts  `{_fmt_elapsed(s2.get('elapsed_s', 0))}` (3 languages in parallel)")
         if s2.get("status") == "ok":
             lines += [
                 "| File | Description |",
@@ -247,8 +247,7 @@ def main(n: int = N_EVENTS, force: bool = False) -> None:
     for b in bulletins:
         print(f"  {b.stem}")
 
-    ocr     = Step1OCR()
-    scripts = Step2Scripts()
+    ocr = Step1OCR()
 
     results: list[dict] = []
 
@@ -278,10 +277,10 @@ def main(n: int = N_EVENTS, force: bool = False) -> None:
             continue
 
         # Step 2
-        print("  Step 2: Radio scripts + TTS text...")
+        print("  Step 2: Radio scripts + TTS text (3 languages in parallel)...")
         t0 = time.time()
         try:
-            stem = scripts.run.remote(stem, force=force)
+            list(step2_scripts.starmap([(stem, lang, force) for lang in LANGUAGES]))
             bulletin_result["steps"]["step2_scripts"] = {
                 "status": "ok",
                 "elapsed_s": round(time.time() - t0, 1),
