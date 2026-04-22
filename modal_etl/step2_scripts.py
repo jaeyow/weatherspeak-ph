@@ -268,6 +268,145 @@ _TTS_PROMPTS = {
 }
 
 
+# ---------------------------------------------------------------------------
+# English-word cleanup prompts (second LLM pass — TL and CEB only)
+# ---------------------------------------------------------------------------
+
+_CLEANUP_PROMPTS = {
+    "tl": {
+        "system": (
+            "Ikaw ay isang editor ng Tagalog TTS text. Ang iyong trabaho ay hanapin ang mga salitang Ingles "
+            "at palitan ang mga ito ng tamang Tagalog o phonetically spelled na anyo.\n\n"
+            "PANUNTUNAN:\n"
+            "- Hanapin ang LAHAT ng salitang Ingles sa text\n"
+            "- Palitan ng Tagalog na katumbas o phonetically spelled na anyo (gamit ang mga gitling)\n"
+            "- Mga pangalan ng tao at lugar ay HINDI dapat palitan (hal. Pepito, Catanduanes, Luzon)\n"
+            "- Huwag baguhin ang anumang bagay na hindi Ingles\n"
+            "- Ibalik ang BUONG text na may mga pagbabago lamang\n"
+            "- Walang markdown, walang paliwanag — plain text lamang\n\n"
+            "HALIMBAWA NG PAGPAPALIT:\n"
+            "  'storm surge' → 'storm serj'\n"
+            "  'landfall' → 'land-pol'\n"
+            "  'coastal' → 'kos-tal'\n"
+            "  'warning' → 'wor-ning'\n"
+            "  'advisory' → 'ad-bay-so-ri'\n"
+            "  'signal' → 'sig-nal'\n"
+            "  'forecast' → 'pore-kast'\n"
+            "  'emergency' → 'i-mer-chen-si'\n"
+            "  'evacuation' → 'i-bak-yu-ey-syon'"
+        ),
+        "user": (
+            "Suriin ang Tagalog TTS text na ito. Hanapin ang lahat ng salitang Ingles at palitan ng "
+            "Tagalog o phonetically spelled na anyo. Ibalik ang buong text na may mga pagbabago.\n\n"
+            "{text}"
+        ),
+    },
+    "ceb": {
+        "system": (
+            "Ikaw usa ka editor sa Cebuano TTS text. Ang imong trabaho mao ang pangitaon ang mga pulong nga Ingles "
+            "ug ilisan kini sa husto nga Cebuano o phonetically spelled nga porma.\n\n"
+            "MGA LAGDA:\n"
+            "- Pangitaa ang TANAN nga pulong nga Ingles sa text\n"
+            "- Ilisan sa Cebuano nga katumbas o phonetically spelled nga porma (gamit ang mga gitling)\n"
+            "- Ang mga pangalan sa tawo ug lugar DILI isulat pag-usab (hal. Pepito, Catanduanes, Luzon)\n"
+            "- Ayaw usba ang bisan unsang butang nga dili Ingles\n"
+            "- Ibalik ang TIBUOK text nga adunay mga pagbabago lamang\n"
+            "- Walay markdown, walay paliwanag — plain text lamang\n\n"
+            "PANANGLITAN SA PAGPULI:\n"
+            "  'storm surge' → 'storm serj'\n"
+            "  'landfall' → 'land-pol'\n"
+            "  'coastal' → 'kos-tal'\n"
+            "  'warning' → 'wor-ning'\n"
+            "  'advisory' → 'ad-bay-so-ri'\n"
+            "  'signal' → 'sig-nal'\n"
+            "  'forecast' → 'pore-kast'\n"
+            "  'emergency' → 'i-mer-chen-si'\n"
+            "  'evacuation' → 'i-bak-yu-ey-syon'"
+        ),
+        "user": (
+            "Susiha kining Cebuano TTS text. Pangitaa ang tanan nga pulong nga Ingles ug ilisan sa "
+            "Cebuano o phonetically spelled nga porma. Ibalik ang tibuok text nga adunay mga pagbabago.\n\n"
+            "{text}"
+        ),
+    },
+}
+
+# ---------------------------------------------------------------------------
+# Number-to-word cleanup prompts (third LLM pass — TL and CEB only)
+# ---------------------------------------------------------------------------
+
+_NUMBER_CLEANUP_PROMPTS = {
+    "tl": {
+        "system": (
+            "Ikaw ay isang editor ng Tagalog TTS text. Ang iyong trabaho ay hanapin ang LAHAT ng numerong nakasulat "
+            "bilang mga digit at palitan sila ng katumbas na salita sa Filipino/Spanish na sistema ng bilang.\n\n"
+            "PANUNTUNAN:\n"
+            "- Hanapin ang BAWAT numero na nakasulat bilang digit (0-9) sa text\n"
+            "- Palitan ng spoken na anyo gamit ang Filipino/Spanish na mga salita\n"
+            "- Ang mga pangalan ng tao at lugar ay HUWAG baguhin\n"
+            "- Huwag baguhin ang anumang salita — digits lang ang palitan\n"
+            "- Ibalik ang BUONG text na may mga pagbabago lamang\n"
+            "- Walang markdown, walang paliwanag — plain text lamang\n\n"
+            "MGA NUMERO AT KATUMBAS:\n"
+            "  1=uno  2=dos  3=tres  4=kuwatro  5=singko\n"
+            "  6=sayis  7=syete  8=otso  9=nuwebe  10=diyes\n"
+            "  11=onse  12=dose  13=trese  14=katorse  15=kinse\n"
+            "  16=disisayis  17=disisyete  18=diotso  19=disinuwebe\n"
+            "  20=beinte  21=beinte uno  22=beinte dos  25=beinte singko\n"
+            "  30=treynta  31=treynta y uno  40=kuwarenta  50=singkwenta\n"
+            "  60=sisenta  70=sitenta  80=otsenta  90=nobenta\n"
+            "  100=isang daan  120=isang daan beinte  130=isang daan treynta\n"
+            "  150=isang daan singkwenta  200=dos siyentos\n\n"
+            "HALIMBAWA:\n"
+            "  'Oktubre 21' → 'Oktubre beinte uno'\n"
+            "  '25 kilometro' → 'beinte singko kilometro'\n"
+            "  '130 kilometro' → 'isang daan treynta kilometro'\n"
+            "  'Signal 2' → 'sig-nal tu'\n"
+            "  '6 ng umaga' → 'sayis ng umaga'"
+        ),
+        "user": (
+            "Suriin ang Tagalog TTS text na ito. Palitan ang LAHAT ng digit na numero ng katumbas na salita. "
+            "Ibalik ang buong text na may mga pagbabago.\n\n"
+            "{text}"
+        ),
+    },
+    "ceb": {
+        "system": (
+            "Ikaw usa ka editor sa Cebuano TTS text. Ang imong trabaho mao ang pangitaon ang TANAN nga numero nga "
+            "gisulat isip mga digit ug ilisan kini sa katumbas nga pulong sa Cebuano/Spanish nga sistema sa ihap.\n\n"
+            "MGA LAGDA:\n"
+            "- Pangitaa ang MATAG numero nga gisulat isip digit (0-9) sa text\n"
+            "- Ilisan sa spoken nga porma gamit ang Cebuano/Spanish nga mga pulong\n"
+            "- Ang mga pangalan sa tawo ug lugar DILI usbon\n"
+            "- Ayaw usba ang bisan unsang pulong — ang mga digit lang ang ilisan\n"
+            "- Ibalik ang TIBUOK text nga adunay mga pagbabago lamang\n"
+            "- Walay markdown, walay paliwanag — plain text lamang\n\n"
+            "MGA NUMERO UG KATUMBAS:\n"
+            "  1=uno  2=dos  3=tres  4=kuwatro  5=singko\n"
+            "  6=sayis  7=syete  8=otso  9=nuwebe  10=diyes\n"
+            "  11=onse  12=dose  13=trese  14=katorse  15=kinse\n"
+            "  16=disisayis  17=disisyete  18=diotso  19=disinuwebe\n"
+            "  20=baynte  21=baynte uno  22=baynte dos  25=baynte singko\n"
+            "  30=treynta  31=treynta y uno  40=kuwarenta  50=singkwenta\n"
+            "  60=sisenta  70=sitenta  80=otsenta  90=nobenta\n"
+            "  100=isyento  120=isyento baynte  130=isyento treynta\n"
+            "  150=isyento singkwenta  200=dos siyentos\n\n"
+            "PANANGLITAN:\n"
+            "  'Oktubre 21' → 'Oktubre baynte uno'\n"
+            "  '25 kilometros' → 'baynte singko kilometros'\n"
+            "  '130 kilometros' → 'isyento treynta kilometros'\n"
+            "  'Signal 2' → 'sig-nal tu'\n"
+            "  '6 sa buntag' → 'sayis sa buntag'"
+        ),
+        "user": (
+            "Susiha kining Cebuano TTS text. Ilisan ang TANAN nga digit nga numero sa katumbas nga pulong. "
+            "Ibalik ang tibuok text nga adunay mga pagbabago.\n\n"
+            "{text}"
+        ),
+    },
+}
+
+
 def _wait_for_ollama(retries: int = 60, delay: float = 2.0) -> None:
     for _ in range(retries):
         try:
@@ -319,6 +458,28 @@ def _generate_tts_text(radio_md: str, language: str) -> str:
     return apply_phonetics(text, language)
 
 
+def _cleanup_english_words(text: str, language: str) -> str:
+    """Second LLM pass: replace any remaining English words with Tagalog/Cebuano equivalents."""
+    if language not in _CLEANUP_PROMPTS:
+        return text
+    p = _CLEANUP_PROMPTS[language]
+    return _call_ollama_chat(
+        system=p["system"],
+        user=p["user"].format(text=text),
+    )
+
+
+def _cleanup_numbers(text: str, language: str) -> str:
+    """Third LLM pass: convert all digit numbers to spoken words in the target language."""
+    if language not in _NUMBER_CLEANUP_PROMPTS:
+        return text
+    p = _NUMBER_CLEANUP_PROMPTS[language]
+    return _call_ollama_chat(
+        system=p["system"],
+        user=p["user"].format(text=text),
+    )
+
+
 @app.function(
     image=ollama_image,
     gpu="A10G",
@@ -360,6 +521,8 @@ def step2_scripts(stem: str, language: str, force: bool = False) -> str:
     radio_path.write_text(radio_md, encoding="utf-8")
 
     tts_text = _generate_tts_text(radio_md, language)
+    tts_text = _cleanup_english_words(tts_text, language)
+    tts_text = _cleanup_numbers(tts_text, language)
     tts_path.write_text(tts_text, encoding="utf-8")
 
     output_volume.commit()
