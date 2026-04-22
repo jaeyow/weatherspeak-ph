@@ -44,12 +44,12 @@ _RADIO_PROMPTS = {
             "  - Zamboanga → zam-bo-an-ga\n\n"
             "FORMATTING: Plain flowing prose only. No headings, no bullet points, no bold, no markdown. "
             "Paragraph breaks (blank lines) between ideas.\n\n"
-            "LENGTH: About 300 words."
+            "LENGTH: About 200 words."
         ),
         "user": (
             "Convert this PAGASA weather bulletin into a plain conversational English announcement.\n\n"
             "{markdown}\n\n"
-            "Write the announcement now. Conversational tone, simple words, about 300 words. "
+            "Write the announcement now. Conversational tone, simple words, about 200 words. "
             "No headings, no bullet points, no markdown. Spell Filipino place names phonetically."
         ),
     },
@@ -69,13 +69,13 @@ _RADIO_PROMPTS = {
             "- HUWAG magdagdag ng impormasyon na wala sa orihinal na bulletin\n\n"
             "FORMATTING: Natural na daloy ng prosa. Walang headings, walang bullets, walang bold, walang markdown. "
             "Blank lines sa pagitan ng mga talata.\n\n"
-            "HABA: Mga 300 salita."
+            "HABA: Mga 200 salita."
         ),
         "user": (
             "I-convert ang PAGASA weather bulletin na ito sa simpleng pahayag sa Tagalog.\n\n"
             "{markdown}\n\n"
             "Isulat ang pahayag ngayon. Puro Tagalog — walang Ingles maliban sa mga pangalan. "
-            "Natural na tono, madaling salita, mga 300 salita. Walang headings, walang markdown."
+            "Natural na tono, madaling salita, mga 200 salita. Walang headings, walang markdown."
         ),
     },
     "ceb": {
@@ -94,13 +94,13 @@ _RADIO_PROMPTS = {
             "- AYAW pagdugang og impormasyon nga wala sa orihinal nga bulletin\n\n"
             "FORMATTING: Natural nga daloy sa prosa. Walay headings, walay bullets, walay bold, walay markdown. "
             "Blank lines tali sa mga paragraph.\n\n"
-            "GITAS-ON: Mga 300 ka pulong."
+            "GITAS-ON: Mga 200 ka pulong."
         ),
         "user": (
             "I-convert ang PAGASA weather bulletin nga kini ngadto sa simple nga pahimangno sa Cebuano.\n\n"
             "{markdown}\n\n"
             "Isulat ang pahimangno karon. Puro Cebuano — walay English gawas sa mga pangalan. "
-            "Natural nga tono, sayon nga mga pulong, mga 300 ka pulong. Walay headings, walay markdown."
+            "Natural nga tono, sayon nga mga pulong, mga 200 ka pulong. Walay headings, walay markdown."
         ),
     },
 }
@@ -225,7 +225,7 @@ _TTS_PROMPTS = {
             "  - northeast / southeast / northwest / southwest → nor-ist / sow-ist / nor-west / sow-west\n"
             "  - north / south / east → nor / sow / ist\n"
             "  - northern / southern / eastern / western → nor-dern / sow-dern / is-tern / wes-tern\n"
-            "  - Low Pressure Area / LPA → ubos nga presyon\n"
+            "  - Low Pressure Area / LPA → lo-presyur-erya\n"
             "PARA SA MGA NUMERO — gamita ang Cebuano/Spanish nga mga pulong:\n"
             "  - 25 km/h → baynte singko ki-lo-me-tros sa usa ka oras\n"
             "  - 65 km/h → sisenta y singko ki-lo-me-tros sa usa ka oras\n"
@@ -321,7 +321,8 @@ _CLEANUP_PROMPTS = {
             "  'signal' → 'sig-nal'\n"
             "  'forecast' → 'pore-kast'\n"
             "  'emergency' → 'i-mer-chen-si'\n"
-            "  'evacuation' → 'i-bak-yu-ey-syon'"
+            "  'evacuation' → 'i-bak-yu-ey-syon'\n"
+            "  'mo-intensify' → 'mo-kusog'\n"
         ),
         "user": (
             "Susiha kining Cebuano TTS text. Pangitaa ang tanan nga pulong nga Ingles ug ilisan sa "
@@ -381,7 +382,7 @@ _NUMBER_CLEANUP_PROMPTS = {
             "- Ayaw usba ang bisan unsang pulong — ang mga digit lang ang ilisan\n"
             "- Ibalik ang TIBUOK text nga adunay mga pagbabago lamang\n"
             "- Walay markdown, walay paliwanag — plain text lamang\n\n"
-            "MGA NUMERO UG KATUMBAS:\n"
+            "MGA NUMERO UG PASABOT:\n"
             "  1=uno  2=dos  3=tres  4=kuwatro  5=singko\n"
             "  6=sayis  7=syete  8=otso  9=nuwebe  10=diyes\n"
             "  11=onse  12=dose  13=trese  14=katorse  15=kinse\n"
