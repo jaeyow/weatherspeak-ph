@@ -5,6 +5,67 @@ Each entry corresponds to a pull request or significant milestone.
 
 ---
 
+## PR #14 — TTS Prompt Improvements
+**Date:** 2026-04-22
+**Branch:** `feature/tts-prompt-improvements`
+
+### What we did
+
+A focused pass to improve the quality and correctness of every prompt in the Step 2 pipeline, and to add two new post-processing LLM passes for TL and CEB.
+
+#### 1. Clarified the two-prompt architecture
+
+The pipeline produces two distinct outputs per language that serve different purposes:
+
+- **`radio_{lang}.md`** — displayed on the website for humans to read. Must use natural, readable language. No phonetic spellings.
+- **`tts_{lang}.txt`** — fed directly to the TTS engine. Must use phonetic spellings so the synthesiser pronounces words correctly.
+
+Previously `_RADIO_PROMPTS` incorrectly included phonetic spelling lists (e.g. `kai-lo-me-tros`, `tro-pi-kal di-pre-syon`). These were stripped out and replaced with natural-language Tagalog/Cebuano equivalents.
+
+#### 2. Rewrote `_RADIO_PROMPTS` — purpose-driven, conversational, 200 words
+
+All three language prompts now open with a **PURPOSE** statement explaining who will hear this and why conciseness matters. They include an explicit **priority order**:
+
+1. Storm name + category
+2. Location + track
+3. Affected areas + Signal levels
+4. What to do (evacuate, stay indoors, avoid coast)
+5. Next update time
+
+Word limit tightened from ~300 to **no more than 200 words**. TL and CEB prompts now use natural-language weather vocabulary (bagyo, kusog nga balud, paglikas) instead of phonetics.
+
+#### 3. Added two new Gemma 4 cleanup passes (TL + CEB only)
+
+After the initial TTS text generation, two additional LLM calls run sequentially:
+
+- **Pass 2 — English word cleanup** (`_cleanup_english_words`): finds any English words that slipped through and replaces them with Tagalog/Cebuano equivalents or phonetically spelled forms.
+- **Pass 3 — Number conversion** (`_cleanup_numbers`): converts all remaining digit numbers to spoken words using the Spanish-borrowed system (CEB: baynte uno, isyento treynta / TL: beinte uno, isang daan treynta).
+
+Both passes are also added as separate cells in notebook 08 for local testing.
+
+#### 4. Fixed reversed number lookup tables
+
+The `_TTS_PROMPTS` number tables were written as `singko=5` (word→digit) when they should read `5=singko` (digit→word). Fixed in `step2_scripts.py`, notebook 06, and notebook 08.
+
+#### 5. Fixed key inconsistency between notebooks
+
+Notebook 08 used `"user_template"` as the prompt key while `step2_scripts.py` used `"user"`. Standardised to `"user"` in notebook 08 and `"user_template"` in notebook 06 (to match existing `build_user_prompt()` function).
+
+#### 6. Notebooks synced from ETL script
+
+`notebooks/06-radio-bulletin.ipynb` and `notebooks/08-mms-tts-experiment.ipynb` updated to match all prompt changes in `step2_scripts.py`.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `modal_etl/step2_scripts.py` | `_RADIO_PROMPTS` rewritten (purpose, priority order, 200 words, no phonetics); `_CLEANUP_PROMPTS` + `_NUMBER_CLEANUP_PROMPTS` added; `_cleanup_english_words()` + `_cleanup_numbers()` helpers added; both called in `step2_scripts()` |
+| `notebooks/06-radio-bulletin.ipynb` | `PROMPTS` synced from ETL; `TTS_PROMPTS` synced from notebook 08 |
+| `notebooks/08-mms-tts-experiment.ipynb` | English cleanup cell added; number conversion cell added; sentence dump cell added; `user_template` → `user` key fix |
+| `README.md` | Step 2 description updated to reflect 3-pass pipeline |
+
+---
+
 ## PR #0 — Project Kickoff & Planning
 **Date:** 2026-04-10  
 **Branch:** `main` (initial commit)  

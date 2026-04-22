@@ -40,7 +40,7 @@ flowchart LR
     end
 
     subgraph Step2["Step 2 — Script Generation  ‹parallel × 3 languages›"]
-        G2["🤖 Gemma 4 E4B\n(translation + phonetics)"]
+        G2["🤖 Gemma 4 E4B\n(3 passes per language)"]
         S2OUT["radio_en.md · radio_tl.md · radio_ceb.md\ntts_en.txt · tts_tl.txt · tts_ceb.txt"]
         G2 --> S2OUT
     end
@@ -71,7 +71,7 @@ flowchart TD
     subgraph ETL["Modal ETL  —  serverless GPU batch job"]
         direction TB
         OCR["Step 1\n🤖 Gemma 4 E4B reads the PDF\nExtracts bulletin text + storm track chart\nOutputs structured metadata"]
-        SCRIPTS["Step 2  ‹EN · TL · CEB in parallel›\n🤖 Gemma 4 E4B translates + adapts\nWrites 300-word radio scripts\nPhonetically spells words for TTS"]
+        SCRIPTS["Step 2  ‹EN · TL · CEB in parallel›\n🤖 Gemma 4 E4B — 3 passes per language\n1. Conversational announcement (≤200 words)\n2. TTS text with phonetic spellings\n3. English-word cleanup + number conversion"]
         TTS["Step 3  ‹EN · TL · CEB in parallel›\nMMS VITS synthesises Tagalog + Cebuano audio\nXTTS v2 synthesises English audio"]
         UPLOAD["Step 4\nUploads MP3s + scripts + chart\nto Supabase Storage + PostgreSQL"]
         OCR --> SCRIPTS --> TTS --> UPLOAD
