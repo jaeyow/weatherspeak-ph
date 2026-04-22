@@ -18,106 +18,104 @@ OLLAMA_TIMEOUT = 300  # seconds per language prompt
 _RADIO_PROMPTS = {
     "en": {
         "system": (
-            "You are writing a short spoken weather announcement from PAGASA for Filipino communities.\n\n"
-            "AUDIENCE: People with low literacy, limited education, and no English background.\n"
-            "Write as if speaking directly to a farmer or fisherman who needs to know if their family is in danger.\n\n"
-            "STRICT RULES — read these first:\n"
-            "- NO placeholders. Never write [station name], [insert...], [your location], or anything in brackets.\n"
-            "- NO radio show language. No 'Good morning listeners', no sign-offs, no station IDs.\n"
-            "- This is a PAGASA severe weather announcement. It is serious. No greetings, no closings.\n"
-            "- Use SHORT sentences. One idea per sentence.\n"
-            "- Use SIMPLE words. Avoid technical jargon. If a technical term is needed, explain it simply.\n"
-            "- Spell out all numbers (e.g. 'one hundred thirty kilometres per hour', 'Signal Number Two'). Use plain words — no hyphens or phonetic spelling.\n"
-            "- Cover only what matters: where the storm is, where it is going, who is in danger, what to do.\n"
-            "- Do NOT add information that is not in the source bulletin.\n\n"
-            "FORMATTING: Output in Markdown for readability.\n"
-            "- One top-level heading: storm name and bulletin type\n"
-            "- Second-level headings for: Where Is The Storm, Where Is It Going, Who Is In Danger, What To Do\n"
-            "- Bold the storm name on first mention in each section\n\n"
-            "LENGTH: Approximately 300 words — two minutes when read aloud at a calm, clear pace."
+            "You are converting a PAGASA typhoon bulletin into a short weather announcement in English "
+            "that will be displayed on a website and read aloud as audio.\n\n"
+            "PURPOSE: This will be read by Filipinos who may not understand technical English — "
+            "farmers, fisherfolk, and rural communities who need to know if they are in danger and what to do. "
+            "Every word must earn its place. There is no room for anything that does not help them act.\n\n"
+            "PRIORITY ORDER — pack these in, in this order, within 200 words:\n"
+            "  1. Storm name and current category (what is it)\n"
+            "  2. Where it is now and where it is headed (location + track)\n"
+            "  3. Which areas are affected and at what Signal level (who is in danger)\n"
+            "  4. What people must do — evacuate, stay indoors, avoid the coast (action)\n"
+            "  5. When the next update is (so they know to listen again)\n\n"
+            "STYLE:\n"
+            "- Write as if explaining to a neighbour — conversational, simple, direct\n"
+            "- No broadcaster language, no formal sign-offs, no station IDs\n"
+            "- Short sentences. Common words. Cut anything that does not add critical information.\n"
+            "- Use digits for numbers (e.g. '25 kilometres per hour', 'Signal 2')\n"
+            "- Write place names naturally as they are spelled (e.g. Catanduanes, Visayas, Mindanao)\n"
+            "- DO NOT add information that is not in the original bulletin\n\n"
+            "FORMATTING: Plain flowing prose only. No headings, no bullet points, no bold, no markdown. "
+            "Paragraph breaks (blank lines) between ideas.\n\n"
+            "LENGTH: No more than 200 words. Be concise — a life may depend on someone understanding this clearly."
         ),
         "user": (
-            "Write a two-minute weather announcement in plain English based on this PAGASA bulletin.\n\n"
+            "Convert this PAGASA weather bulletin into a plain conversational English announcement.\n\n"
             "{markdown}\n\n"
-            "Write the announcement now. Simple words. Short sentences. No placeholders. "
-            "Markdown formatting. Approximately 300 words."
+            "Write the announcement now. Pack in all critical information — storm, location, track, "
+            "affected areas with Signal levels, what to do, next update time. "
+            "No more than 200 words. No headings, no markdown. Write place names naturally."
         ),
     },
     "tl": {
         "system": (
-            "Ikaw ay sumusulat ng maikling pahayag sa panahon mula sa PAGASA para sa mga komunidad ng Pilipino.\n\n"
-            "AUDIENCE: Mga taong may mababang antas ng edukasyon, mga hindi nakakabasa, at mga hindi nakakaintindi ng Ingles.\n"
-            "Sumulat na parang direktang nakikipag-usap sa isang magsasaka o mangingisda na kailangang malaman kung nasa panganib ang kanyang pamilya.\n\n"
-            "MAHIGPIT NA PANUNTUNAN — basahin muna:\n"
-            "- WALANG placeholder. Huwag isulat ang [pangalan ng istasyon], [insert...], [iyong lokasyon], o anumang nasa bracket.\n"
-            "- WALANG radio show na wika. Walang 'Magandang umaga mga tagapakinig', walang sign-off, walang station ID.\n"
-            "- Ito ay isang seryosong pahayag ng PAGASA. Walang bati, walang pagtatapos na parirala.\n"
-            "- MAIIKLING pangungusap. Isang ideya lang sa bawat pangungusap.\n"
-            "- SIMPLENG salita. Iwasan ang mahirap na termino. Kung kailangan ang teknikal na salita, ipaliwanag nang simple.\n"
-            "- Gamitin ang mga digit para sa mga numero, kasunod ng Tagalog na yunit (hal. '25 kilometro bawat oras', '130 kilometro bawat oras').\n"
-            "- Sabihin lamang ang mahalaga: nasaan ang bagyo, saan ito pupunta, sino ang nasa panganib, ano ang gagawin.\n"
-            "- HUWAG magdagdag ng impormasyon na wala sa orihinal na bulletin.\n\n"
-            "WIKA: TAGALOG LAMANG. Huwag gumamit ng Ingles maliban sa mga pangalan ng tao at lugar.\n"
-            "Gumamit ng tamang Tagalog na salita para sa mga teknikal na termino:\n"
-            "  - Tropical Depression → Tropical Depression (iwanang Ingles — kilala ito)\n"
-            "  - Tropical Storm / Typhoon / Super Typhoon → gamitin ang Tagalog na paglalarawan kung kailangan\n"
-            "  - Signal Number One / Two → Signal Bilang Isa / Dalawa\n"
-            "  - kilometers per hour / kph → kilometro bawat oras\n"
-            "  - Low Pressure Area / LPA → mababang presyon\n"
-            "  - storm surge → malakas na alon mula sa dagat\n"
-            "  - flash flood → biglang baha\n"
-            "  - evacuation → paglipat sa ligtas na lugar\n"
-            "  - landfall → pagdating ng bagyo sa lupa\n"
-            "  - coastal → baybaying-dagat\n\n"
-            "FORMATTING: Mag-output sa Markdown para madaling basahin.\n"
-            "- Isang top-level heading: pangalan ng bagyo at uri ng bulletin\n"
-            "- Second-level headings para sa: Nasaan ang Bagyo, Saan Ito Pupunta, Sino ang Nasa Panganib, Ano ang Gagawin\n"
-            "- I-bold ang pangalan ng bagyo sa unang pagbanggit sa bawat seksyon\n\n"
-            "HABA: Humigit-kumulang 300 salita — dalawang minuto kapag binasa nang dahan-dahan at malinaw."
+            "Ikaw ay nagsusulat ng maikling pahayag tungkol sa isang malakas na bagyo sa Tagalog "
+            "na ipapakita sa isang website at babasahin nang malakas bilang audio.\n\n"
+            "LAYUNIN: Mababasa at maririnig ito ng mga Pilipinong maaaring hindi nakakaintindi ng Ingles — "
+            "mga magsasaka, mangingisda, at mga komunidad na kailangang malaman kung sila ay nasa panganib at ano ang gagawin. "
+            "Bawat salita ay mahalaga. Walang lugar para sa anumang hindi nakakatulong sa kanilang kumilos.\n\n"
+            "PAGKAKASUNOD NG IMPORMASYON — ilagay ang lahat ng ito, sa pagkakasunod na ito, sa loob ng 200 salita:\n"
+            "  1. Pangalan ng bagyo at kasalukuyang kategorya (ano ito)\n"
+            "  2. Nasaan ito ngayon at saan ito pupunta (lokasyon + landas)\n"
+            "  3. Aling mga lugar ang apektado at anong Signal level (sino ang nasa panganib)\n"
+            "  4. Ano ang dapat gawin — lumikas, manatiling nasa loob, umiwas sa baybayin (aksyon)\n"
+            "  5. Kailan ang susunod na update (para malaman nila kung kailan muling makikinig)\n\n"
+            "ESTILO — PURO TAGALOG, WALANG INGLES:\n"
+            "- Magsulat na parang nagkukwento ka sa isang kapitbahay — simple, natural, walang paligoy-ligoy\n"
+            "- BAWAL ang mga salitang Ingles maliban sa mga pangalan ng tao at lugar (hal. Pepito, Catanduanes, Luzon)\n"
+            "- Gamitin ang pang-araw-araw na Tagalog — hindi pormal, hindi opisyal, hindi balita sa TV\n"
+            "- Isulat ang mga teknikal na termino sa natural na Tagalog na katumbas:\n"
+            "    bagyo (typhoon), bagyong malakas (severe tropical storm), agos ng hangin (wind speed),\n"
+            "    signal bilang isa/dalawa/tatlo, mababang presyon, malakas na alon, lumikas, baybaying-dagat\n"
+            "- Maikling pangungusap. Madaling salita. Alisin ang anumang hindi nagdadagdag ng kritikal na impormasyon.\n"
+            "- Gamitin ang mga digit para sa mga numero (hal. 25 kilometro bawat oras, Signal 2)\n"
+            "- HUWAG magdagdag ng impormasyon na wala sa orihinal na bulletin\n\n"
+            "FORMATTING: Natural na daloy ng prosa. Walang headings, walang bullets, walang bold, walang markdown. "
+            "Blank lines sa pagitan ng mga talata.\n\n"
+            "HABA: Hindi hihigit sa 200 salita. Maging maigsi — maaaring ang buhay ng isang tao ay nakasalalay sa malinaw na pag-unawa nito."
         ),
         "user": (
-            "Sumulat ng dalawang minutong pahayag ng panahon sa simpleng Tagalog batay sa PAGASA bulletin na ito.\n\n"
+            "I-convert ang PAGASA weather bulletin na ito sa maikling pahayag sa Tagalog.\n\n"
             "{markdown}\n\n"
-            "Isulat ang pahayag ngayon. Simpleng salita. Maikling pangungusap. Walang placeholder. "
-            "Markdown formatting. Humigit-kumulang 300 salita."
+            "Isulat ang pahayag ngayon. Ilagay ang lahat ng kritikal na impormasyon — bagyo, lokasyon, landas, "
+            "mga apektadong lugar na may Signal level, ano ang gagawin, oras ng susunod na update. "
+            "Hindi hihigit sa 200 salita. Puro Tagalog. Walang headings, walang markdown."
         ),
     },
     "ceb": {
         "system": (
-            "Ikaw nagsulat og mubo nga pahayag sa panahon gikan sa PAGASA para sa mga komunidad sa Pilipinas.\n\n"
-            "AUDIENCE: Mga tawo nga may ubos nga edukasyon, mga dili makabasabasa, ug mga dili makasabot sa English.\n"
-            "Isulat nga daw direkta kang nakigsulti sa usa ka mag-uuma o mangingisda nga kinahanglan mahibalo kung ang iyang pamilya anaa sa peligro.\n\n"
-            "IYONG MGA LAGDA — basaha kini puna:\n"
-            "- WALAY placeholder. Dili gyud isulat ang [pangalan sa istasyon], [insert...], [imong lokasyon], o bisan unsa nga anaa sa bracket.\n"
-            "- WALAY radio show nga pinulongan. Walay 'Maayong buntag mga tigpaminaw', walay sign-off, walay station ID.\n"
-            "- Kini usa ka seryosong pahayag sa PAGASA. Walay pangamusta, walay pagtapos nga pakiana.\n"
-            "- MUBO NGA MGA SENTENCE. Usa lang ka ideya sa matag sentence.\n"
-            "- SIMPLE NGA MGA PULONG. Likayi ang lisod nga termino. Kung kinahanglan ang teknikal nga pulong, ipasabot kini sa simple nga paagi.\n"
-            "- Gamiton ang mga digit para sa mga numero, sundan sa Cebuano nga yunit (pananglitan: '25 kilometros sa usa ka oras', '130 kilometros sa usa ka oras').\n"
-            "- Isulti lamang ang importante: asa ang bagyo, asa kini padulong, kinsa ang anaa sa peligro, unsa ang buhaton.\n"
-            "- AYAW pagdugang og impormasyon nga wala sa orihinal nga bulletin.\n\n"
-            "PINULONGAN: CEBUANO/BISAYA LAMANG. Ayaw gamiton ang English gawas sa mga pangalan sa tawo ug lugar.\n"
-            "Gamiton ang hustong Cebuano nga pulong para sa mga teknikal nga termino:\n"
-            "  - Tropical Depression → Tropical Depression (ibiyo kini — nahibaloan na kini)\n"
-            "  - Signal Number One / Two → Signal Numero Uno / Dos\n"
-            "  - kilometers per hour / kph → kilometros sa usa ka oras\n"
-            "  - Low Pressure Area / LPA → ubos nga presyon\n"
-            "  - storm surge → kusog nga balud gikan sa dagat\n"
-            "  - flash flood → biglang baha\n"
-            "  - evacuation → paglikas sa luwas nga dapit\n"
-            "  - landfall → pag-abot sa yuta\n"
-            "  - coastal → baybayon\n\n"
-            "FORMATTING: Mag-output sa Markdown aron dali mabasahan.\n"
-            "- Usa ka top-level heading: ngalan sa bagyo ug matang sa bulletin\n"
-            "- Second-level headings para sa: Asa ang Bagyo, Asa Kini Padulong, Kinsa ang Anaa sa Peligro, Unsa ang Buhaton\n"
-            "- I-bold ang ngalan sa bagyo sa unang pagbanggit sa matag seksyon\n\n"
-            "GITAS-ON: Mga 300 ka pulong — duha ka minuto kung basahon nga hinay ug klaro."
+            "Ikaw nagsulat og mubo nga pahimangno bahin sa usa ka kusog nga bagyo sa Cebuano "
+            "nga ipakita sa usa ka website ug basahon sa makusog isip audio.\n\n"
+            "KATUYOAN: Mabasa ug madungog kini sa mga Pilipino nga mahimong dili makasabot sa English — "
+            "mga mag-uuma, mangingisda, ug mga komunidad nga kinahanglan mahibalo kung sila anaa sa peligro ug unsa ang buhaton. "
+            "Ang matag pulong importante. Walay lugar alang sa bisan unsang dili makatulong kanila nga molihok.\n\n"
+            "PAGKASUNOD SA IMPORMASYON — ibutang ang tanan niini, sa pagkasunod nga kini, sulod sa 200 ka pulong:\n"
+            "  1. Ngalan sa bagyo ug kasamtangang kategorya (unsa kini)\n"
+            "  2. Asa kini karon ug asa kini padulong (lokasyon + dalan)\n"
+            "  3. Unsang mga lugar ang apektado ug unsang Signal level (kinsa ang anaa sa peligro)\n"
+            "  4. Unsa ang buhaton — paglikas, magpabilin sulod, likayi ang baybayon (aksyon)\n"
+            "  5. Kanus-a ang sunod nga update (aron mahibalo sila kung kanus-a usab sila mamati)\n\n"
+            "ESTILO — PURO CEBUANO, WALAY ENGLISH:\n"
+            "- Pagsulat sama sa imong gisulti sa imong silingan — simple, natural, dili komplikado\n"
+            "- BAWAL ang mga pulong nga Ingles gawas sa mga pangalan sa tawo ug lugar (hal. Pepito, Catanduanes, Luzon)\n"
+            "- Gamita ang inadlaw-adlaw nga Cebuano — dili pormal, dili opisyal, dili balita sa TV\n"
+            "- Isulat ang mga teknikal nga termino sa natural nga Cebuano nga katumbas:\n"
+            "    bagyo (typhoon), kusog nga bagyo (severe tropical storm), kusog sa hangin (wind speed),\n"
+            "    signal numero uno/dos/tres, ubos nga presyon, kusog nga balud, paglikas, baybayon\n"
+            "- Mubo nga mga sentence. Sayon nga mga pulong. Kuhaa ang bisan unsang dili nagdugang og kritikal nga impormasyon.\n"
+            "- Gamita ang mga digit para sa mga numero (hal. 25 kilometros sa usa ka oras, Signal 2)\n"
+            "- AYAW pagdugang og impormasyon nga wala sa orihinal nga bulletin\n\n"
+            "FORMATTING: Natural nga daloy sa prosa. Walay headings, walay bullets, walay bold, walay markdown. "
+            "Blank lines tali sa mga paragraph.\n\n"
+            "GITAS-ON: Dili molapas sa 200 ka pulong. Pagmaiksi — ang kinabuhi sa usa ka tawo mahimong magdepende sa tin-aw nga pagsabot niini."
         ),
         "user": (
-            "Isulat ang duha ka minutong pahayag sa panahon sa simple nga Cebuano base sa PAGASA bulletin nga naay sulod dinhi.\n\n"
+            "I-convert ang PAGASA weather bulletin nga kini ngadto sa mubo nga pahimangno sa Cebuano.\n\n"
             "{markdown}\n\n"
-            "Isulat ang pahayag karon. Simple nga mga pulong. Mubo nga mga sentence. Walay placeholder. "
-            "Markdown format. Mga 300 ka pulong."
+            "Isulat ang pahimangno karon. Ibutang ang tanan nga kritikal nga impormasyon — bagyo, lokasyon, dalan, "
+            "mga apektadong lugar nga adunay Signal level, unsa ang buhaton, oras sa sunod nga update. "
+            "Dili molapas sa 200 ka pulong. Puro Cebuano. Walay headings, walay markdown."
         ),
     },
 }
@@ -184,9 +182,9 @@ _TTS_PROMPTS = {
             "  - 130 km/h → isang daan at tatlumpu ki-lo-me-tro ba-wat o-ras\n"
             "  - 150 km/h → isang daan at limampu ki-lo-me-tro ba-wat o-ras\n"
             "  - 200 km/h → dalawang daan ki-lo-me-tro ba-wat o-ras\n"
-            "  - Para sa iba pang numero: singko=5, diyes=10, kinse=15, beinte=20,\n"
-            "    treynta=30, kuwarenta=40, singkwenta=50, sisenta=60,\n"
-            "    sitenta=70, otsenta=80, nobenta=90, isang daan=100\n\n"
+            "  - Para sa iba pang numero: 5=singko, 10=diyes, 15=kinse, 20=beinte,\n"
+            "    30=treynta, 40=kuwarenta, 50=singkwenta, 60=sisenta,\n"
+            "    70=sitenta, 80=otsenta, 90=nobenta, 100=isang daan\n\n"
             "  - hPa → ek-to-pas-kal\n"
             "  - coastal → kos-tal\n"
             "  - landfall → land-pol\n"
@@ -242,7 +240,7 @@ _TTS_PROMPTS = {
             "  - northeast / southeast / northwest / southwest → nor-ist / sow-ist / nor-west / sow-west\n"
             "  - north / south / east → nor / sow / ist\n"
             "  - northern / southern / eastern / western → nor-dern / sow-dern / is-tern / wes-tern\n"
-            "  - Low Pressure Area / LPA → ubos nga presyon\n"
+            "  - Low Pressure Area / LPA → lo-presyur-erya\n"
             "PARA SA MGA NUMERO — gamita ang Cebuano/Spanish nga mga pulong:\n"
             "  - 25 km/h → baynte singko ki-lo-me-tros sa usa ka oras\n"
             "  - 65 km/h → sisenta y singko ki-lo-me-tros sa usa ka oras\n"
@@ -251,9 +249,9 @@ _TTS_PROMPTS = {
             "  - 130 km/h → isyento treynta ki-lo-me-tros sa usa ka oras\n"
             "  - 150 km/h → isyento singkwenta ki-lo-me-tros sa usa ka oras\n"
             "  - 200 km/h → dos siyentos ki-lo-me-tros sa usa ka oras\n"
-            "  - Para sa ubang numero: singko=5, diyes=10, kinse=15, baynte=20,\n"
-            "    treynta=30, kuwarenta=40, singkwenta=50, sisenta=60,\n"
-            "    sitenta=70, otsenta=80, nobenta=90, isyento=100\n\n"
+            "  - Para sa ubang numero: 5=singko, 10=diyes, 15=kinse, 20=baynte,\n"
+            "    30=treynta, 40=kuwarenta, 50=singkwenta, 60=sisenta,\n"
+            "    70=sitenta, 80=otsenta, 90=nobenta, 100=isyento\n\n"
             "  - hPa → ek-to-pas-kal\n"
             "  - coastal → kos-tal\n"
             "  - landfall → land-pol\n"
@@ -280,6 +278,146 @@ _TTS_PROMPTS = {
             "Gamita ang phonetically spelled nga porma para sa tanan nga teknikal nga termino. "
             "Walay placeholder. Walay radio show nga pulong. "
             "Paragraph breaks (blank lines) para sa natural nga pausing. Walay markdown."
+        ),
+    },
+}
+
+
+# ---------------------------------------------------------------------------
+# English-word cleanup prompts (second LLM pass — TL and CEB only)
+# ---------------------------------------------------------------------------
+
+_CLEANUP_PROMPTS = {
+    "tl": {
+        "system": (
+            "Ikaw ay isang editor ng Tagalog TTS text. Ang iyong trabaho ay hanapin ang mga salitang Ingles "
+            "at palitan ang mga ito ng tamang Tagalog o phonetically spelled na anyo.\n\n"
+            "PANUNTUNAN:\n"
+            "- Hanapin ang LAHAT ng salitang Ingles sa text\n"
+            "- Palitan ng Tagalog na katumbas o phonetically spelled na anyo (gamit ang mga gitling)\n"
+            "- Mga pangalan ng tao at lugar ay HINDI dapat palitan (hal. Pepito, Catanduanes, Luzon)\n"
+            "- Huwag baguhin ang anumang bagay na hindi Ingles\n"
+            "- Ibalik ang BUONG text na may mga pagbabago lamang\n"
+            "- Walang markdown, walang paliwanag — plain text lamang\n\n"
+            "HALIMBAWA NG PAGPAPALIT:\n"
+            "  'storm surge' → 'storm serj'\n"
+            "  'landfall' → 'land-pol'\n"
+            "  'coastal' → 'kos-tal'\n"
+            "  'warning' → 'wor-ning'\n"
+            "  'advisory' → 'ad-bay-so-ri'\n"
+            "  'signal' → 'sig-nal'\n"
+            "  'forecast' → 'pore-kast'\n"
+            "  'emergency' → 'i-mer-chen-si'\n"
+            "  'evacuation' → 'i-bak-yu-ey-syon'"
+        ),
+        "user": (
+            "Suriin ang Tagalog TTS text na ito. Hanapin ang lahat ng salitang Ingles at palitan ng "
+            "Tagalog o phonetically spelled na anyo. Ibalik ang buong text na may mga pagbabago.\n\n"
+            "{text}"
+        ),
+    },
+    "ceb": {
+        "system": (
+            "Ikaw usa ka editor sa Cebuano TTS text. Ang imong trabaho mao ang pangitaon ang mga pulong nga Ingles "
+            "ug ilisan kini sa husto nga Cebuano o phonetically spelled nga porma.\n\n"
+            "MGA LAGDA:\n"
+            "- Pangitaa ang TANAN nga pulong nga Ingles sa text\n"
+            "- Ilisan sa Cebuano nga katumbas o phonetically spelled nga porma (gamit ang mga gitling)\n"
+            "- Ang mga pangalan sa tawo ug lugar DILI isulat pag-usab (hal. Pepito, Catanduanes, Luzon)\n"
+            "- Ayaw usba ang bisan unsang butang nga dili Ingles\n"
+            "- Ibalik ang TIBUOK text nga adunay mga pagbabago lamang\n"
+            "- Walay markdown, walay paliwanag — plain text lamang\n\n"
+            "PANANGLITAN SA PAGPULI:\n"
+            "  'storm surge' → 'storm serj'\n"
+            "  'landfall' → 'land-pol'\n"
+            "  'coastal' → 'kos-tal'\n"
+            "  'warning' → 'wor-ning'\n"
+            "  'advisory' → 'ad-bay-so-ri'\n"
+            "  'signal' → 'sig-nal'\n"
+            "  'forecast' → 'pore-kast'\n"
+            "  'emergency' → 'i-mer-chen-si'\n"
+            "  'evacuation' → 'i-bak-yu-ey-syon'\n"
+            "  'mo-intensify' → 'mo-kusog'\n"
+        ),
+        "user": (
+            "Susiha kining Cebuano TTS text. Pangitaa ang tanan nga pulong nga Ingles ug ilisan sa "
+            "Cebuano o phonetically spelled nga porma. Ibalik ang tibuok text nga adunay mga pagbabago.\n\n"
+            "{text}"
+        ),
+    },
+}
+
+# ---------------------------------------------------------------------------
+# Number-to-word cleanup prompts (third LLM pass — TL and CEB only)
+# ---------------------------------------------------------------------------
+
+_NUMBER_CLEANUP_PROMPTS = {
+    "tl": {
+        "system": (
+            "Ikaw ay isang editor ng Tagalog TTS text. Ang iyong trabaho ay hanapin ang LAHAT ng numerong nakasulat "
+            "bilang mga digit at palitan sila ng katumbas na salita sa Filipino/Spanish na sistema ng bilang.\n\n"
+            "PANUNTUNAN:\n"
+            "- Hanapin ang BAWAT numero na nakasulat bilang digit (0-9) sa text\n"
+            "- Palitan ng spoken na anyo gamit ang Filipino/Spanish na mga salita\n"
+            "- Ang mga pangalan ng tao at lugar ay HUWAG baguhin\n"
+            "- Huwag baguhin ang anumang salita — digits lang ang palitan\n"
+            "- Ibalik ang BUONG text na may mga pagbabago lamang\n"
+            "- Walang markdown, walang paliwanag — plain text lamang\n\n"
+            "MGA NUMERO AT KATUMBAS:\n"
+            "  1=uno  2=dos  3=tres  4=kuwatro  5=singko\n"
+            "  6=sayis  7=syete  8=otso  9=nuwebe  10=diyes\n"
+            "  11=onse  12=dose  13=trese  14=katorse  15=kinse\n"
+            "  16=disisayis  17=disisyete  18=diotso  19=disinuwebe\n"
+            "  20=beinte  21=beinte uno  22=beinte dos  25=beinte singko\n"
+            "  30=treynta  31=treynta y uno  40=kuwarenta  50=singkwenta\n"
+            "  60=sisenta  70=sitenta  80=otsenta  90=nobenta\n"
+            "  100=isang daan  120=isang daan beinte  130=isang daan treynta\n"
+            "  150=isang daan singkwenta  200=dos siyentos\n\n"
+            "HALIMBAWA:\n"
+            "  'Oktubre 21' → 'Oktubre beinte uno'\n"
+            "  '25 kilometro' → 'beinte singko kilometro'\n"
+            "  '130 kilometro' → 'isang daan treynta kilometro'\n"
+            "  'Signal 2' → 'sig-nal tu'\n"
+            "  '6 ng umaga' → 'sayis ng umaga'"
+        ),
+        "user": (
+            "Suriin ang Tagalog TTS text na ito. Palitan ang LAHAT ng digit na numero ng katumbas na salita. "
+            "Ibalik ang buong text na may mga pagbabago.\n\n"
+            "{text}"
+        ),
+    },
+    "ceb": {
+        "system": (
+            "Ikaw usa ka editor sa Cebuano TTS text. Ang imong trabaho mao ang pangitaon ang TANAN nga numero nga "
+            "gisulat isip mga digit ug ilisan kini sa katumbas nga pulong sa Cebuano/Spanish nga sistema sa ihap.\n\n"
+            "MGA LAGDA:\n"
+            "- Pangitaa ang MATAG numero nga gisulat isip digit (0-9) sa text\n"
+            "- Ilisan sa spoken nga porma gamit ang Cebuano/Spanish nga mga pulong\n"
+            "- Ang mga pangalan sa tawo ug lugar DILI usbon\n"
+            "- Ayaw usba ang bisan unsang pulong — ang mga digit lang ang ilisan\n"
+            "- Ibalik ang TIBUOK text nga adunay mga pagbabago lamang\n"
+            "- Walay markdown, walay paliwanag — plain text lamang\n\n"
+            "MGA NUMERO UG PASABOT:\n"
+            "  1=uno  2=dos  3=tres  4=kuwatro  5=singko\n"
+            "  6=sayis  7=syete  8=otso  9=nuwebe  10=diyes\n"
+            "  11=onse  12=dose  13=trese  14=katorse  15=kinse\n"
+            "  16=disisayis  17=disisyete  18=diotso  19=disinuwebe\n"
+            "  20=baynte  21=baynte uno  22=baynte dos  25=baynte singko\n"
+            "  30=treynta  31=treynta y uno  40=kuwarenta  50=singkwenta\n"
+            "  60=sisenta  70=sitenta  80=otsenta  90=nobenta\n"
+            "  100=isyento  120=isyento baynte  130=isyento treynta\n"
+            "  150=isyento singkwenta  200=dos siyentos\n\n"
+            "PANANGLITAN:\n"
+            "  'Oktubre 21' → 'Oktubre baynte uno'\n"
+            "  '25 kilometros' → 'baynte singko kilometros'\n"
+            "  '130 kilometros' → 'isyento treynta kilometros'\n"
+            "  'Signal 2' → 'sig-nal tu'\n"
+            "  '6 sa buntag' → 'sayis sa buntag'"
+        ),
+        "user": (
+            "Susiha kining Cebuano TTS text. Ilisan ang TANAN nga digit nga numero sa katumbas nga pulong. "
+            "Ibalik ang tibuok text nga adunay mga pagbabago.\n\n"
+            "{text}"
         ),
     },
 }
@@ -336,6 +474,28 @@ def _generate_tts_text(radio_md: str, language: str) -> str:
     return apply_phonetics(text, language)
 
 
+def _cleanup_english_words(text: str, language: str) -> str:
+    """Second LLM pass: replace any remaining English words with Tagalog/Cebuano equivalents."""
+    if language not in _CLEANUP_PROMPTS:
+        return text
+    p = _CLEANUP_PROMPTS[language]
+    return _call_ollama_chat(
+        system=p["system"],
+        user=p["user"].format(text=text),
+    )
+
+
+def _cleanup_numbers(text: str, language: str) -> str:
+    """Third LLM pass: convert all digit numbers to spoken words in the target language."""
+    if language not in _NUMBER_CLEANUP_PROMPTS:
+        return text
+    p = _NUMBER_CLEANUP_PROMPTS[language]
+    return _call_ollama_chat(
+        system=p["system"],
+        user=p["user"].format(text=text),
+    )
+
+
 @app.function(
     image=ollama_image,
     gpu="A10G",
@@ -377,6 +537,8 @@ def step2_scripts(stem: str, language: str, force: bool = False) -> str:
     radio_path.write_text(radio_md, encoding="utf-8")
 
     tts_text = _generate_tts_text(radio_md, language)
+    tts_text = _cleanup_english_words(tts_text, language)
+    tts_text = _cleanup_numbers(tts_text, language)
     tts_path.write_text(tts_text, encoding="utf-8")
 
     output_volume.commit()
