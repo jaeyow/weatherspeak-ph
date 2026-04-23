@@ -5,12 +5,10 @@ import PageLabel from '@/components/PageLabel';
 
 interface Props {
   chartUrl: string | null;
-  pdfUrl: string | null;
   stormName: string;
-  bulletinNumber: number | null;
 }
 
-export default function LatestBulletinSection({ chartUrl, pdfUrl, stormName, bulletinNumber }: Props) {
+export default function LatestBulletinSection({ chartUrl, stormName }: Props) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   const handleToggle = () => {

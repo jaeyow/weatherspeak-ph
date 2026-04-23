@@ -65,9 +65,7 @@ export default async function StormDetailPage({ params }: Props) {
       {/* Storm track chart / Latest bulletin PDF */}
       <LatestBulletinSection
         chartUrl={chartUrl}
-        pdfUrl={latestBulletin.pdf_url}
         stormName={storm.storm_name}
-        bulletinNumber={latestBulletin.bulletin_number}
       />
 
       {/* Affected areas */}
