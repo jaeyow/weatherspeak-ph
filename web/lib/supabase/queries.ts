@@ -44,7 +44,12 @@ export interface StormDetail {
   storm: StormWithStatus;
   latestBulletin: Bulletin;
   latestMedia: MediaByLang;
-  bulletinHistory: Array<{ id: string; bulletin_number: number | null; issued_at: string | null }>;
+  bulletinHistory: Array<{
+    id: string;
+    bulletin_number: number | null;
+    issued_at: string | null;
+    pdf_url: string | null;
+  }>;
 }
 
 export async function getStormDetail(stormId: string): Promise<StormDetail | null> {
@@ -76,6 +81,7 @@ export async function getStormDetail(stormId: string): Promise<StormDetail | nul
       id: b.id,
       bulletin_number: b.bulletin_number,
       issued_at: b.issued_at,
+      pdf_url: b.pdf_url ?? null,
     })),
   };
 }
