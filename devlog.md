@@ -5,6 +5,184 @@ Each entry corresponds to a pull request or significant milestone.
 
 ---
 
+## PR #16 — Bulletin PDF Preview Accordion + Responsive Layout
+**Date:** 2026-04-23
+**Branch:** `feature/multi-bulletin-history`
+**Status:** Complete ✅
+
+### What we built
+
+Improved the bulletin viewing experience with collapsible PDF previews and responsive layout. Historical bulletins now display page 1 preview inline instead of forcing downloads, and the layout adapts to desktop screen sizes.
+
+### Key Features
+
+#### 1. Historical Bulletin PDF Preview Accordion
+
+Created `BulletinHistoryAccordion` component that replaces the old link-based bulletin history:
+
+**User Experience:**
+- Click a bulletin number → accordion expands showing page 1 PDF preview
+- Only one bulletin expanded at a time (auto-closes others)
+- "Download Full PDF" button available when expanded
+- Click again to collapse
+- No unwanted downloads — everything stays in-browser
+
+**Technical:**
+- Uses `react-pdf` + `pdfjs-dist` for client-side PDF rendering
+- Renders only page 1 (no need to download full PDF)
+- Loading spinner while PDF loads from PAGASA servers
+- Error handling for failed PDF loads
+- Responsive width (max 800px, adapts to screen size)
+- Removed inaccurate date/time display (bulletins show number only)
+
+#### 2. Collapsible Storm Track Chart
+
+Created `LatestBulletinSection` component for the latest bulletin's storm track:
+
+- Starts expanded by default
+- Chevron icon indicates expand/collapse state
+- Click "STORM TRACK" header to toggle visibility
+- Shows extracted chart image (PNG from ETL Step 1)
+- Smooth animations matching accordion style
+
+#### 3. Responsive Layout
+
+Fixed narrow desktop layout issue:
+
+**Before:** `max-w-lg` (512px) on all screens — app appeared in narrow band on desktop  
+**After:** Responsive widths:
+- 📱 Mobile (< 768px): 512px max (unchanged)
+- 📱 Tablet (768px+): 672px max (`md:max-w-2xl`)
+- 💻 Desktop (1024px+): 896px max (`lg:max-w-4xl`)
+
+#### 4. Mock Data SQL Scripts
+
+Added local testing utilities in `supabase/migrations/`:
+- `mock_active_storm.sql` — insert a mock active typhoon with Signal 3
+- `mock_active_storm_simple.sql` — simpler version with fewer fields
+- `debug_mock_storm.sql` — diagnostic queries to verify data
+
+Enables frontend development without running full ETL pipeline.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `web/package.json` | Added `react-pdf@^9.2.0`, `pdfjs-dist@^4.0.379` |
+| `web/components/BulletinHistoryAccordion.tsx` | New — PDF preview accordion for historical bulletins |
+| `web/components/LatestBulletinSection.tsx` | New — collapsible storm track chart display |
+| `web/app/storms/[stormId]/page.tsx` | Use new accordion and latest bulletin section components |
+| `web/app/layout.tsx` | Responsive max-width (`max-w-lg md:max-w-2xl lg:max-w-4xl`) |
+| `supabase/migrations/mock_active_storm.sql` | New — mock active storm data for local testing |
+| `supabase/migrations/mock_active_storm_simple.sql` | New — simplified mock data script |
+| `supabase/migrations/debug_mock_storm.sql` | New — diagnostic queries for troubleshooting |
+
+### Technical Decisions
+
+**Why react-pdf over iframe/embed:**
+- Better control over loading states and errors
+- Can render specific pages only (page 1 preview)
+- Responsive sizing without scroll bars
+- Works with CORS from PAGASA servers
+
+**Why remove date/time from historical bulletins:**
+- Dates are inferred via 6-hour intervals (not OCR'd from PDF)
+- Inaccurate timestamps confuse users
+- Bulletin number alone is sufficient identifier
+
+**Why accordion over modal:**
+- Faster interaction (no navigation)
+- Mobile-friendly (no overlay management)
+- Consistent with collapsible design pattern throughout app
+
+### Next Steps
+
+- Backend: Full bulletin history backfill (PR #15 Phase II)
+- Frontend: Storm summary audio player (Mode 2)
+- UX: Add loading skeletons for slow PDF loads
+
+---
+
+## PR #15 — Multi-Bulletin History Discovery
+**Date:** 2026-04-23
+**Branch:** `feature/multi-bulletin-history`
+**Status:** Complete ✅
+
+### What we built
+
+Automatic discovery and registration of all historical bulletins for each storm processed by the ETL pipeline. When WeatherSpeak processes the latest bulletin for a storm (e.g. Basyang #23), it now discovers and registers bulletins #1–#22 as lightweight database rows, making the full bulletin history visible in the web UI.
+
+**Key constraint:** Only the latest bulletin receives full WeatherSpeak treatment (OCR + translations + audio synthesis). Historical bulletins are registered with minimal metadata and link directly to the original PAGASA PDF.
+
+### Architecture
+
+After Step 4 (Supabase upload) completes successfully, a discovery pass runs:
+
+1. Query GitHub archive API for ALL bulletins matching the storm's `storm_id` and `event_name`
+2. Filter out the latest bulletin (already processed)
+3. Infer `issued_at` timestamp for each historical bulletin using 6-hour intervals
+4. Upsert lightweight `bulletins` rows (no `bulletin_media` rows)
+
+The web UI distinguishes full-treatment bulletins (have `bulletin_media` rows) from historical bulletins (no `bulletin_media`) — full bulletins link to `/bulletins/[id]`, historical bulletins link directly to `pdf_url`.
+
+### Implementation
+
+**`modal_etl/bulletin_selector.py`** — new function:
+```python
+def get_all_bulletins_for_storm(storm_id: str, event_name: str) -> list[BulletinInfo]
+```
+- Queries GitHub archive API (same as `get_latest_bulletins`)
+- Filters to bulletins matching both `storm_id` and `event_name`
+- Returns all bulletins sorted by `bulletin_seq` ascending (oldest first)
+- Fills `pdf_url` for each entry
+
+**`modal_etl/step4_upload.py`** — discovery pass:
+- `_infer_issued_at()` — estimates issued timestamp via 6-hour intervals from latest bulletin
+- `_discover_historical_bulletins()` — queries archive, infers dates, upserts lightweight `bulletins` rows
+- Called automatically at the end of `step4_upload()` after successful upload
+- Best-effort — failure does not abort the main bulletin upload
+
+**Schema unchanged** — the existing `bulletins` table already supports lightweight rows:
+- Historical bulletins: `storm_id`, `stem`, `bulletin_type`, `bulletin_number`, `pdf_url`, `issued_at` (inferred)
+- All other columns (`category`, `wind_signal`, position data, etc.) remain NULL
+- No `bulletin_media` rows created
+
+### Testing
+
+**`tests/test_bulletin_selector.py`** — 5 new tests for `get_all_bulletins_for_storm`:
+- Returns all bulletins for a storm event
+- Sorted by `bulletin_seq` ascending
+- Excludes bulletins from other storms
+- PDF URLs properly encoded
+- Returns empty list for unknown storm
+
+All 70 tests passing.
+
+### Example
+
+Processing `PAGASA_26-TC02_Basyang_TCB#23` (latest bulletin for Typhoon Basyang):
+- **Full treatment:** Bulletin #23 gets OCR, 3 radio scripts, 3 audio files, chart extraction
+- **Discovery pass:** Bulletins #1–#22 discovered and registered with inferred `issued_at` timestamps
+- **Web UI:** Storm page shows all 23 bulletins; only #23 has audio playback; #1–#22 link to PAGASA PDF
+
+### Design spec
+
+[docs/superpowers/specs/2026-04-23-multi-bulletin-history-design.md](docs/superpowers/specs/2026-04-23-multi-bulletin-history-design.md)
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `modal_etl/bulletin_selector.py` | New `get_all_bulletins_for_storm()` function |
+| `modal_etl/step4_upload.py` | `_infer_issued_at()`, `_discover_historical_bulletins()` helpers; discovery pass called after upload |
+| `tests/test_bulletin_selector.py` | 5 new tests for historical bulletin discovery |
+
+### Next steps
+
+**Phase II (future):** Full backfill — run OCR on all historical bulletins and generate a single "storm summary" audio that covers the entire lifecycle of the storm. Design notes documented in the spec and `memory://project_phase2_storm_summary.md`.
+
+---
+
 ## PR #14 — TTS Prompt Improvements
 **Date:** 2026-04-22
 **Branch:** `feature/tts-prompt-improvements`
