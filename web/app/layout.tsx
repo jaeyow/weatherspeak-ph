@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LanguageProvider>
           <Header />
           <LocationOnboarding />
-          <main className="max-w-lg mx-auto px-4 py-6">{children}</main>
+          <main className="max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto px-4 py-6">{children}</main>
         </LanguageProvider>
       </body>
     </html>

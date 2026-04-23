@@ -4,6 +4,8 @@ import { getStormDetail } from '@/lib/supabase/queries';
 import { audioUrl } from '@/lib/audio-url';
 import { formatDate } from '@/lib/format-date';
 import BulletinAudioSection from '@/components/BulletinAudioSection';
+import BulletinHistoryAccordion from '@/components/BulletinHistoryAccordion';
+import LatestBulletinSection from '@/components/LatestBulletinSection';
 import AffectedAreas from '@/components/AffectedAreas';
 import DistancePill from '@/components/DistancePill';
 import PageLabel from '@/components/PageLabel';
@@ -60,20 +62,13 @@ export default async function StormDetailPage({ params }: Props) {
       {/* Audio player */}
       <BulletinAudioSection media={latestMedia} stem={latestBulletin.stem} />
 
-      {/* Storm track chart */}
-      {chartUrl && (
-        <div className="rounded-xl overflow-hidden bg-white/5">
-          <p className="text-xs text-gray-400 uppercase tracking-wide px-3 pt-3 pb-2">
-            <PageLabel k="storm_track" />
-          </p>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={chartUrl}
-            alt={`Storm track chart for ${storm.storm_name}`}
-            className="w-full h-auto"
-          />
-        </div>
-      )}
+      {/* Storm track chart / Latest bulletin PDF */}
+      <LatestBulletinSection
+        chartUrl={chartUrl}
+        pdfUrl={latestBulletin.pdf_url}
+        stormName={storm.storm_name}
+        bulletinNumber={latestBulletin.bulletin_number}
+      />
 
       {/* Affected areas */}
       <AffectedAreas areas={latestBulletin.affected_areas} />
@@ -84,34 +79,10 @@ export default async function StormDetailPage({ params }: Props) {
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
             <PageLabel k="past_bulletins" />
           </h2>
-          <div className="space-y-1">
-            {bulletinHistory.map(b => (
-              b.pdf_url ? (
-                <a
-                  key={b.id}
-                  href={b.pdf_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex justify-between items-center px-4 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
-                >
-                  <span className="text-sm text-white">Bulletin #{b.bulletin_number}</span>
-                  <span className="text-xs text-gray-400">
-                    {formatDate(b.issued_at)}
-                    <span className="ml-2 text-gray-500">PDF ↗</span>
-                  </span>
-                </a>
-              ) : (
-                <Link
-                  key={b.id}
-                  href={`/bulletins/${b.id}`}
-                  className="flex justify-between items-center px-4 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
-                >
-                  <span className="text-sm text-white">Bulletin #{b.bulletin_number}</span>
-                  <span className="text-xs text-gray-400">{formatDate(b.issued_at)}</span>
-                </Link>
-              )
-            ))}
-          </div>
+          <BulletinHistoryAccordion 
+            bulletins={bulletinHistory} 
+            stormName={storm.storm_name}
+          />
         </section>
       )}
 
