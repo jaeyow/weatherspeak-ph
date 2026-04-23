@@ -106,7 +106,6 @@ def _discover_historical_bulletins(
         latest_issued_at_iso: ISO 8601 string for the latest bulletin's issued_at.
         latest_num:           Bulletin sequence number of the already-processed bulletin.
     """
-    import datetime as _dt
     from modal_etl.bulletin_selector import get_all_bulletins_for_storm
 
     all_bulletins = get_all_bulletins_for_storm(archive_storm_id, event_name)
@@ -116,7 +115,7 @@ def _discover_historical_bulletins(
         print(f"[Discovery] no historical bulletins found for {event_name}")
         return
 
-    latest_dt: _dt.datetime | None = None
+    latest_dt: datetime.datetime | None = None
     if latest_issued_at_iso:
         try:
             from dateutil import parser as dtparser
@@ -133,7 +132,7 @@ def _discover_historical_bulletins(
         raw_type = info.stem.rsplit("_", 1)[-1].split("#")[0]  # "SWB", "TCA", etc.
         btype = raw_type if raw_type in ("SWB", "TCA", "TCB") else "other"
 
-        bulletin_row = {
+        history_row = {
             "storm_id":        db_storm_id,
             "stem":            info.stem,
             "bulletin_type":   btype,
@@ -142,7 +141,7 @@ def _discover_historical_bulletins(
             "pdf_url":         info.pdf_url,
         }
         client.table("bulletins").upsert(
-            bulletin_row, on_conflict="stem"
+            history_row, on_conflict="stem"
         ).execute()
         print(f"[Discovery] registered {info.stem} (issued_at≈{issued_at_iso})")
 
@@ -345,8 +344,8 @@ def step4_upload(stem: str, force: bool = False) -> str:
     # ------------------------------------------------------------------
     # Discovery pass: register all historical bulletins as lightweight rows
     # ------------------------------------------------------------------
-    archive_storm_id = decoded_stem.split("_")[1]   # e.g. "20-19W"
     try:
+        archive_storm_id = decoded_stem.split("_")[1]   # e.g. "20-19W"
         _discover_historical_bulletins(
             client=client,
             db_storm_id=storm_id,
