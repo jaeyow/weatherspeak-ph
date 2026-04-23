@@ -29,7 +29,7 @@ def parse_bulletin_filename(filename: str) -> BulletinInfo | None:
     stem = name[: -len(".pdf")]
     return BulletinInfo(
         stem=stem,
-        pdf_url="",  # filled in by get_latest_bulletins
+        pdf_url="",  # filled in by _fetch_all_bulletin_infos
         event_name=event_name,
         storm_id=storm_id,
         bulletin_seq=int(seq_str),

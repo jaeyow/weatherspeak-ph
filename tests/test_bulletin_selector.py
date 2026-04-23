@@ -1,5 +1,4 @@
 # tests/test_bulletin_selector.py
-import pytest
 from unittest.mock import patch
 from modal_etl.bulletin_selector import (
     parse_bulletin_filename,
