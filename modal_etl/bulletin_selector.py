@@ -77,3 +77,33 @@ def get_latest_bulletins(n: int) -> list[BulletinInfo]:
     latest_per_event.sort(key=lambda b: b.storm_id, reverse=True)
 
     return latest_per_event[:n]
+
+
+def get_all_bulletins_for_storm(storm_id: str, event_name: str) -> list[BulletinInfo]:
+    """Return ALL bulletins for a specific storm event, sorted by bulletin_seq ascending.
+
+    Args:
+        storm_id:   Archive storm identifier, e.g. "20-19W" or "22-TC02".
+                    This is the second underscore-segment of the filename,
+                    e.g. from "PAGASA_20-19W_Pepito_SWB#01.pdf".
+        event_name: Storm name, e.g. "Pepito" or "Basyang".
+    """
+    resp = requests.get(ARCHIVE_API_URL)
+    resp.raise_for_status()
+    tree = resp.json().get("tree", [])
+
+    bulletins = []
+    for node in tree:
+        if node.get("type") != "blob":
+            continue
+        path = node["path"]
+        info = parse_bulletin_filename(path)
+        if info is None:
+            continue
+        if info.storm_id != storm_id or info.event_name != event_name:
+            continue
+        info.pdf_url = f"{ARCHIVE_RAW_BASE}/{quote(path, safe='/')}"
+        bulletins.append(info)
+
+    bulletins.sort(key=lambda b: b.bulletin_seq)
+    return bulletins

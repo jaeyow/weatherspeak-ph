@@ -5,6 +5,7 @@ from modal_etl.bulletin_selector import (
     parse_bulletin_filename,
     group_by_event,
     get_latest_bulletins,
+    get_all_bulletins_for_storm,
     BulletinInfo,
 )
 
@@ -107,3 +108,54 @@ def test_get_latest_bulletins_hash_in_url_is_encoded():
     for r in results:
         assert "#" not in r.pdf_url
         assert "%23" in r.pdf_url
+
+
+# --- get_all_bulletins_for_storm ---
+
+def test_get_all_bulletins_for_storm_returns_all_for_event():
+    """Returns all bulletins for the requested storm, not just the latest."""
+    with patch("modal_etl.bulletin_selector.requests.get") as mock_get:
+        mock_get.return_value.json.return_value = FAKE_TREE
+        mock_get.return_value.raise_for_status = lambda: None
+        results = get_all_bulletins_for_storm("20-19W", "Pepito")
+    assert len(results) == 2
+
+
+def test_get_all_bulletins_for_storm_sorted_ascending():
+    """Results are sorted by bulletin_seq ascending (oldest first)."""
+    with patch("modal_etl.bulletin_selector.requests.get") as mock_get:
+        mock_get.return_value.json.return_value = FAKE_TREE
+        mock_get.return_value.raise_for_status = lambda: None
+        results = get_all_bulletins_for_storm("20-19W", "Pepito")
+    seqs = [r.bulletin_seq for r in results]
+    assert seqs == sorted(seqs)
+
+
+def test_get_all_bulletins_for_storm_excludes_other_storms():
+    """Does not include bulletins for a different storm."""
+    with patch("modal_etl.bulletin_selector.requests.get") as mock_get:
+        mock_get.return_value.json.return_value = FAKE_TREE
+        mock_get.return_value.raise_for_status = lambda: None
+        results = get_all_bulletins_for_storm("20-19W", "Pepito")
+    stems = [r.stem for r in results]
+    assert not any("Basyang" in s for s in stems)
+
+
+def test_get_all_bulletins_for_storm_pdf_urls_encoded():
+    """PDF URLs must not contain bare # characters."""
+    with patch("modal_etl.bulletin_selector.requests.get") as mock_get:
+        mock_get.return_value.json.return_value = FAKE_TREE
+        mock_get.return_value.raise_for_status = lambda: None
+        results = get_all_bulletins_for_storm("20-19W", "Pepito")
+    for r in results:
+        assert "#" not in r.pdf_url
+        assert r.pdf_url.startswith("https://raw.githubusercontent.com")
+
+
+def test_get_all_bulletins_for_storm_returns_empty_for_unknown():
+    """Returns empty list when no bulletins match the requested storm."""
+    with patch("modal_etl.bulletin_selector.requests.get") as mock_get:
+        mock_get.return_value.json.return_value = FAKE_TREE
+        mock_get.return_value.raise_for_status = lambda: None
+        results = get_all_bulletins_for_storm("99-ZZ", "Unknown")
+    assert results == []
