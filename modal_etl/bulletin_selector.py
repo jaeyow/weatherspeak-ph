@@ -29,7 +29,7 @@ def parse_bulletin_filename(filename: str) -> BulletinInfo | None:
     stem = name[: -len(".pdf")]
     return BulletinInfo(
         stem=stem,
-        pdf_url="",  # filled in by get_latest_bulletins
+        pdf_url="",  # filled in by _fetch_all_bulletin_infos
         event_name=event_name,
         storm_id=storm_id,
         bulletin_seq=int(seq_str),
@@ -44,16 +44,12 @@ def group_by_event(bulletins: list[BulletinInfo]) -> dict[str, list[BulletinInfo
     return groups
 
 
-def get_latest_bulletins(n: int) -> list[BulletinInfo]:
-    """Return the latest bulletin for each of the newest N severe weather events.
-
-    Recency is determined by storm_id lexicographic order (higher = more recent).
-    """
+def _fetch_all_bulletin_infos() -> list[BulletinInfo]:
+    """Fetch the GitHub archive tree and return all parseable BulletinInfo entries."""
     resp = requests.get(ARCHIVE_API_URL)
     resp.raise_for_status()
     tree = resp.json().get("tree", [])
-
-    bulletins = []
+    infos = []
     for node in tree:
         if node.get("type") != "blob":
             continue
@@ -61,10 +57,17 @@ def get_latest_bulletins(n: int) -> list[BulletinInfo]:
         info = parse_bulletin_filename(path)
         if info is None:
             continue
-        # Build raw GitHub URL — encode # as %23 so it isn't treated as a fragment
         info.pdf_url = f"{ARCHIVE_RAW_BASE}/{quote(path, safe='/')}"
-        bulletins.append(info)
+        infos.append(info)
+    return infos
 
+
+def get_latest_bulletins(n: int) -> list[BulletinInfo]:
+    """Return the latest bulletin for each of the newest N severe weather events.
+
+    Recency is determined by storm_id lexicographic order (higher = more recent).
+    """
+    bulletins = _fetch_all_bulletin_infos()
     groups = group_by_event(bulletins)
 
     # Pick latest bulletin per event
@@ -77,3 +80,18 @@ def get_latest_bulletins(n: int) -> list[BulletinInfo]:
     latest_per_event.sort(key=lambda b: b.storm_id, reverse=True)
 
     return latest_per_event[:n]
+
+
+def get_all_bulletins_for_storm(storm_id: str, event_name: str) -> list[BulletinInfo]:
+    """Return ALL bulletins for a specific storm event, sorted by bulletin_seq ascending.
+
+    Args:
+        storm_id:   Archive storm identifier, e.g. "20-19W" or "22-TC02".
+                    This is the second underscore-segment of the filename,
+                    e.g. from "PAGASA_20-19W_Pepito_SWB#01.pdf".
+        event_name: Storm name, e.g. "Pepito" or "Basyang".
+    """
+    bulletins = _fetch_all_bulletin_infos()
+    filtered = [b for b in bulletins if b.storm_id == storm_id and b.event_name == event_name]
+    filtered.sort(key=lambda b: b.bulletin_seq)
+    return filtered

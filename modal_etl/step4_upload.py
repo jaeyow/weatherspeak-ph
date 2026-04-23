@@ -20,6 +20,7 @@ Skips upload if all three bulletin_media rows are already status='ready',
 unless force=True.
 """
 
+import datetime
 import json
 import os
 import re
@@ -76,6 +77,73 @@ def _audio_duration(path: Path) -> int | None:
         return int(MP3(str(path)).info.length)
     except Exception:
         return None
+
+
+def _infer_issued_at(
+    latest_issued_at: datetime.datetime,
+    latest_num: int,
+    hist_num: int,
+) -> datetime.datetime:
+    """Estimate issued_at for a historical bulletin at 6-hour intervals."""
+    return latest_issued_at - datetime.timedelta(hours=6 * (latest_num - hist_num))
+
+
+def _discover_historical_bulletins(
+    client,
+    db_storm_id: str,
+    archive_storm_id: str,
+    event_name: str,
+    latest_issued_at_iso: str | None,
+    latest_num: int,
+) -> None:
+    """Upsert lightweight bulletin rows for all historical bulletins of a storm.
+
+    Args:
+        client:               Supabase client (already authenticated).
+        db_storm_id:          UUID of the storm row in Supabase.
+        archive_storm_id:     Archive ID like "20-19W" or "22-TC02".
+        event_name:           Storm name like "Pepito" or "Basyang".
+        latest_issued_at_iso: ISO 8601 string for the latest bulletin's issued_at.
+        latest_num:           Bulletin sequence number of the already-processed bulletin.
+    """
+    from modal_etl.bulletin_selector import get_all_bulletins_for_storm
+
+    all_bulletins = get_all_bulletins_for_storm(archive_storm_id, event_name)
+    historical = [b for b in all_bulletins if b.bulletin_seq < latest_num]
+
+    if not historical:
+        print(f"[Discovery] no historical bulletins found for {event_name}")
+        return
+
+    latest_dt: datetime.datetime | None = None
+    if latest_issued_at_iso:
+        try:
+            from dateutil import parser as dtparser
+            latest_dt = dtparser.parse(latest_issued_at_iso)
+        except Exception:
+            pass
+
+    for info in historical:
+        issued_at_iso: str | None = None
+        if latest_dt is not None:
+            inferred = _infer_issued_at(latest_dt, latest_num, info.bulletin_seq)
+            issued_at_iso = inferred.isoformat()
+
+        raw_type = info.stem.rsplit("_", 1)[-1].split("#")[0]  # "SWB", "TCA", etc.
+        btype = raw_type if raw_type in ("SWB", "TCA", "TCB") else "other"
+
+        history_row = {
+            "storm_id":        db_storm_id,
+            "stem":            info.stem,
+            "bulletin_type":   btype,
+            "bulletin_number": info.bulletin_seq,
+            "issued_at":       issued_at_iso,
+            "pdf_url":         info.pdf_url,
+        }
+        client.table("bulletins").upsert(
+            history_row, on_conflict="stem"
+        ).execute()
+        print(f"[Discovery] registered {info.stem} (issued_at≈{issued_at_iso})")
 
 
 def _upload_file(client, local_path: Path, storage_path: str) -> str:
@@ -272,6 +340,22 @@ def step4_upload(stem: str, force: bool = False) -> str:
         client.table("bulletin_media").upsert(
             media_row, on_conflict="bulletin_id,language"
         ).execute()
+
+    # ------------------------------------------------------------------
+    # Discovery pass: register all historical bulletins as lightweight rows
+    # ------------------------------------------------------------------
+    try:
+        archive_storm_id = decoded_stem.split("_")[1]   # e.g. "20-19W"
+        _discover_historical_bulletins(
+            client=client,
+            db_storm_id=storm_id,
+            archive_storm_id=archive_storm_id,
+            event_name=parsed["storm_name"],
+            latest_issued_at_iso=bulletin_row["issued_at"],
+            latest_num=parsed["bulletin_number"],
+        )
+    except Exception as exc:
+        print(f"[Discovery] non-fatal error: {exc}")
 
     print(f"[Step4Upload] {decoded_stem}: done")
     return stem

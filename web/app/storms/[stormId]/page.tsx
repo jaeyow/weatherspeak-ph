@@ -86,14 +86,30 @@ export default async function StormDetailPage({ params }: Props) {
           </h2>
           <div className="space-y-1">
             {bulletinHistory.map(b => (
-              <Link
-                key={b.id}
-                href={`/bulletins/${b.id}`}
-                className="flex justify-between items-center px-4 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
-              >
-                <span className="text-sm text-white">Bulletin #{b.bulletin_number}</span>
-                <span className="text-xs text-gray-400">{formatDate(b.issued_at)}</span>
-              </Link>
+              b.pdf_url ? (
+                <a
+                  key={b.id}
+                  href={b.pdf_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex justify-between items-center px-4 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                >
+                  <span className="text-sm text-white">Bulletin #{b.bulletin_number}</span>
+                  <span className="text-xs text-gray-400">
+                    {formatDate(b.issued_at)}
+                    <span className="ml-2 text-gray-500">PDF ↗</span>
+                  </span>
+                </a>
+              ) : (
+                <Link
+                  key={b.id}
+                  href={`/bulletins/${b.id}`}
+                  className="flex justify-between items-center px-4 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                >
+                  <span className="text-sm text-white">Bulletin #{b.bulletin_number}</span>
+                  <span className="text-xs text-gray-400">{formatDate(b.issued_at)}</span>
+                </Link>
+              )
             ))}
           </div>
         </section>
