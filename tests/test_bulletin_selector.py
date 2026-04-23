@@ -149,6 +149,7 @@ def test_get_all_bulletins_for_storm_pdf_urls_encoded():
         results = get_all_bulletins_for_storm("20-19W", "Pepito")
     for r in results:
         assert "#" not in r.pdf_url
+        assert "%23" in r.pdf_url
         assert r.pdf_url.startswith("https://raw.githubusercontent.com")
 
 
