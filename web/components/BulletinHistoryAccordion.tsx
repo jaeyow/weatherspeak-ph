@@ -126,7 +126,7 @@ export default function BulletinHistoryAccordion({ bulletins, stormName }: Props
                   {/* Download button */}
                   <div className="flex justify-center">
                     <a
-                      href={bulletin.pdf_url}
+                      href={bulletin.pdf_url || ''}
                       download={`${stormName}_Bulletin_${bulletin.bulletin_number}.pdf`}
                       target="_blank"
                       rel="noopener noreferrer"
