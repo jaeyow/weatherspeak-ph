@@ -80,10 +80,10 @@ def _audio_duration(path: Path) -> int | None:
 
 
 def _infer_issued_at(
-    latest_issued_at: "datetime.datetime",
+    latest_issued_at: datetime.datetime,
     latest_num: int,
     hist_num: int,
-) -> "datetime.datetime":
+) -> datetime.datetime:
     """Estimate issued_at for a historical bulletin at 6-hour intervals."""
     return latest_issued_at - datetime.timedelta(hours=6 * (latest_num - hist_num))
 

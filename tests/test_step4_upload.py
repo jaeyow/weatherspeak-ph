@@ -1,5 +1,4 @@
 import datetime
-import pytest
 from modal_etl.step4_upload import _infer_issued_at
 
 
