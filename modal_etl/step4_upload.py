@@ -20,6 +20,7 @@ Skips upload if all three bulletin_media rows are already status='ready',
 unless force=True.
 """
 
+import datetime
 import json
 import os
 import re
@@ -76,6 +77,15 @@ def _audio_duration(path: Path) -> int | None:
         return int(MP3(str(path)).info.length)
     except Exception:
         return None
+
+
+def _infer_issued_at(
+    latest_issued_at: "datetime.datetime",
+    latest_num: int,
+    hist_num: int,
+) -> "datetime.datetime":
+    """Estimate issued_at for a historical bulletin at 6-hour intervals."""
+    return latest_issued_at - datetime.timedelta(hours=6 * (latest_num - hist_num))
 
 
 def _upload_file(client, local_path: Path, storage_path: str) -> str:
