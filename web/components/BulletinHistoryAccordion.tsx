@@ -21,14 +21,27 @@ interface Props {
 
 export default function BulletinHistoryAccordion({ bulletins, stormName }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  const ITEMS_PER_PAGE = 15;
+  const totalPages = Math.ceil(bulletins.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentBulletins = bulletins.slice(startIndex, endIndex);
 
   const handleToggle = (id: string) => {
     setExpandedId(prev => prev === id ? null : id);
   };
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    setExpandedId(null); // Close any open accordion when changing pages
+  };
+
   return (
-    <div className="space-y-1">
-      {bulletins.map(bulletin => {
+    <div className="space-y-4">
+      <div className="space-y-1">
+        {currentBulletins.map(bulletin => {
         const isExpanded = expandedId === bulletin.id;
         const hasPdf = !!bulletin.pdf_url;
 
@@ -131,6 +144,91 @@ export default function BulletinHistoryAccordion({ bulletins, stormName }: Props
           </div>
         );
       })}
+      </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-4 py-3 bg-white/5 rounded-lg">
+          <div className="text-sm text-gray-400">
+            Showing {startIndex + 1}-{Math.min(endIndex, bulletins.length)} of {bulletins.length} bulletins
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Previous button */}
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className={`
+                px-3 py-1.5 rounded-md text-sm
+                ${currentPage === 1
+                  ? 'bg-white/5 text-gray-600 cursor-not-allowed'
+                  : 'bg-white/10 text-white hover:bg-white/20'
+                }
+                transition-colors
+              `}
+            >
+              Previous
+            </button>
+
+            {/* Page numbers */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                // Show first, last, current, and adjacent pages
+                const showPage = page === 1 || 
+                                page === totalPages || 
+                                Math.abs(page - currentPage) <= 1;
+                
+                // Show ellipsis
+                const showEllipsis = (page === currentPage - 2 && currentPage > 3) ||
+                                    (page === currentPage + 2 && currentPage < totalPages - 2);
+
+                if (!showPage && !showEllipsis) return null;
+
+                if (showEllipsis) {
+                  return (
+                    <span key={page} className="px-2 text-gray-500">
+                      ...
+                    </span>
+                  );
+                }
+
+                return (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`
+                      min-w-[32px] h-8 px-2 rounded-md text-sm
+                      ${page === currentPage
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white/10 text-white hover:bg-white/20'
+                      }
+                      transition-colors
+                    `}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Next button */}
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className={`
+                px-3 py-1.5 rounded-md text-sm
+                ${currentPage === totalPages
+                  ? 'bg-white/5 text-gray-600 cursor-not-allowed'
+                  : 'bg-white/10 text-white hover:bg-white/20'
+                }
+                transition-colors
+              `}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
