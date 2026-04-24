@@ -5,6 +5,68 @@ Each entry corresponds to a pull request or significant milestone.
 
 ---
 
+## PR #17 — Bug Fixes: Script Language Race Condition + --stem ETL Option
+**Date:** 2026-04-25
+**Branch:** `feature/bug-fixes-script-lang-stem`
+**PR:** jaeyow/weatherspeak-ph#17
+**Status:** Complete ✅
+
+### What we fixed
+
+#### 1. Script language race condition in `BulletinAudioSection`
+
+**Problem:** When navigating to a storm page with a saved language preference (e.g. EN), the "Read Bulletin" text would sometimes display Cebuano instead of English.
+
+**Root cause:** `BulletinAudioSection` initialises with `language = 'ceb'` and reads `localStorage` in a `useEffect`. Both the initial CEB fetch and the corrected EN fetch run concurrently. If the CEB response resolves after the EN response (e.g. CEB was already in-flight when the language updated), it overwrites `scriptText` with CEB content.
+
+**Fix:** Added a `cancelled` flag to the script fetch `useEffect`. When the effect reruns (because `language` changed), the cleanup function sets `cancelled = true`, preventing the stale CEB response from calling `setScriptText`.
+
+```tsx
+// Before
+fetch(audioUrl(current.script_path))
+  .then(r => r.text())
+  .then(text => setScriptText(text))
+  .catch(() => setScriptText(null))
+  .finally(() => setScriptLoading(false));
+
+// After
+let cancelled = false;
+fetch(audioUrl(current.script_path))
+  .then(r => r.text())
+  .then(text => { if (!cancelled) setScriptText(text); })
+  .catch(() => { if (!cancelled) setScriptText(null); })
+  .finally(() => { if (!cancelled) setScriptLoading(false); });
+return () => { cancelled = true; };
+```
+
+#### 2. `--stem` option for targeted ETL re-runs
+
+**Problem:** No way to re-run the ETL for a single specific bulletin (e.g. to fix an empty CEB script or a wrong audio duration) without modifying code or waiting for a full batch run.
+
+**Fix:** Added `--stem` option to `run_batch.py`. When provided, the pipeline runs for exactly that one bulletin instead of fetching the newest N events.
+
+```bash
+uv run modal run modal_etl/run_batch.py --stem "PAGASA_25-TC22_Verbena_TCB#24" --force
+```
+
+Backed by a new `get_bulletin_by_stem(stem)` function in `bulletin_selector.py` that looks up the matching entry from the GitHub archive (raises `ValueError` if not found).
+
+#### 3. `.playwright-mcp/` added to `.gitignore`
+
+Playwright MCP session artifacts (screenshots, snapshots, console logs) were not gitignored. Added `.playwright-mcp/` to `.gitignore`.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `web/components/BulletinAudioSection.tsx` | `cancelled` flag in script fetch effect to prevent stale response overwrite |
+| `modal_etl/run_batch.py` | `--stem` option; uses `get_bulletin_by_stem()` when provided |
+| `modal_etl/bulletin_selector.py` | New `get_bulletin_by_stem(stem)` function |
+| `CLAUDE.md` | Document `--stem --force` ETL invocation in ETL Operations section |
+| `.gitignore` | Add `.playwright-mcp/` |
+
+---
+
 ## PR #16 — Bulletin PDF Preview Accordion + Responsive Layout
 **Date:** 2026-04-23
 **Branch:** `feature/multi-bulletin-history`
