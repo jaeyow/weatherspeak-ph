@@ -20,7 +20,7 @@ import time
 from pathlib import Path
 
 from modal_etl.app import app
-from modal_etl.bulletin_selector import get_latest_bulletins
+from modal_etl.bulletin_selector import get_bulletin_by_stem, get_latest_bulletins
 from modal_etl.config import N_EVENTS, LANGUAGES
 from modal_etl.step1_ocr import Step1OCR
 from modal_etl.step2_scripts import step2_scripts
@@ -217,7 +217,7 @@ def _write_report(
 # ---------------------------------------------------------------------------
 
 @app.local_entrypoint()
-def main(n: int = N_EVENTS, force: bool = False) -> None:
+def main(n: int = N_EVENTS, force: bool = False, stem: str = "") -> None:
     """Process the newest N severe weather events end-to-end.
 
     For each event:
@@ -233,11 +233,17 @@ def main(n: int = N_EVENTS, force: bool = False) -> None:
     Args:
         n:     Number of most-recent bulletins to process (default: N_EVENTS).
         force: Re-run all steps even if outputs already exist.
+        stem:  Process a single specific bulletin by stem, e.g.
+               "PAGASA_25-TC22_Verbena_TCB#24". Overrides --n.
     """
     run_start = datetime.datetime.now()
 
-    print(f"Selecting newest {n} severe weather events from bulletin archive...")
-    bulletins = get_latest_bulletins(n)
+    if stem:
+        print(f"Looking up bulletin by stem: {stem}")
+        bulletins = [get_bulletin_by_stem(stem)]
+    else:
+        print(f"Selecting newest {n} severe weather events from bulletin archive...")
+        bulletins = get_latest_bulletins(n)
 
     if not bulletins:
         print("No bulletins found. Check ARCHIVE_API_URL in config.py.")
@@ -340,6 +346,6 @@ def main(n: int = N_EVENTS, force: bool = False) -> None:
     run_end = datetime.datetime.now()
 
     # Write report
-    report_path = _write_report(run_start, run_end, n, force, results)
+    report_path = _write_report(run_start, run_end, len(bulletins), force, results)
     print(f"\nBatch complete. Artifacts published to Supabase.")
     print(f"Report: {report_path.absolute()}")

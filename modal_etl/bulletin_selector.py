@@ -82,6 +82,22 @@ def get_latest_bulletins(n: int) -> list[BulletinInfo]:
     return latest_per_event[:n]
 
 
+def get_bulletin_by_stem(stem: str) -> BulletinInfo:
+    """Return the BulletinInfo for a specific bulletin stem.
+
+    Args:
+        stem: Full bulletin stem, e.g. "PAGASA_25-TC22_Verbena_TCB#24".
+
+    Raises:
+        ValueError: If the stem is not found in the archive.
+    """
+    bulletins = _fetch_all_bulletin_infos()
+    for b in bulletins:
+        if b.stem == stem:
+            return b
+    raise ValueError(f"Stem not found in archive: {stem!r}")
+
+
 def get_all_bulletins_for_storm(storm_id: str, event_name: str) -> list[BulletinInfo]:
     """Return ALL bulletins for a specific storm event, sorted by bulletin_seq ascending.
 
