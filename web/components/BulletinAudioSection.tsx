@@ -36,12 +36,14 @@ export default function BulletinAudioSection({ media, stem }: Props) {
       setScriptText(null);
       return;
     }
+    let cancelled = false;
     setScriptLoading(true);
     fetch(audioUrl(current.script_path))
       .then(r => r.text())
-      .then(text => setScriptText(text))
-      .catch(() => setScriptText(null))
-      .finally(() => setScriptLoading(false));
+      .then(text => { if (!cancelled) setScriptText(text); })
+      .catch(() => { if (!cancelled) setScriptText(null); })
+      .finally(() => { if (!cancelled) setScriptLoading(false); });
+    return () => { cancelled = true; };
   }, [language, media]);
 
   const current = media[language];

@@ -120,3 +120,20 @@ This project uses Superpowers skills for planning and execution:
 - New features: brainstorm → spec (`docs/superpowers/specs/`) → plan (`docs/superpowers/plans/`)
 - Plans are executed via `superpowers:subagent-driven-development`
 - Devlog is maintained in `devlog.md` — update after each PR
+
+---
+
+## ETL Operations
+
+### Normal batch run (pick up latest bulletins)
+```bash
+uv run modal run modal_etl/run_batch.py
+```
+
+### Re-run a specific bulletin (e.g. to fix empty scripts or wrong audio duration)
+```bash
+uv run modal run modal_etl/run_batch.py --stem "PAGASA_25-TC22_Verbena_TCB#24" --force
+```
+
+`--stem` targets a single bulletin by its full stem (keep the `#` — the ETL sanitises it internally for storage paths).  
+`--force` overwrites existing DB rows and Storage files even if already marked `ready`.
