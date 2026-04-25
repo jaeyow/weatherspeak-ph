@@ -1,3 +1,4 @@
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -433,6 +434,21 @@ def _wait_for_ollama(retries: int = 60, delay: float = 2.0) -> None:
     raise RuntimeError("Ollama server did not start within timeout")
 
 
+def _clean_ocr(text: str) -> str:
+    """Remove OCR artefacts that cause the LLM to produce placeholder output.
+
+    Step 1 on GPU sometimes emits lines like [HEADER BLOCK], [Logo - PAGASA],
+    [Signature/Stamp placeholder] for parts of the PDF it cannot read.  When
+    these reach Step 2 the model interprets the whole document as a template
+    and produces bracket-placeholder output instead of real content.
+    """
+    # Remove lines that consist entirely of a [BRACKET LABEL]
+    text = re.sub(r"^\s*\[[^\]\n]+\]\s*$", "", text, flags=re.MULTILINE)
+    # Collapse runs of blank lines left by the removals
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
 def _call_ollama_chat(system: str, user: str) -> str:
     """Send a chat request to Ollama and return the assistant message content."""
     resp = requests.post(
@@ -448,7 +464,10 @@ def _call_ollama_chat(system: str, user: str) -> str:
         timeout=OLLAMA_TIMEOUT,
     )
     resp.raise_for_status()
-    return resp.json()["message"]["content"].strip()
+    content = resp.json()["message"]["content"].strip()
+    # Safety net: strip any <think>...</think> blocks that may still appear.
+    content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
+    return content
 
 
 def _generate_radio_script(markdown: str, language: str) -> str:
@@ -531,7 +550,7 @@ def step2_scripts(stem: str, language: str, force: bool = False) -> str:
         print(f"[Step2Scripts] {stem}/{language}: already exists, skipping")
         return stem
 
-    ocr_md = (out_dir / "ocr.md").read_text(encoding="utf-8")
+    ocr_md = _clean_ocr((out_dir / "ocr.md").read_text(encoding="utf-8"))
 
     radio_md = _generate_radio_script(ocr_md, language)
     radio_path.write_text(radio_md, encoding="utf-8")
