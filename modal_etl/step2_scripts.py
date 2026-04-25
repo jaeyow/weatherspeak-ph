@@ -1,3 +1,5 @@
+import json
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -41,8 +43,8 @@ _RADIO_PROMPTS = {
             "LENGTH: No more than 200 words. Be concise — a life may depend on someone understanding this clearly."
         ),
         "user": (
-            "Convert this PAGASA weather bulletin into a plain conversational English announcement.\n\n"
-            "{markdown}\n\n"
+            "Convert this PAGASA weather bulletin data into a plain conversational English announcement.\n\n"
+            "{bulletin_data}\n\n"
             "Write the announcement now. Pack in all critical information — storm, location, track, "
             "affected areas with Signal levels, what to do, next update time. "
             "No more than 200 words. No headings, no markdown. Write place names naturally."
@@ -76,8 +78,8 @@ _RADIO_PROMPTS = {
             "HABA: Hindi hihigit sa 200 salita. Maging maigsi — maaaring ang buhay ng isang tao ay nakasalalay sa malinaw na pag-unawa nito."
         ),
         "user": (
-            "I-convert ang PAGASA weather bulletin na ito sa maikling pahayag sa Tagalog.\n\n"
-            "{markdown}\n\n"
+            "I-convert ang datos ng PAGASA bulletin na ito sa maikling pahayag sa Tagalog.\n\n"
+            "{bulletin_data}\n\n"
             "Isulat ang pahayag ngayon. Ilagay ang lahat ng kritikal na impormasyon — bagyo, lokasyon, landas, "
             "mga apektadong lugar na may Signal level, ano ang gagawin, oras ng susunod na update. "
             "Hindi hihigit sa 200 salita. Puro Tagalog. Walang headings, walang markdown."
@@ -111,8 +113,8 @@ _RADIO_PROMPTS = {
             "GITAS-ON: Dili molapas sa 200 ka pulong. Pagmaiksi — ang kinabuhi sa usa ka tawo mahimong magdepende sa tin-aw nga pagsabot niini."
         ),
         "user": (
-            "I-convert ang PAGASA weather bulletin nga kini ngadto sa mubo nga pahimangno sa Cebuano.\n\n"
-            "{markdown}\n\n"
+            "I-convert ang datos sa PAGASA bulletin nga kini ngadto sa mubo nga pahimangno sa Cebuano.\n\n"
+            "{bulletin_data}\n\n"
             "Isulat ang pahimangno karon. Ibutang ang tanan nga kritikal nga impormasyon — bagyo, lokasyon, dalan, "
             "mga apektadong lugar nga adunay Signal level, unsa ang buhaton, oras sa sunod nga update. "
             "Dili molapas sa 200 ka pulong. Puro Cebuano. Walay headings, walay markdown."
@@ -423,6 +425,96 @@ _NUMBER_CLEANUP_PROMPTS = {
 }
 
 
+def _format_metadata_for_prompt(metadata: dict) -> str:
+    """Convert a parsed metadata.json dict into a labelled text block for LLM prompts.
+
+    Produces unambiguous field labels so the LLM cannot confuse wind speed with
+    movement speed or miss the OUTSIDE PAR / no-signal status.
+    """
+    s = metadata.get("storm", {})
+    storm_name = s.get("name", "Unknown")
+    category = s.get("category", "Unknown")
+    intl = s.get("international_name")
+    intl_str = f" (international name: {intl})" if intl else ""
+
+    b_type = metadata.get("bulletin_type", "")
+    b_num = metadata.get("bulletin_number")
+    b_num_str = f" #{b_num}" if b_num else ""
+    bulletin_label = f"{b_type}{b_num_str}" if b_type else "Bulletin"
+
+    iss = metadata.get("issuance", {})
+    issued = iss.get("datetime") or "not specified"
+    valid_until = iss.get("valid_until") or "not specified"
+
+    pos = metadata.get("current_position", {})
+    position_ref = pos.get("reference") or "not specified"
+    position_as_of = pos.get("as_of") or ""
+    position_str = position_ref
+    if position_as_of:
+        position_str += f" (as of {position_as_of})"
+
+    inten = metadata.get("intensity", {})
+    winds = inten.get("max_sustained_winds_kph")
+    gusts = inten.get("gusts_kph")
+    winds_str = f"{winds} km/h" if winds else "not specified"
+    gusts_str = f"up to {gusts} km/h" if gusts else "not specified"
+
+    mov = metadata.get("movement", {})
+    direction = mov.get("direction") or "not specified"
+    speed = mov.get("speed_kph")
+    speed_str = f"{speed} km/h" if speed else "not specified"
+
+    areas = metadata.get("affected_areas", {})
+    signal_sections = []
+    for level in range(1, 6):
+        places = areas.get(f"signal_{level}", [])
+        if places:
+            signal_sections.append(f"  Signal {level}: {', '.join(places)}")
+    rainfall = areas.get("rainfall_warning", [])
+    if rainfall:
+        signal_sections.append(f"  Rainfall warning: {', '.join(rainfall)}")
+    coastal = areas.get("coastal_waters")
+    if coastal:
+        signal_sections.append(f"  Coastal waters: {coastal}")
+    signals_str = (
+        "\n".join(signal_sections)
+        if signal_sections
+        else "  No wind signals in effect — no areas of the Philippines are under any wind signal."
+    )
+
+    forecasts = metadata.get("forecast_positions", [])
+    forecast_lines = [
+        f"  {fp.get('hour', '?')}-hour: {fp.get('reference') or 'location not specified'}"
+        for fp in forecasts
+    ]
+    forecasts_str = "\n".join(forecast_lines) if forecast_lines else "  Not available"
+
+    return (
+        f"=== PAGASA TYPHOON BULLETIN ===\n"
+        f"Storm: {category} {storm_name}{intl_str}\n"
+        f"Bulletin: {bulletin_label}\n"
+        f"Issued: {issued}\n"
+        f"Valid until / Next bulletin: {valid_until}\n"
+        f"\n"
+        f"CURRENT POSITION:\n"
+        f"  {position_str}\n"
+        f"\n"
+        f"INTENSITY:\n"
+        f"  Maximum sustained winds: {winds_str} near the center\n"
+        f"  Gusts: {gusts_str}\n"
+        f"\n"
+        f"MOVEMENT:\n"
+        f"  Direction: {direction}\n"
+        f"  Speed: {speed_str}\n"
+        f"\n"
+        f"WIND SIGNALS IN EFFECT:\n"
+        f"{signals_str}\n"
+        f"\n"
+        f"FORECAST TRACK:\n"
+        f"{forecasts_str}\n"
+    )
+
+
 def _wait_for_ollama(retries: int = 60, delay: float = 2.0) -> None:
     for _ in range(retries):
         try:
@@ -448,15 +540,39 @@ def _call_ollama_chat(system: str, user: str) -> str:
         timeout=OLLAMA_TIMEOUT,
     )
     resp.raise_for_status()
-    return resp.json()["message"]["content"].strip()
+    content = resp.json()["message"]["content"].strip()
+    # Safety net: strip any <think>...</think> blocks that may still appear.
+    content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
+    return content
 
 
-def _generate_radio_script(markdown: str, language: str) -> str:
-    """Generate a ~300-word spoken weather announcement in the target language."""
+def _generate_radio_script(
+    ocr_md: str, language: str, metadata: dict | None = None
+) -> str:
+    """Generate a spoken weather announcement in the target language.
+
+    Uses a hybrid input when metadata is available: structured key facts as an
+    unambiguous anchor (preventing field-confusion hallucinations) plus the full
+    OCR text for completeness. Falls back to OCR-only when metadata is absent.
+
+    Args:
+        ocr_md:   Cleaned OCR markdown from ocr.md.
+        language: "en", "tl", or "ceb".
+        metadata: Parsed metadata.json dict; None triggers OCR-only fallback.
+    """
+    if metadata is not None:
+        bulletin_data = (
+            "=== KEY FACTS (use these for accuracy — do not confuse fields) ===\n"
+            f"{_format_metadata_for_prompt(metadata)}\n"
+            "=== FULL BULLETIN TEXT (use for completeness) ===\n"
+            f"{ocr_md}"
+        )
+    else:
+        bulletin_data = ocr_md
     p = _RADIO_PROMPTS[language]
     return _call_ollama_chat(
         system=p["system"],
-        user=p["user"].format(markdown=markdown),
+        user=p["user"].format(bulletin_data=bulletin_data),
     )
 
 
@@ -533,7 +649,15 @@ def step2_scripts(stem: str, language: str, force: bool = False) -> str:
 
     ocr_md = (out_dir / "ocr.md").read_text(encoding="utf-8")
 
-    radio_md = _generate_radio_script(ocr_md, language)
+    metadata_path = out_dir / "metadata.json"
+    if metadata_path.exists():
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        print(f"[Step2Scripts] {stem}/{language}: using hybrid input (metadata + OCR)")
+    else:
+        metadata = None
+        print(f"[Step2Scripts] {stem}/{language}: metadata.json absent, using OCR only")
+
+    radio_md = _generate_radio_script(ocr_md, language, metadata=metadata)
     radio_path.write_text(radio_md, encoding="utf-8")
 
     tts_text = _generate_tts_text(radio_md, language)
