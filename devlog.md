@@ -5,6 +5,173 @@ Each entry corresponds to a pull request or significant milestone.
 
 ---
 
+## PR #18 — Pipeline Validation Notebook + OCR Artefact Cleanup
+**Date:** 2026-04-25
+**Branch:** `feature/bug-fixes-script-lang-stem`
+**Status:** Complete ✅
+
+### What we built
+
+Two improvements to the ETL quality pipeline:
+
+1. **`notebooks/09-pipeline-validation.ipynb`** — end-to-end pipeline validation notebook that exercises all four pipeline steps (metadata generation → radio scripts → TTS text → audio synthesis) across three sample bulletins, with schema validation and quality checks at every stage.
+
+2. **OCR artefact cleanup in Step 2** — a preprocessing pass that strips bracket placeholders from `ocr.md` before it reaches the script-generation LLM, preventing bracket-pattern hallucination in the generated scripts.
+
+---
+
+#### 1. Notebook 09 — Pipeline Validation
+
+The notebook tests three bulletins end-to-end:
+
+| Stem | Type | Storm |
+|---|---|---|
+| `PAGASA_20-19W_Pepito_SWB#01` | Severe Weather Bulletin | Tropical Depression Pepito |
+| `PAGASA_22-TC02_Basyang_TCA#01` | Tropical Cyclone Alert | Basyang |
+| `PAGASA_25-TC22_Verbena_TCB#24` | Tropical Cyclone Bulletin #24 | Typhoon Verbena (OUTSIDE PAR) |
+
+**Key innovation — hybrid LLM input:**
+
+`generate_radio_bulletin()` provides both structured JSON metadata and the full OCR markdown to the LLM in a single prompt:
+
+```python
+user_prompt = f"""Convert this PAGASA weather bulletin into a plain conversational announcement.
+
+=== KEY FACTS (structured data for quick reference) ===
+{json.dumps(structured_metadata, indent=2, ensure_ascii=False)}
+
+=== FULL BULLETIN TEXT (complete information) ===
+{ocr_markdown}
+
+Write the announcement now. Use the structured data to quickly identify key facts,
+but rely on the full bulletin text for accuracy and completeness. ..."""
+```
+
+This addresses the hallucination bugs found in PR #14 (wind speed confused with movement speed, wrong storm name in Basyang script) by giving the LLM pre-parsed, labelled fields as a quick-reference anchor while keeping full OCR text available for completeness.
+
+**Synthesis pipeline** (reused from notebook 08):
+
+| Language | TTS Model | Notes |
+|---|---|---|
+| Cebuano | `facebook/mms-tts-ceb` (VITS) | Native phonemes |
+| Tagalog | `facebook/mms-tts-tgl` (VITS) | Native phonemes |
+| English | Coqui XTTS v2 (`Damien Black`) | Better prosody than MMS English |
+
+**Validation steps:**
+
+- **Schema validation**: `jsonschema.validate()` against `PAGASA_JSON_SCHEMA` — catches missing required fields and type mismatches
+- **Coordinate range checks**: latitude −90 to 90, longitude 0 to 360
+- **Radio script completeness**: word count check, no raw Markdown in output
+- **TTS text quality**: no leftover Markdown syntax (`#`, `**`, `-`)
+
+Output directory: `notebooks/09-pipeline-validation/` with subdirs `generated_metadata/`, `radio_bulletins/`, `tts_texts/`, `audio/`
+
+#### 2. OCR artefact cleanup (`_clean_ocr` in `step2_scripts.py`)
+
+**Problem:** Step 1 GPU vision inference sometimes emits placeholder lines like `[HEADER BLOCK]`, `[Logo - PAGASA]`, `[Signature/Stamp placeholder]` for parts of the PDF it cannot read clearly. When these reach Step 2, the LLM interprets the whole document as a template and produces bracket-filled placeholder output instead of real bulletin content.
+
+**Fix:** Added `_clean_ocr()` preprocessing:
+
+```python
+def _clean_ocr(text: str) -> str:
+    # Remove lines that consist entirely of a [BRACKET LABEL]
+    text = re.sub(r"^\s*\[[^\]\n]+\]\s*$", "", text, flags=re.MULTILINE)
+    # Collapse blank lines left by removals
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+```
+
+Applied to `ocr.md` before every Step 2 LLM call. Also strips `<think>...</think>` blocks that occasionally appear in Ollama responses.
+
+#### 3. `force` flag propagated in Step 1
+
+The `force` parameter in `Step1OCR.run()` now correctly propagates to all three sub-steps (OCR, chart extraction, metadata generation). Previously only the outer `if ... and not force` guard was checked; the individual sub-step checks still used `if not path.exists()` — so `--force` would skip regenerating individual outputs that already existed.
+
+#### 4. Schema validation test suite
+
+`tests/test_schema_validation.py` — 8 unit tests covering `PAGASA_JSON_SCHEMA` validation:
+
+- Valid minimal metadata passes without error
+- Missing required fields are caught correctly
+- Invalid enum values (bad bulletin type, bad storm category) are rejected
+- Null values accepted where schema allows
+- Confidence field bounds (0.0–1.0) enforced
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `notebooks/09-pipeline-validation.ipynb` | New — end-to-end pipeline validation notebook |
+| `modal_etl/step2_scripts.py` | `_clean_ocr()` preprocessing; `<think>` block stripping in `_call_ollama_chat()` |
+| `modal_etl/step1_ocr.py` | `force` flag correctly propagated to all three sub-steps |
+| `tests/test_schema_validation.py` | New — 8 tests for `PAGASA_JSON_SCHEMA` validation |
+| `notebooks/08-mms-tts-experiment.ipynb` | Metadata-first radio script experiment cells added |
+| `docs/superpowers/plans/2026-04-25-metadata-first-radio-scripts.md` | Implementation plan for metadata-first Step 2 (future modal_etl integration) |
+
+---
+
+## PR #17 — Bug Fixes: Script Language Race Condition + --stem ETL Option
+**Date:** 2026-04-25
+**Branch:** `feature/bug-fixes-script-lang-stem`
+**PR:** jaeyow/weatherspeak-ph#17
+**Status:** Complete ✅
+
+### What we fixed
+
+#### 1. Script language race condition in `BulletinAudioSection`
+
+**Problem:** When navigating to a storm page with a saved language preference (e.g. EN), the "Read Bulletin" text would sometimes display Cebuano instead of English.
+
+**Root cause:** `BulletinAudioSection` initialises with `language = 'ceb'` and reads `localStorage` in a `useEffect`. Both the initial CEB fetch and the corrected EN fetch run concurrently. If the CEB response resolves after the EN response (e.g. CEB was already in-flight when the language updated), it overwrites `scriptText` with CEB content.
+
+**Fix:** Added a `cancelled` flag to the script fetch `useEffect`. When the effect reruns (because `language` changed), the cleanup function sets `cancelled = true`, preventing the stale CEB response from calling `setScriptText`.
+
+```tsx
+// Before
+fetch(audioUrl(current.script_path))
+  .then(r => r.text())
+  .then(text => setScriptText(text))
+  .catch(() => setScriptText(null))
+  .finally(() => setScriptLoading(false));
+
+// After
+let cancelled = false;
+fetch(audioUrl(current.script_path))
+  .then(r => r.text())
+  .then(text => { if (!cancelled) setScriptText(text); })
+  .catch(() => { if (!cancelled) setScriptText(null); })
+  .finally(() => { if (!cancelled) setScriptLoading(false); });
+return () => { cancelled = true; };
+```
+
+#### 2. `--stem` option for targeted ETL re-runs
+
+**Problem:** No way to re-run the ETL for a single specific bulletin (e.g. to fix an empty CEB script or a wrong audio duration) without modifying code or waiting for a full batch run.
+
+**Fix:** Added `--stem` option to `run_batch.py`. When provided, the pipeline runs for exactly that one bulletin instead of fetching the newest N events.
+
+```bash
+uv run modal run modal_etl/run_batch.py --stem "PAGASA_25-TC22_Verbena_TCB#24" --force
+```
+
+Backed by a new `get_bulletin_by_stem(stem)` function in `bulletin_selector.py` that looks up the matching entry from the GitHub archive (raises `ValueError` if not found).
+
+#### 3. `.playwright-mcp/` added to `.gitignore`
+
+Playwright MCP session artifacts (screenshots, snapshots, console logs) were not gitignored. Added `.playwright-mcp/` to `.gitignore`.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `web/components/BulletinAudioSection.tsx` | `cancelled` flag in script fetch effect to prevent stale response overwrite |
+| `modal_etl/run_batch.py` | `--stem` option; uses `get_bulletin_by_stem()` when provided |
+| `modal_etl/bulletin_selector.py` | New `get_bulletin_by_stem(stem)` function |
+| `CLAUDE.md` | Document `--stem --force` ETL invocation in ETL Operations section |
+| `.gitignore` | Add `.playwright-mcp/` |
+
+---
+
 ## PR #16 — Bulletin PDF Preview Accordion + Responsive Layout
 **Date:** 2026-04-23
 **Branch:** `feature/multi-bulletin-history`

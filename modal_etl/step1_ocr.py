@@ -278,7 +278,7 @@ class Step1OCR:
         pages = _pdf_to_pil_pages(pdf_bytes)
 
         # 1. OCR → markdown
-        if not ocr_path.exists():
+        if not ocr_path.exists() or force:
             markdown = _ocr_pdf(pages)
             ocr_path.write_text(markdown, encoding="utf-8")
             print(f"[Step1OCR] {stem}: wrote ocr.md ({len(markdown)} chars)")
@@ -286,13 +286,13 @@ class Step1OCR:
             markdown = ocr_path.read_text(encoding="utf-8")
 
         # 2. Chart extraction → chart.png
-        if not chart_path.exists():
+        if not chart_path.exists() or force:
             chart_idx = _find_chart_page(pages)
             pages[chart_idx].save(str(chart_path), format="PNG")
             print(f"[Step1OCR] {stem}: saved chart.png (page {chart_idx})")
 
         # 3. Structured metadata → metadata.json
-        if not metadata_path.exists():
+        if not metadata_path.exists() or force:
             metadata = _generate_metadata(markdown)
             metadata_path.write_text(
                 json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
