@@ -9,7 +9,7 @@ from jsonschema import validate, ValidationError
 # Import the schema from step1_ocr
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from modal_etl.step1_ocr import PAGASA_JSON_SCHEMA
+from modal_etl.core.ocr import PAGASA_JSON_SCHEMA
 
 
 @pytest.fixture
