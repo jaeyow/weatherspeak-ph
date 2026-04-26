@@ -2,7 +2,6 @@ import base64
 import io
 import json
 import subprocess
-import time
 from pathlib import Path
 
 import modal
@@ -10,6 +9,7 @@ import requests
 
 from modal_etl.app import app, ollama_image, OLLAMA_MOUNTS, output_volume
 from modal_etl.config import OLLAMA_MODELS_PATH, OUTPUT_PATH, GEMMA_MODEL
+from modal_etl.core.ollama import wait_for_ollama, call_ollama_generate
 
 OLLAMA_URL = "http://localhost:11434"
 OLLAMA_TIMEOUT = 600  # seconds per page — vision inference on A10G can take 2-5 min
@@ -141,40 +141,6 @@ _METADATA_SYSTEM = (
 )
 
 
-def _wait_for_ollama(retries: int = 60, delay: float = 2.0) -> None:
-    """Block until Ollama server responds or raise RuntimeError."""
-    for _ in range(retries):
-        try:
-            requests.get(f"{OLLAMA_URL}/api/tags", timeout=5)
-            return
-        except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
-            time.sleep(delay)
-    raise RuntimeError("Ollama server did not start within timeout")
-
-
-def _call_ollama(
-    prompt: str,
-    system: str | None = None,
-    images_b64: list[str] | None = None,
-    fmt: dict | None = None,
-) -> str:
-    """Send a generate request to Ollama. Returns the response text."""
-    payload: dict = {"model": GEMMA_MODEL, "prompt": prompt, "stream": False}
-    if system:
-        payload["system"] = system
-    if images_b64:
-        payload["images"] = images_b64
-    if fmt:
-        payload["format"] = fmt
-    resp = requests.post(
-        f"{OLLAMA_URL}/api/generate",
-        json=payload,
-        timeout=OLLAMA_TIMEOUT,
-    )
-    resp.raise_for_status()
-    return resp.json()["response"]
-
-
 def _pdf_to_pil_pages(pdf_bytes: bytes, dpi: int = 200):
     """Convert PDF bytes to a list of PIL Image objects (one per page)."""
     from pdf2image import convert_from_bytes
@@ -193,10 +159,13 @@ def _ocr_pdf(pages) -> str:
     pages_md = []
     for i, page in enumerate(pages):
         img_b64 = _page_to_b64(page)
-        page_md = _call_ollama(
+        page_md = call_ollama_generate(
+            url=OLLAMA_URL,
+            model=GEMMA_MODEL,
             prompt=_OCR_USER,
             system=_OCR_SYSTEM,
             images_b64=[img_b64],
+            timeout=OLLAMA_TIMEOUT,
         )
         pages_md.append(f"<!-- Page {i + 1} -->\n\n{page_md}")
     return "\n\n---\n\n".join(pages_md)
@@ -214,7 +183,13 @@ def _find_chart_page(pages) -> int:
         "Which page contains the storm track map or weather disturbance chart? "
         "Reply with a single integer — the 0-based page index only. No explanation."
     )
-    response = _call_ollama(prompt=prompt, images_b64=all_b64).strip()
+    response = call_ollama_generate(
+        url=OLLAMA_URL,
+        model=GEMMA_MODEL,
+        prompt=prompt,
+        images_b64=all_b64,
+        timeout=OLLAMA_TIMEOUT,
+    ).strip()
     try:
         idx = int(response.split()[0])
         return max(0, min(idx, len(pages) - 1))
@@ -229,7 +204,14 @@ def _generate_metadata(markdown: str) -> dict:
         f"{markdown}\n\n"
         "Convert this into the structured JSON schema."
     )
-    raw = _call_ollama(prompt=prompt, system=_METADATA_SYSTEM, fmt=PAGASA_JSON_SCHEMA)
+    raw = call_ollama_generate(
+        url=OLLAMA_URL,
+        model=GEMMA_MODEL,
+        prompt=prompt,
+        system=_METADATA_SYSTEM,
+        fmt=PAGASA_JSON_SCHEMA,
+        timeout=OLLAMA_TIMEOUT,
+    )
     return json.loads(raw)
 
 
@@ -246,7 +228,7 @@ class Step1OCR:
         import os
         os.environ["OLLAMA_MODELS"] = str(OLLAMA_MODELS_PATH)
         subprocess.Popen(["ollama", "serve"])
-        _wait_for_ollama()
+        wait_for_ollama(OLLAMA_URL)
         print("[Step1OCR] Ollama ready")
 
     @modal.method()

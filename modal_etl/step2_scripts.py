@@ -1,13 +1,11 @@
 import json
 import re
 import subprocess
-import time
 from pathlib import Path
-
-import requests
 
 from modal_etl.app import app, ollama_image, OLLAMA_MOUNTS, output_volume
 from modal_etl.config import OLLAMA_MODELS_PATH, OUTPUT_PATH, GEMMA_MODEL, LANGUAGES
+from modal_etl.core.ollama import wait_for_ollama, call_ollama_chat as _core_chat
 from modal_etl.phonetics import apply_phonetics
 
 OLLAMA_URL = "http://localhost:11434"
@@ -515,16 +513,6 @@ def _format_metadata_for_prompt(metadata: dict) -> str:
     )
 
 
-def _wait_for_ollama(retries: int = 60, delay: float = 2.0) -> None:
-    for _ in range(retries):
-        try:
-            requests.get(f"{OLLAMA_URL}/api/tags", timeout=5)
-            return
-        except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
-            time.sleep(delay)
-    raise RuntimeError("Ollama server did not start within timeout")
-
-
 def _clean_ocr(text: str) -> str:
     """Remove OCR artefacts that cause the LLM to produce placeholder output.
 
@@ -538,27 +526,6 @@ def _clean_ocr(text: str) -> str:
     # Collapse runs of blank lines left by the removals
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
-
-
-def _call_ollama_chat(system: str, user: str) -> str:
-    """Send a chat request to Ollama and return the assistant message content."""
-    resp = requests.post(
-        f"{OLLAMA_URL}/api/chat",
-        json={
-            "model": GEMMA_MODEL,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            "stream": False,
-        },
-        timeout=OLLAMA_TIMEOUT,
-    )
-    resp.raise_for_status()
-    content = resp.json()["message"]["content"].strip()
-    # Safety net: strip any <think>...</think> blocks that may still appear.
-    content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
-    return content
 
 
 def _generate_radio_script(
@@ -585,7 +552,9 @@ def _generate_radio_script(
     else:
         bulletin_data = ocr_md
     p = _RADIO_PROMPTS[language]
-    return _call_ollama_chat(
+    return _core_chat(
+        url=OLLAMA_URL,
+        model=GEMMA_MODEL,
         system=p["system"],
         user=p["user"].format(bulletin_data=bulletin_data),
     )
@@ -598,7 +567,9 @@ def _generate_tts_text(radio_md: str, language: str) -> str:
     catch any English words the model failed to phonetically spell.
     """
     p = _TTS_PROMPTS[language]
-    text = _call_ollama_chat(
+    text = _core_chat(
+        url=OLLAMA_URL,
+        model=GEMMA_MODEL,
         system=p["system"],
         user=p["user"].format(markdown=radio_md),
     )
@@ -610,7 +581,9 @@ def _cleanup_english_words(text: str, language: str) -> str:
     if language not in _CLEANUP_PROMPTS:
         return text
     p = _CLEANUP_PROMPTS[language]
-    return _call_ollama_chat(
+    return _core_chat(
+        url=OLLAMA_URL,
+        model=GEMMA_MODEL,
         system=p["system"],
         user=p["user"].format(text=text),
     )
@@ -621,7 +594,9 @@ def _cleanup_numbers(text: str, language: str) -> str:
     if language not in _NUMBER_CLEANUP_PROMPTS:
         return text
     p = _NUMBER_CLEANUP_PROMPTS[language]
-    return _call_ollama_chat(
+    return _core_chat(
+        url=OLLAMA_URL,
+        model=GEMMA_MODEL,
         system=p["system"],
         user=p["user"].format(text=text),
     )
@@ -651,7 +626,7 @@ def step2_scripts(stem: str, language: str, force: bool = False) -> str:
     import os
     os.environ["OLLAMA_MODELS"] = str(OLLAMA_MODELS_PATH)
     subprocess.Popen(["ollama", "serve"])
-    _wait_for_ollama()
+    wait_for_ollama(OLLAMA_URL)
     print(f"[Step2Scripts] Ollama ready ({language})")
 
     out_dir = OUTPUT_PATH / stem
