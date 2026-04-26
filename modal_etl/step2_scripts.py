@@ -637,7 +637,10 @@ def step2_scripts(stem: str, language: str, force: bool = False) -> str:
         print(f"[Step2Scripts] {stem}/{language}: already exists, skipping")
         return stem
 
-    ocr_md = _clean_ocr((out_dir / "ocr.md").read_text(encoding="utf-8"))
+    ocr_path = out_dir / "ocr.md"
+    if not ocr_path.exists():
+        raise RuntimeError(f"[Step2Scripts] {stem}: ocr.md not found — run Step 1 first")
+    ocr_md = _clean_ocr(ocr_path.read_text(encoding="utf-8"))
 
     metadata_path = out_dir / "metadata.json"
     if metadata_path.exists():

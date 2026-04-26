@@ -212,7 +212,10 @@ def _generate_metadata(markdown: str) -> dict:
         fmt=PAGASA_JSON_SCHEMA,
         timeout=OLLAMA_TIMEOUT,
     )
-    return json.loads(raw)
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"[Step1OCR] metadata JSON parse failed: {exc}\nRaw output: {raw[:500]}") from exc
 
 
 @app.cls(
