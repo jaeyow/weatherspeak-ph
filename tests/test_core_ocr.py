@@ -41,7 +41,7 @@ def test_run_step1_uses_stem_override(tmp_path):
 
 
 def test_run_step1_force_reruns_even_when_outputs_exist(tmp_path, monkeypatch):
-    """run_step1 with force=True calls _ocr_pdf even when outputs already exist."""
+    """run_step1 with force=True calls _extract_narrative even when outputs already exist."""
     stem = "PAGASA_TEST"
     pdf_path = tmp_path / f"{stem}.pdf"
     pdf_path.write_bytes(b"fake pdf")
