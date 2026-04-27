@@ -42,6 +42,9 @@ def sample_valid_metadata():
             "direction": "Westward",
             "speed_kph": 20,
         },
+        "wind_extent": None,
+        "land_hazards": None,
+        "track_outlook": None,
         "forecast_positions": [
             {
                 "hour": 24,
@@ -137,26 +140,42 @@ def test_null_values_allowed_for_optional_fields(sample_valid_metadata):
 
 def test_archived_files_do_not_match_schema():
     """Archived files from notebook experiments should fail validation.
-    
+
     This test documents that old files have inconsistent schemas.
     """
     archive_dir = Path(__file__).parent.parent / "data" / "gemma4_results" / "structured_archive_20260412"
-    
+
     if not archive_dir.exists():
         pytest.skip("Archive directory not found")
-    
+
     json_files = list(archive_dir.glob("*.json"))
     if not json_files:
         pytest.skip("No archived JSON files found")
-    
+
     # Pick the first archived file
     sample_file = json_files[0]
     with open(sample_file) as f:
         old_data = json.load(f)
-    
+
     # This should fail validation because old files have different structure
     with pytest.raises(ValidationError):
         validate(instance=old_data, schema=PAGASA_JSON_SCHEMA)
+
+
+def test_new_fields_present_in_schema_properties():
+    """wind_extent, land_hazards, track_outlook must exist in schema properties."""
+    props = PAGASA_JSON_SCHEMA["properties"]
+    assert "wind_extent" in props
+    assert "land_hazards" in props
+    assert "track_outlook" in props
+
+
+def test_new_fields_accept_null_and_string(sample_valid_metadata):
+    """New fields accept null (already in fixture) and non-null string values."""
+    sample_valid_metadata["wind_extent"] = "Winds of at least 30 km/h extend outward up to 280 km"
+    sample_valid_metadata["land_hazards"] = "Moderate to heavy rainfall expected in Visayas"
+    sample_valid_metadata["track_outlook"] = "The storm is expected to make landfall within 24 hours"
+    validate(instance=sample_valid_metadata, schema=PAGASA_JSON_SCHEMA)
 
 
 if __name__ == "__main__":
