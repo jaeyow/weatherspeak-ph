@@ -116,38 +116,38 @@ PAGASA_JSON_SCHEMA = {
     ],
 }
 
-_OCR_SYSTEM_PROMPT = (
-    "You are an expert OCR assistant specialising in Philippine government weather documents "
-    "issued by PAGASA (Philippine Atmospheric, Geophysical and Astronomical Services Administration).\n\n"
-    "Your task is to transcribe ALL visible text from the bulletin image into clean Markdown, "
-    "preserving the document's structure exactly.\n\n"
-    "PAGASA BULLETIN STRUCTURE — know where to look:\n"
-    "- The bulletin title area near the top contains the bulletin type and number "
-    "(e.g. 'TROPICAL CYCLONE BULLETIN NO. 24').\n"
-    "- Immediately after the bulletin number, the storm name appears on its own line in ALL CAPS "
-    "(e.g. 'VERBENA'). Transcribe it exactly — do not correct or alter the spelling.\n"
-    "- If the storm has a former name it appears in parentheses right after the current name "
-    " or in the body text as 'formerly known as [NAME]', "
-    "'previously named [NAME]', etc. Transcribe both names exactly as written.\n"
-    "- The General Remarks section contains a short all-caps headline summarising the storm's "
-    "current situation (e.g. '\"VERBENA\" WEAKENS WHILE MOVING WEST SOUTHWESTWARD SLOWLY'). "
-    "Transcribe it exactly including any quotation marks.\n"
-    "- The body contains sections: General Remarks, Forecast Track table, Wind Signals, "
-    "Rainfall Advisory, and a Storm Track Map.\n\n"
-    "OUTPUT RULES:\n"
-    "- Output clean Markdown that preserves headings, tables, lists, and sections.\n"
-    "- Include every piece of visible text: headers, body, tables, footnotes, labels, legends, logos.\n"
-    "- For the storm track map, describe what you see: storm position, forecast track, "
-    "affected regions, symbols and legend items.\n"
-    "- If text is partially legible, transcribe your best reading — do NOT add notes like "
-    "'(not visible)', '(illegible)', or '(text unclear)'.\n"
-    "- Do NOT add any labels, headers, or annotations that are not in the document "
-    "(e.g. do not add '[OCR ASSISTANT SPECIAL REPORT]' or any similar marker).\n"
-    "- Do NOT add commentary or parenthetical observations about what is or is not visible.\n"
-    "- Do NOT summarise, paraphrase, or omit any content."
+_NARRATIVE_SYSTEM_PROMPT = (
+    "You are an expert OCR assistant for PAGASA Philippine weather bulletins issued by "
+    "the Philippine Atmospheric, Geophysical and Astronomical Services Administration.\n\n"
+    "Extract ONLY the following fields from the bulletin pages. "
+    "Output clean Markdown preserving headings and lists.\n\n"
+    "FIELDS TO EXTRACT:\n"
+    "- Bulletin type and number\n"
+    "- Storm current name, former name (if any), international name (if any)\n"
+    "- Issue date and time\n"
+    "- Headline (the short all-caps summary line, "
+    "e.g. '\"VERBENA\" WEAKENS WHILE MOVING WEST SOUTHWESTWARD SLOWLY')\n"
+    "- Location of Center (coordinates + reference landmark + as-of time)\n"
+    "- Intensity (max sustained winds + gusts in km/h)\n"
+    "- Present Movement (direction + speed)\n"
+    "- Extent of Tropical Cyclone Winds (narrative, "
+    "e.g. 'Winds of at least 30 km/h extend outward up to 280 km from the center')\n"
+    "- Tropical Cyclone Wind Signals in Effect (list of areas per signal level)\n"
+    "- Other Hazards Affecting Land Areas (rainfall advisory, storm surge, flooding)\n"
+    "- Hazards Affecting Coastal Waters\n"
+    "- Track and Intensity Outlook (narrative forecast summary paragraph)\n"
+    "- Storm track map: describe what you see — storm position, forecast track, "
+    "affected regions, symbols and legend items\n\n"
+    "DO NOT EXTRACT: The 'Track and Intensity Forecast' table. "
+    "It appears at the bottom of page 1 as a multi-column table with rows labeled "
+    "'12-Hour Forecast', '24-Hour Forecast', etc. "
+    "Stop before it and do not read any of its contents."
 )
 
-_OCR_USER = "Extract all text and describe the storm track map from this PAGASA typhoon bulletin image."
+_NARRATIVE_USER = (
+    "Extract all narrative bulletin fields and describe the storm track map "
+    "from this PAGASA typhoon bulletin image. Do not include the forecast table."
+)
 
 _FORECAST_TABLE_SYSTEM_PROMPT = (
     "You are a precise data-extraction assistant specialising in PAGASA typhoon bulletins.\n\n"
@@ -189,7 +189,15 @@ _METADATA_SYSTEM_PROMPT = (
     "(e.g. '\"VERBENA\" WEAKENS WHILE MOVING WEST SOUTHWESTWARD SLOWLY'). "
     "It is typically found in the Remarks or General Remarks section. "
     "Capture it exactly as written including any quotation marks around the storm name. "
-    "If not present, set headline to null."
+    "If not present, set headline to null.\n\n"
+    "NEW FIELDS — extract these if present in the bulletin text:\n"
+    "- wind_extent: narrative string describing how far cyclone winds extend outward "
+    "(e.g. 'Winds of at least 30 km/h extend outward up to 280 km from the center'). "
+    "Set null if not stated.\n"
+    "- land_hazards: narrative string covering rainfall advisories, storm surge warnings, "
+    "and flooding warnings for land areas. Set null if none.\n"
+    "- track_outlook: the Track and Intensity Outlook narrative paragraph. "
+    "Set null if not present."
 )
 
 
@@ -217,15 +225,15 @@ def _extract_forecast_table(page1, ollama_url: str, model: str) -> str:
     ).strip()
 
 
-def _ocr_pdf(pages, ollama_url: str, model: str) -> str:
+def _extract_narrative(pages, ollama_url: str, model: str) -> str:
     pages_md = []
     for i, page in enumerate(pages):
         img_b64 = _page_to_b64(page)
         page_md = call_ollama_generate(
             url=ollama_url,
             model=model,
-            prompt=_OCR_USER,
-            system=_OCR_SYSTEM_PROMPT,
+            prompt=_NARRATIVE_USER,
+            system=_NARRATIVE_SYSTEM_PROMPT,
             images_b64=[img_b64],
             timeout=OLLAMA_TIMEOUT,
         )
@@ -326,7 +334,7 @@ def run_step1(
     pages = _pdf_to_pil_pages(pdf_bytes)
 
     if not ocr_path.exists() or force:
-        markdown = _ocr_pdf(pages, ollama_url, model)
+        markdown = _extract_narrative(pages, ollama_url, model)
         ocr_path.write_text(markdown, encoding="utf-8")
         print(f"[run_step1] {stem}: wrote ocr.md ({len(markdown)} chars)")
     else:
