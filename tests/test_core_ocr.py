@@ -55,7 +55,7 @@ def test_run_step1_force_reruns_even_when_outputs_exist(tmp_path, monkeypatch):
         def save(self, path, format): pass
 
     monkeypatch.setattr("modal_etl.core.ocr._pdf_to_pil_pages", lambda b, dpi=200: [FakePage()])
-    monkeypatch.setattr("modal_etl.core.ocr._ocr_pdf", lambda pages, url, model: (called.append(1), "# forced")[1])
+    monkeypatch.setattr("modal_etl.core.ocr._extract_narrative", lambda pages, url, model: (called.append(1), "# forced")[1])
     monkeypatch.setattr("modal_etl.core.ocr._extract_forecast_table", lambda page, url, model: "| Date and Time |")
     monkeypatch.setattr("modal_etl.core.ocr._find_chart_page", lambda pages, url, model: 0)
     monkeypatch.setattr("modal_etl.core.ocr._generate_metadata", lambda md, url, model, forecast_table_md=None: {"bulletin_type": "TCA", "storm": {"name": "T", "category": "Typhoon"}, "issuance": {}, "current_position": {}, "intensity": {}, "movement": {}, "forecast_positions": [], "affected_areas": {}, "storm_track_map": {}, "confidence": 1.0})
@@ -71,3 +71,9 @@ def test_pagasa_json_schema_has_required_fields():
                   "intensity", "movement", "forecast_positions", "affected_areas",
                   "storm_track_map", "confidence"]:
         assert field in required
+
+
+def test_extract_narrative_is_callable():
+    """_extract_narrative must exist and be callable (replaces _ocr_pdf)."""
+    from modal_etl.core.ocr import _extract_narrative
+    assert callable(_extract_narrative)
