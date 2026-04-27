@@ -146,6 +146,33 @@ _OCR_SYSTEM_PROMPT = (
 
 _OCR_USER = "Extract all text and describe the storm track map from this PAGASA typhoon bulletin image."
 
+_FORECAST_TABLE_SYSTEM_PROMPT = (
+    "You are a precise data-extraction assistant specialising in PAGASA typhoon bulletins.\n\n"
+    "Your ONLY task is to extract the Track and Intensity Forecast table from the provided bulletin image.\n\n"
+    "TABLE LOCATION: The table is in the LOWER HALF of the page, below the two-column section "
+    "(which has narrative text on the left and a storm track map on the right). "
+    "The table header row reads: TRACK AND INTENSITY FORECAST.\n\n"
+    "TABLE STRUCTURE — extract exactly these columns:\n"
+    "| Date and Time | Lat. (°N) | Lon. (°E) | Location | MSW (km/h) | Cat. | "
+    "Movement dir. and speed (km/h) |\n\n"
+    "ROWS: The table always has exactly 8 forecast rows labeled:\n"
+    "12-Hour Forecast, 24-Hour Forecast, 36-Hour Forecast, 48-Hour Forecast, "
+    "60-Hour Forecast, 72-Hour Forecast, 96-Hour Forecast, 120-Hour Forecast.\n\n"
+    "RULES:\n"
+    "- Output ONLY the Markdown table. No preamble, no explanation, no other text.\n"
+    "- Copy values exactly as printed — do NOT round, correct, or interpolate.\n"
+    "- If a cell is not legible, output an empty cell (||) — never guess.\n"
+    "- The Date and Time cell spans two lines (e.g. '12-Hour Forecast\\n8:00 AM\\n04 December 2025'). "
+    "Combine onto one line separated by spaces.\n"
+    "- Cat. values are abbreviations: LPA, TD, TS, STS, TY, STY.\n"
+    "- Movement values are compass direction + speed (e.g. 'WSW 20', 'W Slowly', 'Stationary')."
+)
+
+_FORECAST_TABLE_USER = (
+    "Extract the Track and Intensity Forecast table from this PAGASA bulletin page. "
+    "Output only the Markdown table."
+)
+
 _METADATA_SYSTEM_PROMPT = (
     "You are PAGASAParseAI, an expert at converting extracted PAGASA typhoon bulletin text into structured JSON.\n\n"
     "Extract only the fields listed in the schema. Do not include full_text or any free-form text dump.\n\n"
@@ -172,6 +199,19 @@ def _page_to_b64(pil_image) -> str:
     buf = io.BytesIO()
     pil_image.save(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode("utf-8")
+
+
+def _extract_forecast_table(page1, ollama_url: str, model: str) -> str:
+    """Run a focused second pass on page 1 to extract the forecast table accurately."""
+    img_b64 = _page_to_b64(page1)
+    return call_ollama_generate(
+        url=ollama_url,
+        model=model,
+        prompt=_FORECAST_TABLE_USER,
+        system=_FORECAST_TABLE_SYSTEM_PROMPT,
+        images_b64=[img_b64],
+        timeout=OLLAMA_TIMEOUT,
+    ).strip()
 
 
 def _ocr_pdf(pages, ollama_url: str, model: str) -> str:
@@ -212,12 +252,28 @@ def _find_chart_page(pages, ollama_url: str, model: str) -> int:
         return len(pages) - 1
 
 
-def _generate_metadata(markdown: str, ollama_url: str, model: str) -> dict:
-    prompt = (
-        "Here is the extracted text from a PAGASA bulletin:\n\n"
-        f"{markdown}\n\n"
-        "Convert this into the structured JSON schema."
-    )
+def _generate_metadata(
+    markdown: str,
+    ollama_url: str,
+    model: str,
+    forecast_table_md: str | None = None,
+) -> dict:
+    if forecast_table_md:
+        prompt = (
+            "Here is the extracted text from a PAGASA bulletin:\n\n"
+            f"{markdown}\n\n"
+            "---\n\n"
+            "IMPORTANT: For the forecast_positions field, use ONLY the following verified table "
+            "(ignore any forecast data in the text above — this table is more accurate):\n\n"
+            f"{forecast_table_md}\n\n"
+            "Convert this into the structured JSON schema."
+        )
+    else:
+        prompt = (
+            "Here is the extracted text from a PAGASA bulletin:\n\n"
+            f"{markdown}\n\n"
+            "Convert this into the structured JSON schema."
+        )
     raw = call_ollama_generate(
         url=ollama_url,
         model=model,
@@ -248,10 +304,17 @@ def run_step1(
     stem = stem or pdf_path.stem
     out_dir = output_dir / stem
     ocr_path = out_dir / "ocr.md"
+    forecast_table_path = out_dir / "forecast_table.md"
     chart_path = out_dir / "chart.png"
     metadata_path = out_dir / "metadata.json"
 
-    if ocr_path.exists() and chart_path.exists() and metadata_path.exists() and not force:
+    if (
+        ocr_path.exists()
+        and forecast_table_path.exists()
+        and chart_path.exists()
+        and metadata_path.exists()
+        and not force
+    ):
         print(f"[run_step1] {stem}: all outputs exist, skipping")
         return out_dir
 
@@ -266,13 +329,20 @@ def run_step1(
     else:
         markdown = ocr_path.read_text(encoding="utf-8")
 
+    if not forecast_table_path.exists() or force:
+        forecast_table_md = _extract_forecast_table(pages[0], ollama_url, model)
+        forecast_table_path.write_text(forecast_table_md, encoding="utf-8")
+        print(f"[run_step1] {stem}: wrote forecast_table.md ({len(forecast_table_md)} chars)")
+    else:
+        forecast_table_md = forecast_table_path.read_text(encoding="utf-8")
+
     if not chart_path.exists() or force:
         chart_idx = _find_chart_page(pages, ollama_url, model)
         pages[chart_idx].save(str(chart_path), format="PNG")
         print(f"[run_step1] {stem}: saved chart.png (page {chart_idx})")
 
     if not metadata_path.exists() or force:
-        metadata = _generate_metadata(markdown, ollama_url, model)
+        metadata = _generate_metadata(markdown, ollama_url, model, forecast_table_md)
         metadata_path.write_text(
             json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
         )
