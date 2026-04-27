@@ -62,6 +62,9 @@ PAGASA_JSON_SCHEMA = {
                 "speed_kph": {"type": ["integer", "null"]},
             },
         },
+        "wind_extent": {"type": ["string", "null"]},
+        "land_hazards": {"type": ["string", "null"]},
+        "track_outlook": {"type": ["string", "null"]},
         "forecast_positions": {
             "type": "array",
             "items": {
@@ -156,8 +159,8 @@ _FORECAST_TABLE_SYSTEM_PROMPT = (
     "| Date and Time | Lat. (°N) | Lon. (°E) | Location | MSW (km/h) | Cat. | "
     "Movement dir. and speed (km/h) |\n\n"
     "ROWS: The table always has exactly 8 forecast rows labeled:\n"
-    "12-Hour Forecast, 24-Hour Forecast, 36-Hour Forecast, 48-Hour Forecast, "
-    "60-Hour Forecast, 72-Hour Forecast, 96-Hour Forecast, 120-Hour Forecast.\n\n"
+    "12-Hour Forecast (Time and Date), 24-Hour Forecast (Time and Date), 36-Hour Forecast (Time and Date), 48-Hour Forecast (Time and Date), "
+    "60-Hour Forecast (Time and Date), 72-Hour Forecast (Time and Date), 96-Hour Forecast (Time and Date), 120-Hour Forecast (Time and Date).\n\n"
     "RULES:\n"
     "- Output ONLY the Markdown table. No preamble, no explanation, no other text.\n"
     "- Copy values exactly as printed — do NOT round, correct, or interpolate.\n"
