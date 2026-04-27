@@ -25,7 +25,7 @@ def call_ollama_generate(
     timeout: int = 600,
 ) -> str:
     """POST /api/generate and return the response text."""
-    payload: dict = {"model": model, "prompt": prompt, "stream": False}
+    payload: dict = {"model": model, "prompt": prompt, "stream": False, "think": False}
     if system:
         payload["system"] = system
     if images_b64:
@@ -54,6 +54,7 @@ def call_ollama_chat(
                 {"role": "user", "content": user},
             ],
             "stream": False,
+            "think": False,
         },
         timeout=timeout,
     )

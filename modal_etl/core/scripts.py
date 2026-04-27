@@ -435,7 +435,9 @@ def _format_metadata_for_prompt(metadata: dict) -> str:
     s = metadata.get("storm", {})
     storm_name = s.get("name", "Unknown")
     category = s.get("category", "Unknown")
+    former = s.get("former_name")
     intl = s.get("international_name")
+    former_str = f", formerly known as {former}" if former else ""
     intl_str = f" (international name: {intl})" if intl else ""
 
     b_type = metadata.get("bulletin_type", "")
@@ -492,7 +494,7 @@ def _format_metadata_for_prompt(metadata: dict) -> str:
 
     return (
         f"=== PAGASA TYPHOON BULLETIN ===\n"
-        f"Storm: {category} {storm_name}{intl_str}\n"
+        f"Storm: {category} {storm_name}{former_str}{intl_str}\n"
         f"Bulletin: {bulletin_label}\n"
         f"Issued: {issued}\n"
         f"Valid until / Next bulletin: {valid_until}\n"

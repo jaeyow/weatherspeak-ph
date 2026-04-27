@@ -16,6 +16,7 @@ PAGASA_JSON_SCHEMA = {
             "type": "object",
             "properties": {
                 "name": {"type": "string"},
+                "former_name": {"type": ["string", "null"]},
                 "international_name": {"type": ["string", "null"]},
                 "category": {
                     "type": "string",
@@ -95,6 +96,7 @@ PAGASA_JSON_SCHEMA = {
                 "description": {"type": ["string", "null"]},
             },
         },
+        "headline": {"type": ["string", "null"]},
         "confidence": {"type": "number", "minimum": 0.0, "maximum": 1.0},
     },
     "required": [
@@ -111,26 +113,53 @@ PAGASA_JSON_SCHEMA = {
     ],
 }
 
-_OCR_SYSTEM = (
-    "You are an expert OCR assistant specialising in Philippine government weather documents.\n\n"
-    "Your task is to extract ALL text from the provided PAGASA typhoon bulletin image as accurately as possible.\n\n"
+_OCR_SYSTEM_PROMPT = (
+    "You are an expert OCR assistant specialising in Philippine government weather documents "
+    "issued by PAGASA (Philippine Atmospheric, Geophysical and Astronomical Services Administration).\n\n"
+    "Your task is to transcribe ALL visible text from the bulletin image into clean Markdown, "
+    "preserving the document's structure exactly.\n\n"
+    "PAGASA BULLETIN STRUCTURE — know where to look:\n"
+    "- The bulletin title area near the top contains the bulletin type and number "
+    "(e.g. 'TROPICAL CYCLONE BULLETIN NO. 24').\n"
+    "- Immediately after the bulletin number, the storm name appears on its own line in ALL CAPS "
+    "(e.g. 'VERBENA'). Transcribe it exactly — do not correct or alter the spelling.\n"
+    "- If the storm has a former name it appears in parentheses right after the current name "
+    " or in the body text as 'formerly known as [NAME]', "
+    "'previously named [NAME]', etc. Transcribe both names exactly as written.\n"
+    "- The General Remarks section contains a short all-caps headline summarising the storm's "
+    "current situation (e.g. '\"VERBENA\" WEAKENS WHILE MOVING WEST SOUTHWESTWARD SLOWLY'). "
+    "Transcribe it exactly including any quotation marks.\n"
+    "- The body contains sections: General Remarks, Forecast Track table, Wind Signals, "
+    "Rainfall Advisory, and a Storm Track Map.\n\n"
     "OUTPUT RULES:\n"
-    "- Output clean Markdown that preserves the document's structure (headings, tables, lists, sections).\n"
+    "- Output clean Markdown that preserves headings, tables, lists, and sections.\n"
     "- Include every piece of visible text: headers, body, tables, footnotes, labels, legends, logos.\n"
-    "- For the storm track map/chart, describe what you see: storm position, forecast track, affected regions, symbols and legend items.\n"
-    "- Do NOT summarise, paraphrase, or omit any content.\n"
-    "- Do NOT add commentary or explanation outside the document content."
+    "- For the storm track map, describe what you see: storm position, forecast track, "
+    "affected regions, symbols and legend items.\n"
+    "- If text is partially legible, transcribe your best reading — do NOT add notes like "
+    "'(not visible)', '(illegible)', or '(text unclear)'.\n"
+    "- Do NOT add any labels, headers, or annotations that are not in the document "
+    "(e.g. do not add '[OCR ASSISTANT SPECIAL REPORT]' or any similar marker).\n"
+    "- Do NOT add commentary or parenthetical observations about what is or is not visible.\n"
+    "- Do NOT summarise, paraphrase, or omit any content."
 )
 
 _OCR_USER = "Extract all text and describe the storm track map from this PAGASA typhoon bulletin image."
 
-_METADATA_SYSTEM = (
+_METADATA_SYSTEM_PROMPT = (
     "You are PAGASAParseAI, an expert at converting extracted PAGASA typhoon bulletin text into structured JSON.\n\n"
     "Extract only the fields listed in the schema. Do not include full_text or any free-form text dump.\n\n"
     "CRITICAL RULES:\n"
     "- Output ONLY the JSON object. No preamble, no markdown fences, no explanation.\n"
     "- If a field cannot be determined, use null or an empty array. Never hallucinate.\n"
-    "- forecast_positions must include every position shown (24h, 48h, 72h, 96h, 120h)."
+    "- forecast_positions must include every position shown (24h, 48h, 72h, 96h, 120h).\n"
+    "- FORMER NAME: If a former/previous name is mentioned, extract it into the former_name field. "
+    "Otherwise set former_name to null. Current storm name can be empty or null if not found.\n"
+    "- HEADLINE: Extract the short all-caps summary line that appears near the top of the bulletin "
+    "(e.g. '\"VERBENA\" WEAKENS WHILE MOVING WEST SOUTHWESTWARD SLOWLY'). "
+    "It is typically found in the Remarks or General Remarks section. "
+    "Capture it exactly as written including any quotation marks around the storm name. "
+    "If not present, set headline to null."
 )
 
 
@@ -153,7 +182,7 @@ def _ocr_pdf(pages, ollama_url: str, model: str) -> str:
             url=ollama_url,
             model=model,
             prompt=_OCR_USER,
-            system=_OCR_SYSTEM,
+            system=_OCR_SYSTEM_PROMPT,
             images_b64=[img_b64],
             timeout=OLLAMA_TIMEOUT,
         )
@@ -193,7 +222,7 @@ def _generate_metadata(markdown: str, ollama_url: str, model: str) -> dict:
         url=ollama_url,
         model=model,
         prompt=prompt,
-        system=_METADATA_SYSTEM,
+        system=_METADATA_SYSTEM_PROMPT,
         fmt=PAGASA_JSON_SCHEMA,
         timeout=OLLAMA_TIMEOUT,
     )
