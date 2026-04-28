@@ -22,7 +22,7 @@ from pathlib import Path
 from modal_etl.app import app
 from modal_etl.bulletin_selector import get_bulletin_by_stem, get_latest_bulletins
 from modal_etl.config import N_EVENTS, LANGUAGES
-from modal_etl.step1_ocr import Step1OCR
+from modal_etl.step1_ocr import Step1OCR, Step1OCRMarker
 from modal_etl.step2_scripts import step2_scripts
 from modal_etl.step3_tts import step3_tts
 from modal_etl.step4_upload import step4_upload
@@ -254,7 +254,7 @@ def main(n: int = N_EVENTS, force: bool = False, stem: str = "", step: int = 0, 
     for b in bulletins:
         print(f"  {b.stem}")
 
-    ocr = Step1OCR()
+    ocr = Step1OCRMarker() if backend == "marker" else Step1OCR()
 
     results: list[dict] = []
 
@@ -268,7 +268,7 @@ def main(n: int = N_EVENTS, force: bool = False, stem: str = "", step: int = 0, 
             print("  Step 1: OCR + chart + metadata...")
             t0 = time.time()
             try:
-                stem = ocr.run.remote(bulletin.pdf_url, force=force, backend=backend)
+                stem = ocr.run.remote(bulletin.pdf_url, force=force)
                 bulletin_result["steps"]["step1_ocr"] = {
                     "status": "ok",
                     "elapsed_s": round(time.time() - t0, 1),

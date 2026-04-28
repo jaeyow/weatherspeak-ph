@@ -42,6 +42,10 @@ ollama_image = (
     .add_local_python_source("modal_etl")
 )
 
+# Container image for Step 1 in Marker mode — extends ollama_image with marker-pdf
+# marker-pdf pulls torch + surya-ocr; Ollama is still needed for chart description.
+marker_image = ollama_image.pip_install("marker-pdf>=1.10.0")
+
 # Container image for step 4 (Supabase upload) — lightweight, no ML deps
 upload_image = (
     modal.Image.debian_slim(python_version="3.12")
