@@ -306,12 +306,17 @@ def run_step1(
     model: str = "gemma4:e4b",
     force: bool = False,
     stem: str | None = None,
+    backend: str = "gemma4",
 ) -> Path:
     """Run OCR on pdf_path and write ocr.md, chart.png, metadata.json to output_dir/{stem}/.
 
     Returns:
         Path to the stem-scoped output directory (output_dir/{stem}/).
     """
+    if backend == "marker":
+        from modal_etl.core import ocr_marker
+        return ocr_marker.run(pdf_path, output_dir, ollama_url, model, force, stem)
+
     stem = stem or pdf_path.stem
     out_dir = output_dir / stem
     ocr_path = out_dir / "ocr.md"
