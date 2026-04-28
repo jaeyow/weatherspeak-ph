@@ -1,5 +1,7 @@
 """Tests for modal_etl/core/ocr.py — skip logic and path handling only (no Ollama/PIL)."""
 import json
+import sys
+import types
 import pytest
 from pathlib import Path
 from modal_etl.core.ocr import run_step1, PAGASA_JSON_SCHEMA
@@ -81,12 +83,9 @@ def test_extract_narrative_is_callable():
 
 def test_run_step1_backend_marker_delegates(tmp_path, monkeypatch):
     """run_step1 with backend='marker' delegates to ocr_marker.run()."""
-    import sys
-    import types
-
     called = []
     fake_ocr_marker = types.ModuleType("modal_etl.core.ocr_marker")
-    fake_ocr_marker.run = lambda *a, **kw: called.append(a) or tmp_path
+    fake_ocr_marker.run = lambda *a, **kw: (called.append(a), tmp_path)[1]
     monkeypatch.setitem(sys.modules, "modal_etl.core.ocr_marker", fake_ocr_marker)
 
     pdf_path = tmp_path / "PAGASA_TEST.pdf"
