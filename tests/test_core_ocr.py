@@ -77,3 +77,22 @@ def test_extract_narrative_is_callable():
     """_extract_narrative must exist and be callable (replaces _ocr_pdf)."""
     from modal_etl.core.ocr import _extract_narrative
     assert callable(_extract_narrative)
+
+
+def test_run_step1_backend_marker_delegates(tmp_path, monkeypatch):
+    """run_step1 with backend='marker' delegates to ocr_marker.run()."""
+    import sys
+    import types
+
+    called = []
+    fake_ocr_marker = types.ModuleType("modal_etl.core.ocr_marker")
+    fake_ocr_marker.run = lambda *a, **kw: called.append(a) or tmp_path
+    monkeypatch.setitem(sys.modules, "modal_etl.core.ocr_marker", fake_ocr_marker)
+
+    pdf_path = tmp_path / "PAGASA_TEST.pdf"
+    pdf_path.write_bytes(b"fake pdf")
+
+    result = run_step1(pdf_path, tmp_path, backend="marker")
+
+    assert len(called) == 1
+    assert result == tmp_path
