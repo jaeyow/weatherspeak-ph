@@ -217,7 +217,7 @@ def _write_report(
 # ---------------------------------------------------------------------------
 
 @app.local_entrypoint()
-def main(n: int = N_EVENTS, force: bool = False, stem: str = "", step: int = 0) -> None:
+def main(n: int = N_EVENTS, force: bool = False, stem: str = "", step: int = 0, backend: str = "gemma4") -> None:
     """Process the newest N severe weather events end-to-end.
 
     For each event:
@@ -268,7 +268,7 @@ def main(n: int = N_EVENTS, force: bool = False, stem: str = "", step: int = 0) 
             print("  Step 1: OCR + chart + metadata...")
             t0 = time.time()
             try:
-                stem = ocr.run.remote(bulletin.pdf_url, force=force)
+                stem = ocr.run.remote(bulletin.pdf_url, force=force, backend=backend)
                 bulletin_result["steps"]["step1_ocr"] = {
                     "status": "ok",
                     "elapsed_s": round(time.time() - t0, 1),

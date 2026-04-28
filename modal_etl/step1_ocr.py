@@ -31,7 +31,7 @@ class Step1OCR:
         print("[Step1OCR] Ollama ready")
 
     @modal.method()
-    def run(self, pdf_url: str, force: bool = False) -> str:
+    def run(self, pdf_url: str, force: bool = False, backend: str = "gemma4") -> str:
         """Download PDF from URL and run step 1 OCR pipeline.
 
         Returns:
@@ -43,6 +43,6 @@ class Step1OCR:
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
             f.write(resp.content)
             pdf_path = Path(f.name)
-        run_step1(pdf_path, OUTPUT_PATH, OLLAMA_URL, GEMMA_MODEL, force, stem=stem)
+        run_step1(pdf_path, OUTPUT_PATH, OLLAMA_URL, GEMMA_MODEL, force, stem=stem, backend=backend)
         output_volume.commit()
         return stem
