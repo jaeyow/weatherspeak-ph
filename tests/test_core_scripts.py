@@ -88,6 +88,7 @@ def test_run_step2_tl_generates_en_first_if_missing(tmp_path, monkeypatch):
     assert len(trans_calls) == 1
     assert trans_calls[0] == ("English script", "tl")
     assert result == stem_dir / "radio_tl.md"
+    assert (stem_dir / "radio_tl.md").read_text(encoding="utf-8") == "Tagalog script"
 
 
 def test_run_step2_tl_uses_english_when_en_exists(tmp_path, monkeypatch):
@@ -120,6 +121,7 @@ def test_run_step2_tl_uses_english_when_en_exists(tmp_path, monkeypatch):
     assert gen_calls == [], "Should NOT call _generate_radio_script when radio_en.md exists"
     assert len(trans_calls) == 1
     assert trans_calls[0] == ("Pre-existing English script", "tl")
+    assert (stem_dir / "radio_tl.md").read_text(encoding="utf-8") == "Tagalog from existing EN"
 
 
 def test_run_step2_en_path_unchanged(tmp_path, monkeypatch):
