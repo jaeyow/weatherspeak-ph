@@ -67,10 +67,17 @@ def _run_marker(pdf_path: Path) -> tuple[str, dict]:
 
 
 def _select_chart(figures: dict) -> Any | None:
-    """Return the largest figure by pixel area — the storm track map on PAGASA bulletins."""
+    """Return the figure most likely to be the storm track chart.
+
+    Filters out banner-like images (height/width < 0.3) before selecting by
+    pixel area. Falls back to the largest overall if all figures are banner-shaped.
+    """
     if not figures:
         return None
-    return max(figures.values(), key=lambda img: img.size[0] * img.size[1])
+    images = list(figures.values())
+    candidates = [img for img in images if img.size[1] / img.size[0] >= 0.3]
+    pool = candidates if candidates else images
+    return max(pool, key=lambda img: img.size[0] * img.size[1])
 
 
 def _describe_chart(chart_path: Path, ollama_url: str, model: str) -> str:
