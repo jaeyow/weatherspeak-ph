@@ -678,7 +678,7 @@ def run_step2(
         radio_md = _generate_radio_script(ocr_md, "en", ollama_url, model, metadata=metadata)
     else:
         en_radio_path = out_dir / "radio_en.md"
-        if not en_radio_path.exists():
+        if not en_radio_path.exists() or force:
             en_radio_md = _generate_radio_script(ocr_md, "en", ollama_url, model, metadata=metadata)
             en_radio_path.write_text(en_radio_md, encoding="utf-8")
             print(f"[run_step2] {stem}/{language}: auto-generated radio_en.md")

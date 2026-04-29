@@ -152,3 +152,33 @@ def test_run_step2_en_path_unchanged(tmp_path, monkeypatch):
 
     assert gen_calls == ["en"]
     assert trans_calls == [], "_translate_radio_script must not be called for language=en"
+
+
+def test_run_step2_tl_force_regenerates_en(tmp_path, monkeypatch):
+    """When force=True and radio_en.md already exists, EN is regenerated (not reused)."""
+    stem = "PAGASA_TEST"
+    stem_dir = tmp_path / stem
+    stem_dir.mkdir()
+    (stem_dir / "ocr.md").write_text("Bulletin text.", encoding="utf-8")
+    (stem_dir / "radio_en.md").write_text("Stale English script", encoding="utf-8")
+
+    gen_calls: list = []
+
+    def fake_generate(ocr_md, language, ollama_url, model, metadata=None):
+        gen_calls.append(language)
+        return "Fresh English script"
+
+    def fake_translate(english_md, language, ollama_url, model):
+        return f"Translated from: {english_md}"
+
+    monkeypatch.setattr("modal_etl.core.scripts._generate_radio_script", fake_generate)
+    monkeypatch.setattr("modal_etl.core.scripts._translate_radio_script", fake_translate)
+    monkeypatch.setattr("modal_etl.core.scripts._generate_tts_text", lambda *a, **kw: "tts")
+    monkeypatch.setattr("modal_etl.core.scripts._cleanup_english_words", lambda t, *a, **kw: t)
+    monkeypatch.setattr("modal_etl.core.scripts._cleanup_numbers", lambda t, *a, **kw: t)
+
+    run_step2(stem, "tl", tmp_path, force=True)
+
+    assert gen_calls == ["en"], "force=True must regenerate EN even when radio_en.md exists"
+    assert (stem_dir / "radio_en.md").read_text(encoding="utf-8") == "Fresh English script"
+    assert (stem_dir / "radio_tl.md").read_text(encoding="utf-8") == "Translated from: Fresh English script"
