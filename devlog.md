@@ -116,6 +116,58 @@ CEB reads radio_en.md ─────────────────► rad
 
 ---
 
+## PR #19 — Hybrid Metadata+OCR Input for Step 2 Radio Script Generation
+**Date:** 2026-04-25
+**Branch:** `feature/hybrid-step2-metadata`
+**PR:** jaeyow/weatherspeak-ph#19
+**Status:** Complete ✅
+
+### What we built
+
+A targeted fix for LLM hallucination bugs in Step 2 radio script generation, using the hybrid approach validated in notebook 09.
+
+**Root cause of prior bugs (Verbena TCB#24 example):**
+
+| Bug | Root cause |
+|---|---|
+| "120 km/h" read as movement speed | Raw OCR has no field labels — LLM confuses wind speed with movement speed |
+| Wrong storm name in Basyang script | Noisy OCR; LLM picks up wrong name from dense text |
+| "Next bulletin tomorrow" on final bulletin | `valid_until: null` not visible in raw OCR |
+
+**Fix — hybrid `bulletin_data` input:**
+
+When `metadata.json` is present, Step 2 now feeds the LLM **both** a structured key-facts block **and** the full OCR markdown in a single prompt. The structured block anchors unambiguous facts; the OCR provides completeness.
+
+```
+=== KEY FACTS (structured data for quick reference) ===
+STORM: Verbena — Tropical Cyclone Bulletin #24
+INTENSITY: Maximum sustained winds of 120 km/h near the centre ...
+MOVEMENT: Moving northward at 15 km/h
+WIND SIGNALS: Signal #2: Metro Manila, Cavite, Batangas ...
+
+=== FULL BULLETIN TEXT (complete information) ===
+{full ocr.md content}
+```
+
+**New function `_format_metadata_for_prompt()`** — pure function that converts `metadata.json` into the labelled key-facts block. Has 21 unit tests.
+
+**Graceful fallback** — if `metadata.json` is absent, Step 2 falls back to OCR-only; no behaviour change for old bulletins.
+
+**Other changes:**
+- `_call_ollama_chat()` strips `<think>...</think>` blocks from Ollama responses
+- `{markdown}` → `{bulletin_data}` in all three `_RADIO_PROMPTS` user templates to reflect the new dual-input format
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `modal_etl/step2_scripts.py` | `_format_metadata_for_prompt()` added; `_generate_radio_script()` accepts optional `metadata` dict; `step2_scripts()` loads and passes `metadata.json`; `<think>` stripping in `_call_ollama_chat()`; `{markdown}` → `{bulletin_data}` |
+| `tests/test_step2_format_metadata.py` | New — 21 unit tests for `_format_metadata_for_prompt()` |
+
+150 tests passing.
+
+---
+
 ## PR #18 — Pipeline Validation Notebook + OCR Artefact Cleanup
 **Date:** 2026-04-25
 **Branch:** `feature/bug-fixes-script-lang-stem`
@@ -1282,5 +1334,42 @@ Refactored Step 2 to match the pattern already used by Step 3: one Modal contain
 |---|---|
 | `modal_etl/step2_scripts.py` | `Step2Scripts` class → `step2_scripts` `@app.function(stem, language, force)` — timeout 3600s → 600s |
 | `modal_etl/run_batch.py` | `scripts.run.remote()` → `step2_scripts.starmap(...)`, remove `Step2Scripts` instance, update ETL report label |
+
+---
+
+## GitHub PR #12 & #13 — Real-Time Audio Waveform + README Mermaid Diagrams
+**Date:** 2026-04-20
+**Branch:** `feature/audio-waveform`
+**PR:** jaeyow/weatherspeak-ph#12 (waveform), jaeyow/weatherspeak-ph#13 (README)
+**Status:** Complete ✅
+
+### What we built
+
+#### 1. Real-time audio-reactive waveform visualisation
+
+Added a canvas-based waveform to the `AudioPlayer` component that reacts to the actual audio signal via the **Web Audio API**.
+
+**Visual design:**
+- 32 bars mirrored symmetrically from the horizontal centre — low frequencies in the middle, higher frequencies spreading left and right
+- Each bar grows both up **and** down from the centre line
+- Idle state renders a flat dim line when paused
+
+**Key technical decisions:**
+- `AudioContext` + `AnalyserNode` created synchronously inside the play button click handler — browsers require a user gesture before audio context creation; doing it in `useEffect` would be silently suspended
+- `crossOrigin="anonymous"` added to `<audio>` — required for `createMediaElementSource` to access cross-origin Supabase audio URLs
+- `AnalyserNode` held in `useState` (not `useRef`) so the `Waveform` child re-renders when the node is ready and begins `requestAnimationFrame` animation
+
+#### 2. README Mermaid architecture diagrams
+
+Replaced the plain-text architecture description with two Mermaid diagrams:
+- **ETL pipeline** (`flowchart LR`) — shows the four step pipeline from PAGASA PDF to Supabase
+- **End-to-end flow** (`flowchart TD`) — highlights where Gemma 4 E4B is used and the full data path from PDF to audio playback
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `web/components/AudioPlayer.tsx` | Canvas waveform via Web Audio API — `AnalyserNode`, `requestAnimationFrame`, 32-bar mirrored display |
+| `README.md` | Mermaid ETL pipeline diagram + end-to-end flow diagram |
 
 ---
