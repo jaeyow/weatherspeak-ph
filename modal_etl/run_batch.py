@@ -110,7 +110,7 @@ def _write_report(
         # Step 2
         s2 = steps.get("step2_scripts", {})
         icon = "✅" if s2.get("status") == "ok" else "❌"
-        lines.append(f"### {icon} Step 2 — Scripts  `{_fmt_elapsed(s2.get('elapsed_s', 0))}` (3 languages in parallel)")
+        lines.append(f"### {icon} Step 2 — Scripts  `{_fmt_elapsed(s2.get('elapsed_s', 0))}` (EN first, then TL+CEB parallel)")
         if s2.get("status") == "ok":
             lines += [
                 "| File | Description |",
