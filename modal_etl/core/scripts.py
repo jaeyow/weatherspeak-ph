@@ -120,6 +120,37 @@ _RADIO_PROMPTS = {
 }
 
 # ---------------------------------------------------------------------------
+# Translation prompts — adapt English script into TL/CEB
+# ---------------------------------------------------------------------------
+
+_TRANSLATE_PROMPTS: dict[str, dict[str, str]] = {
+    "tl": {
+        "system": _RADIO_PROMPTS["tl"]["system"],
+        "user": (
+            "Narito ang kumpletong pahayag sa Ingles tungkol sa bagyo. I-adapt ito sa natural na Tagalog.\n\n"
+            "{english_script}\n\n"
+            "MAHALAGA: Panatilihin ang LAHAT ng impormasyon mula sa Ingles — pangalan ng bagyo, "
+            "lokasyon, landas, bawat apektadong lugar na may Signal level, kung ano ang dapat gawin, "
+            "at oras ng susunod na update. Walang detalye ang maaaring maiwanan.\n\n"
+            "Isulat ang pahayag sa Tagalog ngayon. Hindi hihigit sa 200 salita. "
+            "Puro Tagalog. Walang headings, walang markdown."
+        ),
+    },
+    "ceb": {
+        "system": _RADIO_PROMPTS["ceb"]["system"],
+        "user": (
+            "Ania ang kompletong pahimangno sa Ingles bahin sa bagyo. I-adapt kini ngadto sa natural nga Cebuano.\n\n"
+            "{english_script}\n\n"
+            "IMPORTANTE: Panatilihon ang TANAN nga impormasyon gikan sa Ingles — ngalan sa bagyo, "
+            "lokasyon, dalan, matag apektadong lugar nga adunay Signal level, unsa ang buhaton, "
+            "ug oras sa sunod nga update. Walay detalye ang maaaring mawala.\n\n"
+            "Isulat ang pahimangno sa Cebuano karon. Dili molapas sa 200 ka pulong. "
+            "Puro Cebuano. Walay headings, walay markdown."
+        ),
+    },
+}
+
+# ---------------------------------------------------------------------------
 # TTS plain text prompts (system + user template per language)
 # ---------------------------------------------------------------------------
 
@@ -551,6 +582,16 @@ def _generate_radio_script(
         model=model,
         system=p["system"],
         user=p["user"].format(bulletin_data=bulletin_data),
+    )
+
+
+def _translate_radio_script(english_md: str, language: str, ollama_url: str, model: str) -> str:
+    p = _TRANSLATE_PROMPTS[language]
+    return call_ollama_chat(
+        url=ollama_url,
+        model=model,
+        system=p["system"],
+        user=p["user"].format(english_script=english_md),
     )
 
 
