@@ -286,10 +286,13 @@ def main(n: int = N_EVENTS, force: bool = False, stem: str = "", step: int = 0, 
 
         # Step 2
         if step in (0, 2):
-            print("  Step 2: Radio scripts + TTS text (3 languages in parallel)...")
+            print("  Step 2: Radio scripts + TTS text (EN first, then TL+CEB in parallel)...")
             t0 = time.time()
             try:
-                list(step2_scripts.starmap([(stem, lang, force) for lang in LANGUAGES]))
+                # Phase 1: English first — TL/CEB containers read radio_en.md rather than racing to create it
+                step2_scripts.remote(stem, "en", force)
+                # Phase 2: Tagalog and Cebuano translate from radio_en.md in parallel
+                list(step2_scripts.starmap([(stem, lang, force) for lang in LANGUAGES if lang != "en"]))
                 bulletin_result["steps"]["step2_scripts"] = {
                     "status": "ok",
                     "elapsed_s": round(time.time() - t0, 1),
