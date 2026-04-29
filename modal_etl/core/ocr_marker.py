@@ -27,7 +27,9 @@ _CHART_DESCRIPTION_SYSTEM = (
     "the forecast track direction, affected regions, and any legend items or symbols visible."
 )
 
-_CHART_DESCRIPTION_USER = "Describe this PAGASA storm track map image."
+_CHART_DESCRIPTION_USER = "Describe this PAGASA storm track map image. Some images may have \
+    the map embedded in the page layout rather than as a separate figure; do your best to describe \
+    the storm track based on the visual information available."
 
 _converter: Any = None
 
@@ -69,15 +71,28 @@ def _run_marker(pdf_path: Path) -> tuple[str, dict]:
 def _select_chart(figures: dict) -> Any | None:
     """Return the figure most likely to be the storm track chart.
 
-    Filters out banner-like images (height/width < 0.3) before selecting by
-    pixel area. Falls back to the largest overall if all figures are banner-shaped.
+    Weather charts are typically the largest image in the document and substantial in size.
+    Strategy: Filter out extreme banners and tiny images, then pick the largest by pixel area.
+    Returns None if all figures are too small (likely logos/headers).
     """
     if not figures:
         return None
     images = list(figures.values())
-    candidates = [img for img in images if img.size[1] / img.size[0] >= 0.3]
-    pool = candidates if candidates else images
-    return max(pool, key=lambda img: img.size[0] * img.size[1])
+    
+    # Filter out extreme banners and tiny images
+    MIN_ASPECT = 0.2  # Exclude very thin horizontal strips
+    MIN_PIXELS = 100_000  # Exclude logos/icons (< ~316x316)
+    candidates = [
+        img for img in images 
+        if (img.size[1] / img.size[0] >= MIN_ASPECT 
+            and img.size[0] * img.size[1] >= MIN_PIXELS)
+    ]
+    
+    if not candidates:
+        # All figures are too small or are banners - likely no real weather map
+        return None
+    
+    return max(candidates, key=lambda img: img.size[0] * img.size[1])
 
 
 def _describe_chart(chart_path: Path, ollama_url: str, model: str) -> str:
@@ -124,15 +139,32 @@ def run(
     markdown, figures = _run_marker(pdf_path)
     print(f"[run_step1_marker] {stem}: Marker extracted {len(markdown)} chars, {len(figures)} figures")
 
+    # Debug: Save all extracted images
+    for idx, img in enumerate(figures.values(), start=1):
+        debug_path = out_dir / f"img_{idx}.png"
+        img.save(str(debug_path), format="PNG")
+        print(f"[run_step1_marker] {stem}: saved img_{idx}.png ({img.size[0]}x{img.size[1]})")
+
     # Step 2: Save chart and describe it
     chart_img = _select_chart(figures)
+    
+    # Fallback: If no suitable figure found, use first page as chart
+    # (handles bulletins where map is embedded in page layout)
+    if chart_img is None:
+        print(f"[run_step1_marker] {stem}: no extractable figures, using first page as fallback")
+        from pdf2image import convert_from_path
+        pages = convert_from_path(str(pdf_path), first_page=1, last_page=1)
+        if pages:
+            chart_img = pages[0]
+            print(f"[run_step1_marker] {stem}: extracted first page {chart_img.size[0]}x{chart_img.size[1]}")
+    
     if chart_img is not None:
         chart_img.save(str(chart_path), format="PNG")
         print(f"[run_step1_marker] {stem}: saved chart.png")
         chart_description = _describe_chart(chart_path, ollama_url, model)
         full_md = markdown + f"\n\n## Storm Track Map\n\n{chart_description}"
     else:
-        print(f"[run_step1_marker] {stem}: no figures extracted, skipping chart")
+        print(f"[run_step1_marker] {stem}: no chart available")
         chart_path.write_bytes(b"")
         full_md = markdown
 

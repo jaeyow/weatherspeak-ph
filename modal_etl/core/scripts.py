@@ -22,7 +22,7 @@ _RADIO_PROMPTS = {
             "PURPOSE: This will be read by Filipinos who may not understand technical English — "
             "farmers, fisherfolk, and rural communities who need to know if they are in danger and what to do. "
             "Every word must earn its place. There is no room for anything that does not help them act.\n\n"
-            "PRIORITY ORDER — pack these in, in this order, within 200 words:\n"
+            "PRIORITY ORDER — pack these in, in this order, within 300 words:\n"
             "  1. Storm name and current category (what is it)\n"
             "  2. Where it is now and where it is headed (location + track)\n"
             "  3. Which areas are affected and at what Signal level (who is in danger)\n"
@@ -37,14 +37,14 @@ _RADIO_PROMPTS = {
             "- DO NOT add information that is not in the original bulletin\n\n"
             "FORMATTING: Plain flowing prose only. No headings, no bullet points, no bold, no markdown. "
             "Paragraph breaks (blank lines) between ideas.\n\n"
-            "LENGTH: No more than 200 words. Be concise — a life may depend on someone understanding this clearly."
+            "LENGTH: No more than 300 words. Be concise — a life may depend on someone understanding this clearly."
         ),
         "user": (
             "Convert this PAGASA weather bulletin data into a plain conversational English announcement.\n\n"
             "{bulletin_data}\n\n"
             "Write the announcement now. Pack in all critical information — storm, location, track, "
             "affected areas with Signal levels, what to do, next update time. "
-            "No more than 200 words. No headings, no markdown. Write place names naturally."
+            "No more than 300 words. No headings, no markdown. Write place names naturally."
         ),
     },
     "tl": {
@@ -54,7 +54,7 @@ _RADIO_PROMPTS = {
             "LAYUNIN: Mababasa at maririnig ito ng mga Pilipinong maaaring hindi nakakaintindi ng Ingles — "
             "mga magsasaka, mangingisda, at mga komunidad na kailangang malaman kung sila ay nasa panganib at ano ang gagawin. "
             "Bawat salita ay mahalaga. Walang lugar para sa anumang hindi nakakatulong sa kanilang kumilos.\n\n"
-            "PAGKAKASUNOD NG IMPORMASYON — ilagay ang lahat ng ito, sa pagkakasunod na ito, sa loob ng 200 salita:\n"
+            "PAGKAKASUNOD NG IMPORMASYON — ilagay ang lahat ng ito, sa pagkakasunod na ito, sa loob ng 300 salita:\n"
             "  1. Pangalan ng bagyo at kasalukuyang kategorya (ano ito)\n"
             "  2. Nasaan ito ngayon at saan ito pupunta (lokasyon + landas)\n"
             "  3. Aling mga lugar ang apektado at anong Signal level (sino ang nasa panganib)\n"
@@ -72,14 +72,14 @@ _RADIO_PROMPTS = {
             "- HUWAG magdagdag ng impormasyon na wala sa orihinal na bulletin\n\n"
             "FORMATTING: Natural na daloy ng prosa. Walang headings, walang bullets, walang bold, walang markdown. "
             "Blank lines sa pagitan ng mga talata.\n\n"
-            "HABA: Hindi hihigit sa 200 salita. Maging maigsi — maaaring ang buhay ng isang tao ay nakasalalay sa malinaw na pag-unawa nito."
+            "HABA: Hindi hihigit sa 300 salita. Maging maigsi — maaaring ang buhay ng isang tao ay nakasalalay sa malinaw na pag-unawa nito."
         ),
         "user": (
             "I-convert ang datos ng PAGASA bulletin na ito sa maikling pahayag sa Tagalog.\n\n"
             "{bulletin_data}\n\n"
             "Isulat ang pahayag ngayon. Ilagay ang lahat ng kritikal na impormasyon — bagyo, lokasyon, landas, "
             "mga apektadong lugar na may Signal level, ano ang gagawin, oras ng susunod na update. "
-            "Hindi hihigit sa 200 salita. Puro Tagalog. Walang headings, walang markdown."
+            "Hindi hihigit sa 300 salita. Puro Tagalog. Walang headings, walang markdown."
         ),
     },
     "ceb": {
@@ -89,7 +89,7 @@ _RADIO_PROMPTS = {
             "KATUYOAN: Mabasa ug madungog kini sa mga Pilipino nga mahimong dili makasabot sa English — "
             "mga mag-uuma, mangingisda, ug mga komunidad nga kinahanglan mahibalo kung sila anaa sa peligro ug unsa ang buhaton. "
             "Ang matag pulong importante. Walay lugar alang sa bisan unsang dili makatulong kanila nga molihok.\n\n"
-            "PAGKASUNOD SA IMPORMASYON — ibutang ang tanan niini, sa pagkasunod nga kini, sulod sa 200 ka pulong:\n"
+            "PAGKASUNOD SA IMPORMASYON — ibutang ang tanan niini, sa pagkasunod nga kini, sulod sa 300 ka pulong:\n"
             "  1. Ngalan sa bagyo ug kasamtangang kategorya (unsa kini)\n"
             "  2. Asa kini karon ug asa kini padulong (lokasyon + dalan)\n"
             "  3. Unsang mga lugar ang apektado ug unsang Signal level (kinsa ang anaa sa peligro)\n"
@@ -107,14 +107,14 @@ _RADIO_PROMPTS = {
             "- AYAW pagdugang og impormasyon nga wala sa orihinal nga bulletin\n\n"
             "FORMATTING: Natural nga daloy sa prosa. Walay headings, walay bullets, walay bold, walay markdown. "
             "Blank lines tali sa mga paragraph.\n\n"
-            "GITAS-ON: Dili molapas sa 200 ka pulong. Pagmaiksi — ang kinabuhi sa usa ka tawo mahimong magdepende sa tin-aw nga pagsabot niini."
+            "GITAS-ON: Dili molapas sa 300 ka pulong. Pagmaiksi — ang kinabuhi sa usa ka tawo mahimong magdepende sa tin-aw nga pagsabot niini."
         ),
         "user": (
             "I-convert ang datos sa PAGASA bulletin nga kini ngadto sa mubo nga pahimangno sa Cebuano.\n\n"
             "{bulletin_data}\n\n"
             "Isulat ang pahimangno karon. Ibutang ang tanan nga kritikal nga impormasyon — bagyo, lokasyon, dalan, "
             "mga apektadong lugar nga adunay Signal level, unsa ang buhaton, oras sa sunod nga update. "
-            "Dili molapas sa 200 ka pulong. Puro Cebuano. Walay headings, walay markdown."
+            "Dili molapas sa 300 ka pulong. Puro Cebuano. Walay headings, walay markdown."
         ),
     },
 }
@@ -132,7 +132,7 @@ _TRANSLATE_PROMPTS = {
             "MAHALAGA: Panatilihin ang LAHAT ng impormasyon mula sa Ingles — pangalan ng bagyo, "
             "lokasyon, landas, bawat apektadong lugar na may Signal level, kung ano ang dapat gawin, "
             "at oras ng susunod na update. Walang detalye ang maaaring maiwanan.\n\n"
-            "Isulat ang pahayag sa Tagalog ngayon. Hindi hihigit sa 200 salita. "
+            "Isulat ang pahayag sa Tagalog ngayon. Hindi hihigit sa 300 salita. "
             "Puro Tagalog. Walang headings, walang markdown."
         ),
     },
@@ -144,7 +144,7 @@ _TRANSLATE_PROMPTS = {
             "IMPORTANTE: Panatilihon ang TANAN nga impormasyon gikan sa Ingles — ngalan sa bagyo, "
             "lokasyon, dalan, matag apektadong lugar nga adunay Signal level, unsa ang buhaton, "
             "ug oras sa sunod nga update. Walay detalye ang maaaring mawala.\n\n"
-            "Isulat ang pahimangno sa Cebuano karon. Dili molapas sa 200 ka pulong. "
+            "Isulat ang pahimangno sa Cebuano karon. Dili molapas sa 300 ka pulong. "
             "Puro Cebuano. Walay headings, walay markdown."
         ),
     },
@@ -211,7 +211,7 @@ _TTS_PROMPTS = {
             "  - 120 km/h → isang daan at dalawampu ki-lo-me-tro ba-wat o-ras\n"
             "  - 130 km/h → isang daan at tatlumpu ki-lo-me-tro ba-wat o-ras\n"
             "  - 150 km/h → isang daan at limampu ki-lo-me-tro ba-wat o-ras\n"
-            "  - 200 km/h → dalawang daan ki-lo-me-tro ba-wat o-ras\n"
+            "  - 300 km/h → dalawang daan ki-lo-me-tro ba-wat o-ras\n"
             "  - Para sa iba pang numero: 5=singko, 10=diyes, 15=kinse, 20=beinte,\n"
             "    30=treynta, 40=kuwarenta, 50=singkwenta, 60=sisenta,\n"
             "    70=sitenta, 80=otsenta, 90=nobenta, 100=isang daan\n\n"
@@ -278,7 +278,7 @@ _TTS_PROMPTS = {
             "  - 120 km/h → isyento baynte ki-lo-me-tros sa usa ka oras\n"
             "  - 130 km/h → isyento treynta ki-lo-me-tros sa usa ka oras\n"
             "  - 150 km/h → isyento singkwenta ki-lo-me-tros sa usa ka oras\n"
-            "  - 200 km/h → dos siyentos ki-lo-me-tros sa usa ka oras\n"
+            "  - 300 km/h → dos siyentos ki-lo-me-tros sa usa ka oras\n"
             "  - Para sa ubang numero: 5=singko, 10=diyes, 15=kinse, 20=baynte,\n"
             "    30=treynta, 40=kuwarenta, 50=singkwenta, 60=sisenta,\n"
             "    70=sitenta, 80=otsenta, 90=nobenta, 100=isyento\n\n"
@@ -402,7 +402,7 @@ _NUMBER_CLEANUP_PROMPTS = {
             "  30=treynta  31=treynta y uno  40=kuwarenta  50=singkwenta\n"
             "  60=sisenta  70=sitenta  80=otsenta  90=nobenta\n"
             "  100=isang daan  120=isang daan beinte  130=isang daan treynta\n"
-            "  150=isang daan singkwenta  200=dos siyentos\n\n"
+            "  150=isang daan singkwenta  300=dos siyentos\n\n"
             "HALIMBAWA:\n"
             "  'Oktubre 21' → 'Oktubre beinte uno'\n"
             "  '25 kilometro' → 'beinte singko kilometro'\n"
@@ -436,7 +436,7 @@ _NUMBER_CLEANUP_PROMPTS = {
             "  30=treynta  31=treynta y uno  40=kuwarenta  50=singkwenta\n"
             "  60=sisenta  70=sitenta  80=otsenta  90=nobenta\n"
             "  100=isyento  120=isyento baynte  130=isyento treynta\n"
-            "  150=isyento singkwenta  200=dos siyentos\n\n"
+            "  150=isyento singkwenta  300=dos siyentos\n\n"
             "PANANGLITAN:\n"
             "  'Oktubre 21' → 'Oktubre baynte uno'\n"
             "  '25 kilometros' → 'baynte singko kilometros'\n"
