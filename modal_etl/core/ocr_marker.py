@@ -71,21 +71,22 @@ def _run_marker(pdf_path: Path) -> tuple[str, dict]:
 def _select_chart(figures: dict) -> Any | None:
     """Return the figure most likely to be the storm track chart.
 
-    Weather charts are square-ish. Filters to images with squareness >= 0.5
-    (at most 2:1 in either dimension), then picks the largest by pixel area.
-    Falls back to the overall largest if no image passes the squareness filter.
+    Filters out extreme banners (aspect < 0.2) and tiny images (< 100k px),
+    then picks the largest by pixel area. Returns None if no figure passes —
+    the caller falls back to the first PDF page in that case.
     """
     if not figures:
         return None
     images = list(figures.values())
-
-    def squareness(img) -> float:
-        w, h = img.size
-        return min(w, h) / max(w, h)
-
-    candidates = [img for img in images if squareness(img) >= 0.5]
-    pool = candidates if candidates else images
-    return max(pool, key=lambda img: img.size[0] * img.size[1])
+    MIN_ASPECT = 0.2
+    MIN_PIXELS = 100_000
+    candidates = [
+        img for img in images
+        if img.size[1] / img.size[0] >= MIN_ASPECT and img.size[0] * img.size[1] >= MIN_PIXELS
+    ]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda img: img.size[0] * img.size[1])
 
 
 def _describe_chart(chart_path: Path, ollama_url: str, model: str) -> str:

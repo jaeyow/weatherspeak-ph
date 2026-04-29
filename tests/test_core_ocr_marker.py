@@ -10,25 +10,25 @@ def _write_marker_outputs(stem_dir: Path) -> None:
 
 
 def test_select_chart_prefers_chart_over_wide_banner():
-    """A wide/short banner with more pixels than the chart should still lose."""
+    """A banner with more pixels is filtered by aspect ratio; the squarish chart wins."""
     from PIL import Image
     from modal_etl.core.ocr_marker import _select_chart
 
-    banner = Image.new("RGB", (1200, 80))  # 96 000 px, ratio 0.067 — banner wins on area
-    chart = Image.new("RGB", (300, 280))   # 84 000 px, ratio 0.933 — chart loses on area
+    banner = Image.new("RGB", (2000, 80))  # 160_000 px, aspect 0.04 < 0.2 → filtered
+    chart = Image.new("RGB", (400, 350))   # 140_000 px, aspect 0.875 → passes
     result = _select_chart({"banner": banner, "chart": chart})
     assert result is chart
 
 
-def test_select_chart_falls_back_when_all_banners():
-    """If every image is banner-shaped, return the largest by area."""
+def test_select_chart_returns_none_when_all_filtered():
+    """Returns None when no figures pass the aspect + size filters."""
     from PIL import Image
     from modal_etl.core.ocr_marker import _select_chart
 
-    small = Image.new("RGB", (400, 30))
-    large = Image.new("RGB", (1000, 40))
-    result = _select_chart({"small": small, "large": large})
-    assert result is large
+    small = Image.new("RGB", (200, 150))   # 30_000 px < MIN_PIXELS → filtered
+    banner = Image.new("RGB", (800, 30))   # aspect 0.038 < MIN_ASPECT → filtered
+    result = _select_chart({"small": small, "banner": banner})
+    assert result is None
 
 
 def test_select_chart_empty_returns_none():
