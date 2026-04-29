@@ -6,25 +6,14 @@ Run these manually before the first batch:
     uv run modal run modal_etl/setup_volumes.py::setup_tts_volume
 """
 import subprocess
-import time
 
 import modal
-import requests
 
 from modal_etl.app import app, ollama_image, tts_image, ollama_volume, tts_volume
 from modal_etl.config import OLLAMA_MODELS_PATH, TTS_MODELS_PATH, GEMMA_MODEL
+from modal_etl.core.ollama import wait_for_ollama
 
 OLLAMA_URL = "http://localhost:11434"
-
-
-def _wait_for_ollama(retries: int = 60, delay: float = 2.0) -> None:
-    for _ in range(retries):
-        try:
-            requests.get(f"{OLLAMA_URL}/api/tags", timeout=5)
-            return
-        except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
-            time.sleep(delay)
-    raise RuntimeError("Ollama server did not start")
 
 
 @app.function(
@@ -41,7 +30,7 @@ def setup_ollama_volume() -> None:
     import os
     os.environ["OLLAMA_MODELS"] = str(OLLAMA_MODELS_PATH)
     subprocess.Popen(["ollama", "serve"])
-    _wait_for_ollama()
+    wait_for_ollama(OLLAMA_URL)
     print(f"Pulling {GEMMA_MODEL} into volume...")
     subprocess.run(["ollama", "pull", GEMMA_MODEL], check=True)
     ollama_volume.commit()

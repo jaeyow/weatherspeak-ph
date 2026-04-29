@@ -1,4 +1,4 @@
-from modal_etl.step3_tts import prepare_mms_sentences, prepare_english_sentences
+from modal_etl.core.tts import prepare_mms_sentences, prepare_english_sentences
 
 
 # --- prepare_mms_sentences (for CEB/TL) ---

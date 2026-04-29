@@ -22,7 +22,7 @@ from pathlib import Path
 from modal_etl.app import app
 from modal_etl.bulletin_selector import get_bulletin_by_stem, get_latest_bulletins
 from modal_etl.config import N_EVENTS, LANGUAGES
-from modal_etl.step1_ocr import Step1OCR
+from modal_etl.step1_ocr import Step1OCR, Step1OCRMarker
 from modal_etl.step2_scripts import step2_scripts
 from modal_etl.step3_tts import step3_tts
 from modal_etl.step4_upload import step4_upload
@@ -110,7 +110,7 @@ def _write_report(
         # Step 2
         s2 = steps.get("step2_scripts", {})
         icon = "✅" if s2.get("status") == "ok" else "❌"
-        lines.append(f"### {icon} Step 2 — Scripts  `{_fmt_elapsed(s2.get('elapsed_s', 0))}` (3 languages in parallel)")
+        lines.append(f"### {icon} Step 2 — Scripts  `{_fmt_elapsed(s2.get('elapsed_s', 0))}` (EN first, then TL+CEB parallel)")
         if s2.get("status") == "ok":
             lines += [
                 "| File | Description |",
@@ -217,7 +217,7 @@ def _write_report(
 # ---------------------------------------------------------------------------
 
 @app.local_entrypoint()
-def main(n: int = N_EVENTS, force: bool = False, stem: str = "") -> None:
+def main(n: int = N_EVENTS, force: bool = False, stem: str = "", step: int = 0, backend: str = "gemma4") -> None:
     """Process the newest N severe weather events end-to-end.
 
     For each event:
@@ -235,6 +235,7 @@ def main(n: int = N_EVENTS, force: bool = False, stem: str = "") -> None:
         force: Re-run all steps even if outputs already exist.
         stem:  Process a single specific bulletin by stem, e.g.
                "PAGASA_25-TC22_Verbena_TCB#24". Overrides --n.
+        step:  Run only a specific step (1-4). Default 0 runs all steps.
     """
     run_start = datetime.datetime.now()
 
@@ -253,7 +254,7 @@ def main(n: int = N_EVENTS, force: bool = False, stem: str = "") -> None:
     for b in bulletins:
         print(f"  {b.stem}")
 
-    ocr = Step1OCR()
+    ocr = Step1OCRMarker() if backend == "marker" else Step1OCR()
 
     results: list[dict] = []
 
@@ -263,82 +264,89 @@ def main(n: int = N_EVENTS, force: bool = False, stem: str = "") -> None:
         bulletin_result: dict = {"stem": stem, "overall": "ok", "steps": {}}
 
         # Step 1
-        print("  Step 1: OCR + chart + metadata...")
-        t0 = time.time()
-        try:
-            stem = ocr.run.remote(bulletin.pdf_url, force=force)
-            bulletin_result["steps"]["step1_ocr"] = {
-                "status": "ok",
-                "elapsed_s": round(time.time() - t0, 1),
-            }
-        except Exception as exc:
-            bulletin_result["steps"]["step1_ocr"] = {
-                "status": "failed",
-                "elapsed_s": round(time.time() - t0, 1),
-                "error": str(exc),
-            }
-            bulletin_result["overall"] = "failed"
-            print(f"  ❌ Step 1 failed: {exc}")
-            results.append(bulletin_result)
-            continue
+        if step in (0, 1):
+            print("  Step 1: OCR + chart + metadata...")
+            t0 = time.time()
+            try:
+                stem = ocr.run.remote(bulletin.pdf_url, force=force)
+                bulletin_result["steps"]["step1_ocr"] = {
+                    "status": "ok",
+                    "elapsed_s": round(time.time() - t0, 1),
+                }
+            except Exception as exc:
+                bulletin_result["steps"]["step1_ocr"] = {
+                    "status": "failed",
+                    "elapsed_s": round(time.time() - t0, 1),
+                    "error": str(exc),
+                }
+                bulletin_result["overall"] = "failed"
+                print(f"  ❌ Step 1 failed: {exc}")
+                results.append(bulletin_result)
+                continue
 
         # Step 2
-        print("  Step 2: Radio scripts + TTS text (3 languages in parallel)...")
-        t0 = time.time()
-        try:
-            list(step2_scripts.starmap([(stem, lang, force) for lang in LANGUAGES]))
-            bulletin_result["steps"]["step2_scripts"] = {
-                "status": "ok",
-                "elapsed_s": round(time.time() - t0, 1),
-            }
-        except Exception as exc:
-            bulletin_result["steps"]["step2_scripts"] = {
-                "status": "failed",
-                "elapsed_s": round(time.time() - t0, 1),
-                "error": str(exc),
-            }
-            bulletin_result["overall"] = "failed"
-            print(f"  ❌ Step 2 failed: {exc}")
-            results.append(bulletin_result)
-            continue
+        if step in (0, 2):
+            print("  Step 2: Radio scripts + TTS text (EN first, then TL+CEB in parallel)...")
+            t0 = time.time()
+            try:
+                # Phase 1: English first — TL/CEB containers read radio_en.md rather than racing to create it
+                step2_scripts.remote(stem, "en", force)
+                # Phase 2: Tagalog and Cebuano translate from radio_en.md in parallel
+                list(step2_scripts.starmap([(stem, lang, force) for lang in LANGUAGES if lang != "en"]))
+                bulletin_result["steps"]["step2_scripts"] = {
+                    "status": "ok",
+                    "elapsed_s": round(time.time() - t0, 1),
+                }
+            except Exception as exc:
+                bulletin_result["steps"]["step2_scripts"] = {
+                    "status": "failed",
+                    "elapsed_s": round(time.time() - t0, 1),
+                    "error": str(exc),
+                }
+                bulletin_result["overall"] = "failed"
+                print(f"  ❌ Step 2 failed: {exc}")
+                results.append(bulletin_result)
+                continue
 
         # Step 3
-        print("  Step 3: TTS synthesis (3 languages in parallel)...")
-        t0 = time.time()
-        try:
-            list(step3_tts.starmap([(stem, lang, force) for lang in LANGUAGES]))
-            bulletin_result["steps"]["step3_tts"] = {
-                "status": "ok",
-                "elapsed_s": round(time.time() - t0, 1),
-            }
-        except Exception as exc:
-            bulletin_result["steps"]["step3_tts"] = {
-                "status": "failed",
-                "elapsed_s": round(time.time() - t0, 1),
-                "error": str(exc),
-            }
-            bulletin_result["overall"] = "failed"
-            print(f"  ❌ Step 3 failed: {exc}")
-            results.append(bulletin_result)
-            continue
+        if step in (0, 3):
+            print("  Step 3: TTS synthesis (3 languages in parallel)...")
+            t0 = time.time()
+            try:
+                list(step3_tts.starmap([(stem, lang, force) for lang in LANGUAGES]))
+                bulletin_result["steps"]["step3_tts"] = {
+                    "status": "ok",
+                    "elapsed_s": round(time.time() - t0, 1),
+                }
+            except Exception as exc:
+                bulletin_result["steps"]["step3_tts"] = {
+                    "status": "failed",
+                    "elapsed_s": round(time.time() - t0, 1),
+                    "error": str(exc),
+                }
+                bulletin_result["overall"] = "failed"
+                print(f"  ❌ Step 3 failed: {exc}")
+                results.append(bulletin_result)
+                continue
 
         # Step 4
-        print("  Step 4: Upload to Supabase Storage + DB...")
-        t0 = time.time()
-        try:
-            stem = step4_upload.remote(stem, force=force)
-            bulletin_result["steps"]["step4_upload"] = {
-                "status": "ok",
-                "elapsed_s": round(time.time() - t0, 1),
-            }
-        except Exception as exc:
-            bulletin_result["steps"]["step4_upload"] = {
-                "status": "failed",
-                "elapsed_s": round(time.time() - t0, 1),
-                "error": str(exc),
-            }
-            bulletin_result["overall"] = "failed"
-            print(f"  ❌ Step 4 failed: {exc}")
+        if step in (0, 4):
+            print("  Step 4: Upload to Supabase Storage + DB...")
+            t0 = time.time()
+            try:
+                stem = step4_upload.remote(stem, force=force)
+                bulletin_result["steps"]["step4_upload"] = {
+                    "status": "ok",
+                    "elapsed_s": round(time.time() - t0, 1),
+                }
+            except Exception as exc:
+                bulletin_result["steps"]["step4_upload"] = {
+                    "status": "failed",
+                    "elapsed_s": round(time.time() - t0, 1),
+                    "error": str(exc),
+                }
+                bulletin_result["overall"] = "failed"
+                print(f"  ❌ Step 4 failed: {exc}")
 
         results.append(bulletin_result)
         print(f"  Done: {stem}")

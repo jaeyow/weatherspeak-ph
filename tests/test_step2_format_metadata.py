@@ -1,7 +1,7 @@
 """Tests for _format_metadata_for_prompt in step2_scripts."""
 
 import pytest
-from modal_etl.step2_scripts import _format_metadata_for_prompt
+from modal_etl.core.scripts import _format_metadata_for_prompt
 
 
 VERBENA_METADATA = {

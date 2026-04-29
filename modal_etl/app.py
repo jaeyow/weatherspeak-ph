@@ -29,8 +29,9 @@ TTS_MOUNTS = {
     str(OUTPUT_PATH): output_volume,
 }
 
-# Container image for steps 1 & 2 (Ollama + Gemma 4)
-ollama_image = (
+# Shared base for Ollama-based images — add_local_python_source must come last
+# in each final image so Modal doesn't try to run pip_install after a local mount.
+_ollama_base = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install("curl", "poppler-utils", "ffmpeg", "zstd")
     .run_commands("curl -fsSL https://ollama.ai/install.sh | sh")
@@ -39,6 +40,22 @@ ollama_image = (
         "Pillow>=10.0.0",
         "pdf2image>=1.17.0",
     )
+)
+
+# Container image for steps 1 & 2 (Ollama + Gemma 4)
+ollama_image = _ollama_base.add_local_python_source("modal_etl")
+
+# Container image for Step 1 in Marker mode.
+# Install CUDA torch before marker-pdf so surya-ocr uses the GPU.
+# No <1.7.0 upper bound here — marker_image has no coqui-tts so it is free
+# to use marker 1.7+ (surya-ocr>=0.17, transformers>=4.56). The <1.7.0 pin
+# in pyproject.toml only exists to protect the local venv where coqui-tts
+# forces transformers<=4.46.2.
+# add_local_python_source must be last — no build steps after a local mount.
+marker_image = (
+    _ollama_base
+    .pip_install("torch>=2.2.0", extra_index_url="https://download.pytorch.org/whl/cu121")
+    .pip_install("marker-pdf>=1.7.0,<1.8.0")
     .add_local_python_source("modal_etl")
 )
 

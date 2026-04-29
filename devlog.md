@@ -5,6 +5,117 @@ Each entry corresponds to a pull request or significant milestone.
 
 ---
 
+## PR #20 — ETL Modularization, Marker OCR Backend, English-First Scripts
+**Date:** 2026-04-29
+**Branch:** `feature/ocr-prompt-improvements`
+**Status:** Complete ✅
+
+### What we built
+
+A large refactor and feature pass covering five areas:
+
+1. **`modal_etl/core/` — ETL modularization** into testable, reusable modules
+2. **Notebook 10** — end-to-end local ETL pipeline using the new `core/` modules
+3. **Two-pass OCR** — focused narrative extraction + dedicated forecast table pass
+4. **Marker OCR backend** — alternative Step 1 backend using Marker PDF instead of Gemma 4 vision
+5. **English-first radio script generation** — TL/CEB now translate from the English output
+
+---
+
+#### 1. `modal_etl/core/` — ETL Modularization
+
+Extracted all business logic out of the Modal step files into a standalone `modal_etl/core/` package. The step files (`step1_ocr.py`, `step2_scripts.py`, `step3_tts.py`) are now thin wrappers that set up the Modal runtime, call the core module, and return.
+
+| Module | Responsibility |
+|---|---|
+| `modal_etl/core/ollama.py` | Shared Ollama HTTP helpers (`call_ollama_generate`, `call_ollama_chat`) |
+| `modal_etl/core/ocr.py` | Step 1 logic: page rendering, two-pass OCR, metadata generation |
+| `modal_etl/core/scripts.py` | Step 2 logic: `run_step2()`, all prompts, EN-first dispatch |
+| `modal_etl/core/tts.py` | Step 3 logic: MMS + Coqui XTTS v2 synthesis |
+| `modal_etl/core/ocr_marker.py` | Marker OCR backend: Marker + Gemma 4 chart description |
+
+**Benefit:** All core logic is now importable locally for notebook development and unit testing — no Modal container needed.
+
+#### 2. Notebook 10 — End-to-End Local ETL
+
+`notebooks/10-etl-e2e.ipynb` — runs the full pipeline locally using `modal_etl/core/` modules. Supports both OCR backends (`BACKEND = "gemma4"` or `"marker"`) with a single variable change.
+
+Validation cells run after each step to verify output files and structure.
+
+#### 3. Two-Pass OCR
+
+**Problem:** Single-pass Gemma 4 OCR produced hallucinations on the forecast track table (coordinates, wind speeds) because the model was attempting to process the full page in one call.
+
+**Fix:** Split Step 1 into two targeted passes:
+- **Pass 1 (`_extract_narrative`)** — focused prompt on storm narrative fields only (position, intensity, movement, affected areas). Explicitly excludes the forecast table.
+- **Pass 2 (`_extract_forecast_table`)** — dedicated pass on page 1 only, extracting the 24h/48h/72h/96h/120h forecast positions table.
+
+Both passes are merged before `_generate_metadata()`. `forecast_table.md` is saved alongside `ocr.md` for inspection.
+
+Also added `wind_extent`, `land_hazards`, and `track_outlook` fields to `PAGASA_JSON_SCHEMA`.
+
+#### 4. Marker OCR Backend
+
+Alternative Step 1 backend: **Marker PDF** (Surya-based layout-aware PDF extractor) + one Gemma 4 vision pass for chart description.
+
+**Why Marker:** Gemma 4 vision sometimes hallucinates on dense table content. Marker extracts text and tables natively at near-100% accuracy, matching the native PDF text. The storm track chart still needs vision comprehension — Gemma 4 handles that in a single targeted pass on the extracted figure.
+
+**How to use:**
+- Notebook 10: `BACKEND = "marker"`
+- `run_batch.py`: `--backend marker`
+
+**Key implementation details:**
+- `_select_chart()` filters figures by aspect ratio (height/width ≥ 0.2) and minimum area (100k px) to reject banner-shaped headers — returns `None` if no figure qualifies; caller falls back to `pdf2image` first page
+- If no suitable figure extracted (map embedded in page layout), first PDF page rendered via `pdf2image` as fallback chart
+- Does NOT produce `forecast_table.md` — Marker's table extraction is accurate enough that the metadata LLM reads it directly from `ocr.md`
+
+**Modal deployment fixes for Marker:**
+- `marker_image` uses shared `_ollama_base` (without `add_local_python_source`) then chains `pip_install(torch)` → `pip_install(marker-pdf)` → `add_local_python_source("modal_etl")` last — Modal errors if build steps follow a local mount
+- Pinned `marker-pdf>=1.7.0,<1.8.0` (surya-ocr 0.14.7): version 1.6.x used surya-ocr 0.13.1 which cannot read current S3 model weights — produces `KeyError: 'encoder'` on cold Modal containers
+- `marker_image` requires CUDA torch (`extra_index_url=https://download.pytorch.org/whl/cu121`) for surya-ocr GPU acceleration
+
+#### 5. English-First Radio Script Generation
+
+**Problem:** All three languages (EN, TL, CEB) were generated independently from raw OCR data. Gemma 4 is more accurate in English — TL/CEB scripts sometimes omitted details or invented locations.
+
+**Fix:** EN is generated first; TL/CEB are translated/adapted from the English output.
+
+```
+EN script ─────────────────────────────► radio_en.md
+              ↓ _translate_radio_script()
+TL reads radio_en.md ──────────────────► radio_tl.md
+CEB reads radio_en.md ─────────────────► radio_ceb.md
+```
+
+- `_TRANSLATE_PROMPTS` dict (TL + CEB) — adaptation prompts that pass `{english_script}` as context; reuses same system prompt object from `_RADIO_PROMPTS` (identity, not a copy)
+- `_translate_radio_script()` — single Ollama chat call per language
+- `run_step2()` dispatch: if `language == "en"` → generate; else → read `radio_en.md` (auto-generate EN if missing) → translate
+- `force=True` regenerates `radio_en.md` even when it exists (prevents stale base)
+- `run_batch.py` two-phase dispatch: `step2_scripts.remote(stem, "en", force)` synchronously first → then `starmap` for TL+CEB in parallel — prevents Modal race condition where both containers race to create `radio_en.md`
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `modal_etl/core/ollama.py` | New — shared Ollama HTTP helpers |
+| `modal_etl/core/ocr.py` | New — Step 1 core logic (two-pass OCR, metadata generation) |
+| `modal_etl/core/scripts.py` | New — Step 2 core logic with `_TRANSLATE_PROMPTS`, `_translate_radio_script()`, EN-first `run_step2()` |
+| `modal_etl/core/tts.py` | New — Step 3 core logic (MMS + XTTS v2) |
+| `modal_etl/core/ocr_marker.py` | New — Marker OCR backend with `_select_chart()` and chart description |
+| `modal_etl/app.py` | Extract `_ollama_base`; `marker_image` with CUDA torch + `add_local_python_source` last |
+| `modal_etl/step1_ocr.py` | Thin wrapper + `Step1OCRMarker` class for `--backend marker` |
+| `modal_etl/step2_scripts.py` | Thin wrapper delegating to `core/scripts.py` |
+| `modal_etl/step3_tts.py` | Thin wrapper delegating to `core/tts.py` |
+| `modal_etl/run_batch.py` | EN-first two-phase Step 2 dispatch; `--backend` flag |
+| `notebooks/10-etl-e2e.ipynb` | New — end-to-end local ETL pipeline with `BACKEND` config var |
+| `tests/test_core_ocr.py` | New — unit tests for `core/ocr.py` |
+| `tests/test_core_scripts.py` | New + extended — EN-first dispatch tests including `force=True` |
+| `tests/test_core_ocr_marker.py` | New — `_select_chart` filter tests + skip/force contract |
+
+**191 tests passing.**
+
+---
+
 ## PR #18 — Pipeline Validation Notebook + OCR Artefact Cleanup
 **Date:** 2026-04-25
 **Branch:** `feature/bug-fixes-script-lang-stem`
