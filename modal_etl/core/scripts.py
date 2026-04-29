@@ -123,7 +123,7 @@ _RADIO_PROMPTS = {
 # Translation prompts — adapt English script into TL/CEB
 # ---------------------------------------------------------------------------
 
-_TRANSLATE_PROMPTS: dict[str, dict[str, str]] = {
+_TRANSLATE_PROMPTS = {
     "tl": {
         "system": _RADIO_PROMPTS["tl"]["system"],
         "user": (
@@ -674,7 +674,16 @@ def run_step2(
         metadata = None
         print(f"[run_step2] {stem}/{language}: metadata.json absent, using OCR only")
 
-    radio_md = _generate_radio_script(ocr_md, language, ollama_url, model, metadata=metadata)
+    if language == "en":
+        radio_md = _generate_radio_script(ocr_md, "en", ollama_url, model, metadata=metadata)
+    else:
+        en_radio_path = out_dir / "radio_en.md"
+        if not en_radio_path.exists():
+            en_radio_md = _generate_radio_script(ocr_md, "en", ollama_url, model, metadata=metadata)
+            en_radio_path.write_text(en_radio_md, encoding="utf-8")
+            print(f"[run_step2] {stem}/{language}: auto-generated radio_en.md")
+        english_md = en_radio_path.read_text(encoding="utf-8")
+        radio_md = _translate_radio_script(english_md, language, ollama_url, model)
     radio_path.write_text(radio_md, encoding="utf-8")
 
     tts_text = _generate_tts_text(radio_md, language, ollama_url, model)
