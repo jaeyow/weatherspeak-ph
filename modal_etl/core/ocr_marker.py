@@ -71,28 +71,21 @@ def _run_marker(pdf_path: Path) -> tuple[str, dict]:
 def _select_chart(figures: dict) -> Any | None:
     """Return the figure most likely to be the storm track chart.
 
-    Weather charts are typically the largest image in the document and substantial in size.
-    Strategy: Filter out extreme banners and tiny images, then pick the largest by pixel area.
-    Returns None if all figures are too small (likely logos/headers).
+    Weather charts are square-ish. Filters to images with squareness >= 0.5
+    (at most 2:1 in either dimension), then picks the largest by pixel area.
+    Falls back to the overall largest if no image passes the squareness filter.
     """
     if not figures:
         return None
     images = list(figures.values())
-    
-    # Filter out extreme banners and tiny images
-    MIN_ASPECT = 0.2  # Exclude very thin horizontal strips
-    MIN_PIXELS = 100_000  # Exclude logos/icons (< ~316x316)
-    candidates = [
-        img for img in images 
-        if (img.size[1] / img.size[0] >= MIN_ASPECT 
-            and img.size[0] * img.size[1] >= MIN_PIXELS)
-    ]
-    
-    if not candidates:
-        # All figures are too small or are banners - likely no real weather map
-        return None
-    
-    return max(candidates, key=lambda img: img.size[0] * img.size[1])
+
+    def squareness(img) -> float:
+        w, h = img.size
+        return min(w, h) / max(w, h)
+
+    candidates = [img for img in images if squareness(img) >= 0.5]
+    pool = candidates if candidates else images
+    return max(pool, key=lambda img: img.size[0] * img.size[1])
 
 
 def _describe_chart(chart_path: Path, ollama_url: str, model: str) -> str:
@@ -138,12 +131,6 @@ def run(
     # Step 1: Extract text and figures
     markdown, figures = _run_marker(pdf_path)
     print(f"[run_step1_marker] {stem}: Marker extracted {len(markdown)} chars, {len(figures)} figures")
-
-    # Debug: Save all extracted images
-    for idx, img in enumerate(figures.values(), start=1):
-        debug_path = out_dir / f"img_{idx}.png"
-        img.save(str(debug_path), format="PNG")
-        print(f"[run_step1_marker] {stem}: saved img_{idx}.png ({img.size[0]}x{img.size[1]})")
 
     # Step 2: Save chart and describe it
     chart_img = _select_chart(figures)
