@@ -22,13 +22,13 @@ function Waveform({
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const barCount = 32; // matches half * 2 in the live draw loop
       const step = canvas.width / barCount;
-      const barW = Math.floor(step * 0.6);
+      const barW = Math.max(2, Math.floor(step * 0.35)); // Thinner bars (0.35 instead of 0.6)
       const centerY = canvas.height / 2;
-      ctx.fillStyle = 'rgba(239,68,68,0.25)';
+      ctx.fillStyle = 'rgba(239,68,68,0.45)'; // Raised from 0.25 to 0.45 for better visibility
       for (let i = 0; i < barCount; i++) {
         const x = i * step + (step - barW) / 2;
         ctx.beginPath();
-        ctx.roundRect(x, centerY - 1, barW, 2, 1);
+        ctx.roundRect(x, centerY - 1, barW, 2, 0.5); // Sharper corners (0.5 instead of 1)
         ctx.fill();
       }
     };
@@ -50,7 +50,7 @@ function Waveform({
       const half = 16;                    // 16 bins per side = 32 bars total
       const barCount = half * 2;
       const step = canvas.width / barCount;
-      const barW = Math.floor(step * 0.6);
+      const barW = Math.max(2, Math.floor(step * 0.35)); // Thinner bars (0.35 instead of 0.6)
       const centerY = canvas.height / 2;
       const maxH = centerY - 2;
 
@@ -61,13 +61,13 @@ function Waveform({
         // Right side: bin 0 is just right of center, bin half-1 is far right
         const rx = (half + i) * step + (step - barW) / 2;
         ctx.beginPath();
-        ctx.roundRect(rx, centerY - barH, barW, barH * 2, 2);
+        ctx.roundRect(rx, centerY - barH, barW, barH * 2, 1); // Sharper corners (1 instead of 2)
         ctx.fill();
 
         // Left side: mirror of right (bin 0 is just left of center)
         const lx = (half - 1 - i) * step + (step - barW) / 2;
         ctx.beginPath();
-        ctx.roundRect(lx, centerY - barH, barW, barH * 2, 2);
+        ctx.roundRect(lx, centerY - barH, barW, barH * 2, 1); // Sharper corners (1 instead of 2)
         ctx.fill();
       }
 
@@ -85,6 +85,7 @@ interface Props {
   audioUrl: string | null;
   durationSeconds: number | null;
   filename: string;
+  language?: string; // e.g. 'English', 'Tagalog', 'Cebuano'
 }
 
 function formatTime(seconds: number): string {
@@ -93,7 +94,24 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export default function AudioPlayer({ audioUrl, durationSeconds, filename }: Props) {
+// SVG icons to replace emoji
+function PlayIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7">
+      <path d="M8 5v14l11-7z" />
+    </svg>
+  );
+}
+
+function PauseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7">
+      <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+    </svg>
+  );
+}
+
+export default function AudioPlayer({ audioUrl, durationSeconds, filename, language }: Props) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
@@ -158,10 +176,18 @@ export default function AudioPlayer({ audioUrl, durationSeconds, filename }: Pro
     audioCtxRef.current?.suspend();
   };
 
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!audioRef.current || total === 0) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const pct = clickX / rect.width;
+    audioRef.current.currentTime = pct * total;
+  };
+
   const progress = total > 0 ? (current / total) * 100 : 0;
 
   return (
-    <div className="bg-white/5 rounded-xl p-4 space-y-3">
+    <div className="bg-white/5 rounded-xl p-5 space-y-4">
       {/* crossOrigin="anonymous" is required for createMediaElementSource
           to process audio from a cross-origin URL (Supabase storage) */}
       <audio
@@ -173,40 +199,62 @@ export default function AudioPlayer({ audioUrl, durationSeconds, filename }: Pro
         preload="metadata"
       />
 
+      {/* Language pill */}
+      {language && (
+        <div className="flex items-center justify-center">
+          <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-red-500/20 text-red-400 text-base font-semibold tracking-wide">
+            {language}
+          </div>
+        </div>
+      )}
+
       {/* Waveform */}
       <Waveform playing={playing} analyser={analyser} />
 
-      {/* Progress bar */}
-      <div className="w-full bg-white/10 h-1 rounded-full">
+      {/* Centered play button with time displays */}
+      <div className="flex items-center justify-center gap-6">
+        {/* Current time (left) */}
+        <span className="text-sm text-gray-400 tabular-nums min-w-[3rem] text-right">
+          {formatTime(current)}
+        </span>
+
+        {/* Play/Pause button - 64px, centered */}
+        <button
+          onClick={handlePlayPause}
+          aria-label={playing ? 'Pause' : 'Play'}
+          className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center text-white hover:bg-red-500 active:scale-95 transition-all shadow-lg hover:shadow-red-500/50"
+        >
+          {playing ? <PauseIcon /> : <PlayIcon />}
+        </button>
+
+        {/* Duration (right) */}
+        <span className="text-sm text-gray-400 tabular-nums min-w-[3rem]">
+          {total > 0 ? formatTime(total) : '--:--'}
+        </span>
+      </div>
+
+      {/* Progress bar - thicker and clickable */}
+      <div
+        onClick={handleProgressClick}
+        className="w-full bg-white/10 h-2 rounded-full cursor-pointer hover:h-3 transition-all"
+      >
         <div
-          className="bg-red-500 h-1 rounded-full transition-all"
+          className="bg-red-500 h-full rounded-full transition-all"
           style={{ width: `${progress}%` }}
         />
       </div>
 
-      {/* Controls */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handlePlayPause}
-            aria-label={playing ? 'Pause' : 'Play'}
-            className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white hover:bg-red-500 transition-colors"
-          >
-            {playing ? '⏸' : '▶'}
-          </button>
-          <span className="text-sm text-gray-400">
-            <span>{formatTime(current)}</span>
-            {' / '}
-            <span>{total > 0 ? formatTime(total) : '--:--'}</span>
-          </span>
-        </div>
-
+      {/* Download button - secondary style, centered below */}
+      <div className="flex justify-center pt-1">
         <a
           href={audioUrl}
           download={filename}
-          className="text-sm text-gray-300 bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-colors"
+          className="text-xs text-gray-400 hover:text-gray-200 transition-colors inline-flex items-center gap-1.5"
         >
-          ⬇ {t('download')}
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          <span>{t('download')}</span>
         </a>
       </div>
     </div>
