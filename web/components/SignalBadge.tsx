@@ -1,7 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-
 const SIGNAL_COLORS: Record<number, string> = {
   1: '#3498db',
   2: '#f1c40f',
@@ -24,7 +22,6 @@ interface Props {
 }
 
 export default function SignalBadge({ signal, showTooltip = false }: Props) {
-  const [showInfo, setShowInfo] = useState(false);
   const bg = signal != null ? (SIGNAL_COLORS[signal] ?? '#6b7280') : '#6b7280';
   const info = signal != null ? SIGNAL_INFO[signal] : null;
 
