@@ -33,8 +33,10 @@ export default function StormCard({ storm, compact = false }: Props) {
             </div>
           </div>
           {/* Audio availability indicator */}
-          <div className="text-red-400 flex-shrink-0" title="Audio available">
-            🔊
+          <div className="flex-shrink-0">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-medium">
+              🔊 Audio
+            </span>
           </div>
         </div>
       </Link>
@@ -48,12 +50,12 @@ export default function StormCard({ storm, compact = false }: Props) {
     >
       <SignalBadge signal={storm.current_signal} />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="text-xl font-extrabold text-white">{storm.storm_name}</div>
           {/* Audio availability indicator */}
-          <div className="text-red-400 text-lg" title="Audio available">
-            🔊
-          </div>
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-medium">
+            🔊 Audio
+          </span>
         </div>
         <div className="text-sm text-gray-400">{storm.current_category}</div>
         {storm.current_reference && (
