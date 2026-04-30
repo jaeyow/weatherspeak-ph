@@ -5,6 +5,107 @@ Each entry corresponds to a pull request or significant milestone.
 
 ---
 
+## PR #24 — UX Polish: Interactive Hover Effects, Location Editing, Icon Centering
+**Date:** 2026-04-30
+**Branch:** `feature/audio-player-ux`
+**Status:** Complete ✅
+
+### What we built
+
+A refinement pass on the PR #23 UX improvements, focusing on interactive feedback, visual polish, and adding location editing functionality. All changes enhance emergency response usability through better hover states, improved icon visibility, and the ability to change location settings.
+
+---
+
+#### 1. Location Editing — Change Settings Anytime
+
+**Problem:** After onboarding, users had no way to update their location or language preferences. If they moved or selected the wrong city, they were stuck.
+
+**Fix:**
+- Made location pill in header **clickable button** with hover effects (`hover:bg-blue-500/30`)
+- Clicking dispatches `ws:change-location` event to reopen onboarding modal
+- Modal now detects if editing existing settings:
+  - **First-time users:** Shows "Get Started" button only
+  - **Editing users:** Pre-populates province, city, language from localStorage
+  - Shows "Save Changes" button instead of "Get Started"
+  - Adds "Cancel" button to close without saving
+- All preferences continue saving to localStorage as before
+
+#### 2. Audio Badge Visibility — Red Pill Design with SVG Icon
+
+**Problem:** Dark speaker emoji (🔊) was nearly invisible on dark backgrounds. Emoji rendering was inconsistent across platforms (iOS issue mentioned).
+
+**Fix:**
+- Replaced emoji with **custom SVG speaker icon** (`w-4 h-4`) using `currentColor` for theming
+- Redesigned as **red pill badge**: `bg-red-500/20`, `border-red-500/40`, `text-red-300`
+- Increased icon size: 14px → 16px (`w-3.5 h-3.5` → `w-4 h-4`)
+- Increased text size: 12px → 14px (`text-xs` → `text-sm`)
+- Better mobile tap target and visual hierarchy
+
+#### 3. Storm Card Hover Effects — Cohesive Interactive Feedback
+
+**Problem:** Storm cards had minimal hover feedback. Users couldn't tell cards were clickable.
+
+**Fix:**
+- **Brighter background:** `hover:bg-white/10` → `hover:bg-white/15` (50% brighter)
+- **Scale animation:** Cards grow 2.5% on hover (`hover:scale-[1.025]`)
+- **Smooth transitions:** Changed `transition-colors` to `transition-all`
+- **Signal badge scales up:** Added `group-hover:scale-105` with shadow (`group-hover:shadow-lg`)
+- **Audio badge scales up:** Matching scale-105 and shadow effects
+- **Coordinated brightness:** Audio badge increases brightness on hover
+- All elements (card, signal badge, audio pill) scale and brighten together
+
+Applied to both compact and full-size storm card variants.
+
+#### 4. Play Button Hover Effect — 5% Scale Increase
+
+**Problem:** The 64×64px play button had no hover feedback despite being the primary interaction point.
+
+**Fix:**
+- Added `hover:scale-105` (5% size increase)
+- Existing hover effects (color change, shadow glow) now combined with scale
+- Active state remains: `active:scale-95` (shrink on click)
+- Creates satisfying interaction: hover → grow → click → shrink → play
+
+#### 5. Icon Vertical Centering — Triangle Geometry Compensation
+
+**Problem:**
+- Play icon (▶) in the circular button appeared slightly off-center vertically
+- Play emoji (▶) in the instructional text "Tap ▶ to hear this bulletin" appeared misaligned
+
+**Fix:**
+- **Button play icon:** Added `transform="translate(0, 1)"` to shift down 1px
+- **Text play emoji:** Split translation into two keys (`tap_to_hear` + `to_hear_bulletin_in`)
+- Wrapped emoji in `<span>` with `style={{ transform: 'translateY(1px)' }}`
+- Both icons now appear properly centered within their respective contexts
+
+Triangle shapes appear top-heavy due to geometry; the 1px adjustment compensates for this optical effect.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `web/components/Header.tsx` | Made location pill clickable button; dispatch `ws:change-location` event; added hover styles and tooltip |
+| `web/components/LocationOnboarding.tsx` | Listen for `ws:change-location`; pre-populate values when editing; detect `isEditing` flag; show "Save Changes" + "Cancel" buttons for existing users |
+| `web/components/StormCard.tsx` | Audio SVG icon; red pill design; increased sizes; brighter hover background (white/15); scale hover (1.025); signal badge and audio badge scale/shadow on hover |
+| `web/components/AudioPlayer.tsx` | Play button scale-105 hover; play icon vertical centering (translateY 1px) |
+| `web/components/BulletinAudioSection.tsx` | Split emoji from translation text; apply vertical centering transform |
+| `web/lib/translations.ts` | Added `to_hear_bulletin_in` key (EN/TL/CEB); split emoji out of `tap_to_hear` |
+
+### Impact
+
+These refinements make WeatherSpeak PH feel **polished and responsive**:
+
+- **Location editing** ensures users can always update their settings
+- **Visible audio badges** with bright red pills stand out on dark backgrounds
+- **Interactive hover states** provide clear feedback that cards and buttons are clickable
+- **Coordinated animations** (scale, brightness, shadow) create cohesive, professional interactions
+- **Centered icons** improve visual balance and polish
+- SVG icons ensure consistent rendering across all platforms (iOS, Android, web)
+
+Combined with PR #23, the frontend now delivers a **production-ready emergency response experience**.
+
+---
+
 ## PR #23 — Frontend Audio Player Redesign & Critical UX Improvements
 **Date:** 2026-04-30
 **Branch:** `feature/audio-player-ux`
