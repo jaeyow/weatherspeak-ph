@@ -5,10 +5,11 @@ Each entry corresponds to a pull request or significant milestone.
 
 ---
 
-## PR #24 — UX Polish: Interactive Hover Effects, Location Editing, Icon Centering
-**Date:** 2026-04-30
-**Branch:** `feature/audio-player-ux`
-**Status:** Complete ✅
+## PR #25 — UX Polish: Interactive Hover Effects, Location Editing, Icon Centering + Kaggle Screenshots
+**Date:** 2026-04-30  
+**Branch:** `feature/audio-player-ux`  
+**Status:** Open 🔄  
+**Link:** https://github.com/jaeyow/weatherspeak-ph/pull/25
 
 ### What we built
 
