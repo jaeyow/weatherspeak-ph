@@ -123,6 +123,17 @@ export default function AudioPlayer({ audioUrl, durationSeconds, filename, langu
     return () => { audioCtxRef.current?.close(); };
   }, []);
 
+  // Reset playing state when audio URL changes (e.g., language switch)
+  useEffect(() => {
+    setPlaying(false);
+    setCurrent(0);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    audioCtxRef.current?.suspend();
+  }, [audioUrl]);
+
   if (!audioUrl) {
     return (
       <p className="text-gray-400 text-sm py-4">{t('audio_not_available')}</p>
