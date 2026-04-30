@@ -217,7 +217,7 @@ def _write_report(
 # ---------------------------------------------------------------------------
 
 @app.local_entrypoint()
-def main(n: int = N_EVENTS, force: bool = False, stem: str = "", step: int = 0, backend: str = "gemma4") -> None:
+def main(n: int = N_EVENTS, force: bool = False, stem: str = "", step: int = 0, backend: str = "marker") -> None:
     """Process the newest N severe weather events end-to-end.
 
     For each event:

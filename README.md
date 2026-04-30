@@ -109,8 +109,9 @@ flowchart TD
 
 | Layer | Technology |
 |---|---|
-| OCR + script generation | Gemma 4 E4B via Ollama (`gemma4:e4b`) |
-| OCR backend (alternative) | Marker PDF (Surya layout-aware extractor) + Gemma 4 chart description |
+| OCR backend (default) | Marker PDF (Surya layout-aware extractor) + Gemma 4 chart description |
+| OCR backend (alternative) | Gemma 4 E4B vision via Ollama (`gemma4:e4b`) — `--backend gemma4` |
+| Script generation | Gemma 4 E4B via Ollama (`gemma4:e4b`) |
 | TTS — Cebuano / Tagalog | Facebook MMS VITS (`facebook/mms-tts-ceb`, `facebook/mms-tts-tgl`) |
 | TTS — English | Coqui XTTS v2 (`tts_models/multilingual/multi-dataset/xtts_v2`) |
 | GPU compute | Modal (serverless A10G) |
@@ -138,11 +139,11 @@ flowchart TD
 uv run modal run modal_etl/setup_volumes.py::setup_ollama_volume
 uv run modal run modal_etl/setup_volumes.py::setup_tts_volume
 
-# Process the 3 most recent bulletins:
+# Process the 3 most recent bulletins (Marker PDF backend is the default):
 uv run modal run modal_etl/run_batch.py --n 3
 
-# Use Marker PDF backend instead of Gemma 4 vision for OCR:
-uv run modal run modal_etl/run_batch.py --n 3 --backend marker
+# Use Gemma 4 vision for OCR instead (slower but no external dependency):
+uv run modal run modal_etl/run_batch.py --n 3 --backend gemma4
 
 # Force re-run all steps even if outputs exist:
 uv run modal run modal_etl/run_batch.py --n 1 --force
