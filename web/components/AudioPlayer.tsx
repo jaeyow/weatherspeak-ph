@@ -272,7 +272,7 @@ export default function AudioPlayer({ audioUrl, durationSeconds, filename, langu
         <button
           onClick={handlePlayPause}
           aria-label={playing ? 'Pause' : 'Play'}
-          className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center text-white hover:bg-red-500 active:scale-95 transition-all shadow-lg hover:shadow-red-500/50"
+          className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center text-white hover:bg-red-500 hover:scale-105 active:scale-95 transition-all shadow-lg hover:shadow-red-500/50"
         >
           {playing ? <PauseIcon /> : <PlayIcon />}
         </button>
