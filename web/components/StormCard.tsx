@@ -31,7 +31,7 @@ export default function StormCard({ storm, compact = false }: Props) {
     return (
       <Link
         href={`/storms/${storm.id}`}
-        className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+        className="group flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
       >
         <SignalBadge signal={storm.current_signal} />
         <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
@@ -43,7 +43,7 @@ export default function StormCard({ storm, compact = false }: Props) {
           </div>
           {/* Audio availability indicator */}
           <div className="flex-shrink-0">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 text-sm font-medium">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 group-hover:bg-red-500/30 border border-red-500/40 group-hover:border-red-500/60 text-red-300 group-hover:text-red-200 text-sm font-medium transition-colors">
               <AudioIcon />
               Audio
             </span>
@@ -56,14 +56,14 @@ export default function StormCard({ storm, compact = false }: Props) {
   return (
     <Link
       href={`/storms/${storm.id}`}
-      className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors"
+      className="group flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors"
     >
       <SignalBadge signal={storm.current_signal} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <div className="text-xl font-extrabold text-white">{storm.storm_name}</div>
           {/* Audio availability indicator */}
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 text-sm font-medium">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-500/20 group-hover:bg-red-500/30 border border-red-500/40 group-hover:border-red-500/60 text-red-300 group-hover:text-red-200 text-sm font-medium transition-colors">
             <AudioIcon />
             Audio
           </span>
