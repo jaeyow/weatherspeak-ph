@@ -89,8 +89,6 @@ Detailed view for "Basyang" (Tropical Depression):
 ### 4. Past Bulletins (Expanded)
 **File:** `04-past-bulletins-expanded.png`
 
-![Past Bulletins Expanded](04-past-bulletins-expanded.png)
-
 Historical bulletin timeline with pagination:
 - **Accordion Header:** "Mga Miaging Bullettin (22)" — shows total count
 - **Bulletin List:** Each bulletin shows number, timestamp, and audio icon
