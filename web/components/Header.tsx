@@ -14,6 +14,10 @@ export default function Header() {
     return () => window.removeEventListener('ws:language-change', handler);
   }, []);
 
+  const handleChangeLocation = () => {
+    window.dispatchEvent(new Event('ws:change-location'));
+  };
+
   return (
     <header className="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-white/5">
       <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between gap-3">
@@ -25,9 +29,13 @@ export default function Header() {
         </Link>
         <div className="flex items-center gap-2">
           {city && (
-            <div className="px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-500/30">
+            <button
+              onClick={handleChangeLocation}
+              className="px-2.5 py-1 rounded-full bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 hover:border-blue-500/50 transition-colors cursor-pointer"
+              title="Change location"
+            >
               <span className="text-xs text-blue-300 font-medium">📍 {city}</span>
-            </div>
+            </button>
           )}
           <LanguageToggle />
         </div>

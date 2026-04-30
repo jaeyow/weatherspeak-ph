@@ -20,12 +20,39 @@ export default function LocationOnboarding() {
   const { t } = useTranslation();
 
   useEffect(() => {
-    if (!localStorage.getItem('ws_province')) setShow(true);
+    // Show onboarding if no location set
+    if (!localStorage.getItem('ws_province')) {
+      setShow(true);
+    } else {
+      // Load existing values
+      const savedProvince = localStorage.getItem('ws_province') || '';
+      const savedCity = localStorage.getItem('ws_city') || '';
+      const savedLanguage = (localStorage.getItem('ws_language') as Language) || 'ceb';
+      setProvince(savedProvince);
+      setCity(savedCity);
+      setLanguage(savedLanguage);
+    }
+
+    // Listen for location change requests
+    const handleChangeLocation = () => {
+      // Reload current values when reopening
+      const savedProvince = localStorage.getItem('ws_province') || '';
+      const savedCity = localStorage.getItem('ws_city') || '';
+      const savedLanguage = (localStorage.getItem('ws_language') as Language) || 'ceb';
+      setProvince(savedProvince);
+      setCity(savedCity);
+      setLanguage(savedLanguage);
+      setShow(true);
+    };
+
+    window.addEventListener('ws:change-location', handleChangeLocation);
+    return () => window.removeEventListener('ws:change-location', handleChangeLocation);
   }, []);
 
   if (!show) return null;
 
   const cities = province ? getCitiesForProvince(province) : [];
+  const isEditing = !!localStorage.getItem('ws_province');
 
   const handleProvince = (p: string) => {
     setProvince(p);
@@ -43,6 +70,17 @@ export default function LocationOnboarding() {
       localStorage.setItem('ws_lon', String(coords.lon));
     }
     window.dispatchEvent(new Event('ws:language-change'));
+    setShow(false);
+  };
+
+  const handleCancel = () => {
+    // Restore original values and close
+    const savedProvince = localStorage.getItem('ws_province') || '';
+    const savedCity = localStorage.getItem('ws_city') || '';
+    const savedLanguage = (localStorage.getItem('ws_language') as Language) || 'ceb';
+    setProvince(savedProvince);
+    setCity(savedCity);
+    setLanguage(savedLanguage);
     setShow(false);
   };
 
@@ -107,13 +145,23 @@ export default function LocationOnboarding() {
         </div>
 
         {/* Submit */}
-        <button
-          onClick={handleSubmit}
-          disabled={!province || !city}
-          className="w-full bg-red-600 hover:bg-red-500 disabled:opacity-40 text-white font-bold py-3 rounded-lg transition-colors"
-        >
-          {t('get_started')}
-        </button>
+        <div className="space-y-2">
+          <button
+            onClick={handleSubmit}
+            disabled={!province || !city}
+            className="w-full bg-red-600 hover:bg-red-500 disabled:opacity-40 text-white font-bold py-3 rounded-lg transition-colors"
+          >
+            {isEditing ? 'Save Changes' : t('get_started')}
+          </button>
+          {isEditing && (
+            <button
+              onClick={handleCancel}
+              className="w-full bg-white/5 hover:bg-white/10 text-gray-300 font-semibold py-3 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
