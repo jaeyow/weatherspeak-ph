@@ -15,17 +15,17 @@ warnings in their own language.
 
 ---
 
-## ETL Pipeline (3 steps)
+## ETL Pipeline (4 steps)
 
 ```
 PAGASA PDF
-  → Step 1 [nb 04]: Gemma 4 E4B — OCR + storm chart comprehension → markdown
-  → Step 2 [nb 06]: Gemma 4 E4B — markdown → 5-min radio script (EN / TL / CEB)
-  → Step 3 [nb 07]: Coqui XTTS v2 — radio script → MP3
-  → MP3 served for download/playback on website
+  → Step 1 [nb 10]: Marker PDF (default) or Gemma 4 E4B vision — OCR + storm chart → ocr.md + metadata.json
+  → Step 2 [nb 10]: Gemma 4 E4B — EN script first, then TL + CEB translate from EN → radio_{lang}.md
+  → Step 3 [nb 10]: Facebook MMS VITS (TL/CEB) + Coqui XTTS v2 (EN) — TTS → audio_{lang}.mp3
+  → Step 4:         Upload MP3s + scripts + metadata to Supabase Storage + PostgreSQL
 ```
 
-Batch ETL on Modal (not real-time). Trigger mechanism TBD (PAGASA polling or webhook).
+Batch ETL on Modal (not real-time). Default OCR backend is Marker PDF (`--backend marker`); use `--backend gemma4` for Gemma 4 vision.
 
 ---
 

@@ -31,7 +31,7 @@ class Step1OCR:
         print("[Step1OCR] Ollama ready")
 
     @modal.method()
-    def run(self, pdf_url: str, force: bool = False, backend: str = "gemma4") -> str:
+    def run(self, pdf_url: str, force: bool = False, backend: str = "marker") -> str:
         """Download PDF from URL and run step 1 OCR pipeline.
 
         Returns:
