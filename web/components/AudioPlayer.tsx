@@ -99,7 +99,7 @@ function formatTime(seconds: number): string {
 function PlayIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7">
-      <path d="M8 5v14l11-7z" transform="translate(1, 0)" />
+      <path d="M8 5v14l11-7z" transform="translate(0, 1)" />
     </svg>
   );
 }
