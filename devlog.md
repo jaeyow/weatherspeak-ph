@@ -5,6 +5,124 @@ Each entry corresponds to a pull request or significant milestone.
 
 ---
 
+## PR #23 — Frontend Audio Player Redesign & Critical UX Improvements
+**Date:** 2026-04-30
+**Branch:** `feature/audio-player-ux`
+**Status:** Complete ✅
+
+### What we built
+
+A comprehensive frontend UX overhaul focused on emergency response and critical information delivery. Redesigned the audio player and implemented 7 high-priority UX improvements to make typhoon warnings and audio bulletins instantly accessible.
+
+---
+
+#### 1. Audio Player Redesign — Mobile-First, Prominent Play Button
+
+**Problem:** Play button was 40×40px, left-aligned, using emoji (▶ ⏸) that rendered poorly on iOS. No clear language indicator. Progress bar too thin (4px) to tap on mobile.
+
+**Fixes:**
+- **64×64px centered play button** — industry-standard size, impossible to miss
+- **SVG icons** replace emoji — consistent rendering across platforms
+- **Language pill** at top of player — "English" / "Tagalog" / "Cebuano" in red pill (text-base, semibold)
+- **Hero CTA** — "Tap ▶ to hear this bulletin in [language]" directs users to play
+- **Thicker progress bar** — h-1 (4px) → h-2 (8px), clickable/scrubbing enabled
+- **Time displays** flank the play button (current time left, duration right)
+- **Waveform improvements** — bars thinned (60% → 35% width), corners sharpened (radius 2 → 1), idle opacity raised (0.25 → 0.45)
+- **Download button** de-emphasized — moved below player, ghost-style link
+- **Script preview** — shows first line in collapsed `<details>` summary
+
+**Language switch bug fix:** When switching languages during playback, pause icon remained stuck. Added `useEffect` watching `audioUrl` to reset `playing` state to false on language change.
+
+#### 2. Signal Badge in Hero — Danger Level Front & Center
+
+**Problem:** Storm detail hero showed color gradient (yellow, orange, red) but no explicit signal number. Users couldn't quickly identify urgency level.
+
+**Fix:**
+- Added **SignalBadge** component to left of hero banner (64×64px color-coded square)
+- Shows "SIG" label + large signal number (1–5)
+- **Hover tooltip** explains each level:
+  - Signal #1: "Strong winds expected. Secure light objects."
+  - Signal #2: "Damaging winds. Stay indoors, secure property."
+  - Signal #3: "Destructive winds. Evacuate if advised."
+  - Signal #4: "Very destructive winds. Evacuate immediately."
+  - Signal #5: "Catastrophic winds. Life-threatening situation."
+
+#### 3. Autoplay Support — Instant Listen via URL
+
+**Problem:** During emergencies, requiring users to navigate → scroll → click play adds friction. Too many steps to access critical audio.
+
+**Fix:**
+- Added `?autoplay=1` URL parameter support
+- Audio starts playing automatically 300ms after page load
+- Initializes AudioContext, sets up analyser node, triggers playback
+- Perfect for push notification deep links or emergency broadcast URLs
+- Example: `/storms/xxx?autoplay=1`
+
+#### 4. Audio Availability Indicators — Show What Has Audio
+
+**Problem:** No indication on home page storm cards which storms have audio ready. Users clicked blindly hoping for audio.
+
+**Fix:**
+- Added 🔊 icon to **all storm cards** (compact and full-size variants)
+- Icon appears next to storm name
+- Title attribute: "Audio available"
+- Users know audio is ready before clicking through
+
+#### 5. Collapse Past Bulletins by Default
+
+**Problem:** Storm detail page showed 15 past bulletins immediately, pushing critical current bulletin content far down the page.
+
+**Fix:**
+- Wrapped bulletin history in collapsible `<details>` element
+- **Starts collapsed** — shows only "PAST BULLETINS (22) ▼" header
+- Clicking expands to show full BulletinHistoryAccordion
+- Keeps user focus on latest, most urgent information
+
+#### 6. Prominent Location Pill in Header
+
+**Problem:** Location display was tiny gray text (`text-xs text-gray-400`), hidden on mobile (`hidden sm:block`), easy to miss.
+
+**Fix:**
+- Redesigned as **blue pill badge**: `bg-blue-500/20 border border-blue-500/30`
+- Always visible (removed responsive hide)
+- Medium font weight: `text-xs text-blue-300 font-medium`
+- "📍 Cebu City" stands out prominently in header
+
+#### 7. Bulletin History — Date & Time Display
+
+**Problem:** Past bulletins showed only "Bulletin #22" — no timestamp, hard to track when each was issued.
+
+**Fix:**
+- Added `issued_at` to `BulletinHistoryItem` interface
+- Each bulletin now shows:
+  - First line: Bulletin number
+  - Second line: Date & time (formatted for PH timezone, e.g., "Feb 6, 2026, 11:00 PM")
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `web/components/AudioPlayer.tsx` | 64px centered play button with SVG icons; autoplay support; language pill (text-base, no icon); waveform bars thinned & sharpened; reset playing state on audioUrl change |
+| `web/components/BulletinAudioSection.tsx` | Pass autoplay prop to AudioPlayer |
+| `web/components/SignalBadge.tsx` | Made client component with hover tooltip; added signal level descriptions |
+| `web/components/StormCard.tsx` | Added 🔊 audio availability icon to both compact and full-size cards |
+| `web/components/BulletinHistoryAccordion.tsx` | Import formatDate; display issued_at timestamp below bulletin number |
+| `web/components/Header.tsx` | Location pill redesign — blue background, border, always visible |
+| `web/app/storms/[stormId]/page.tsx` | Import SignalBadge; add searchParams for autoplay; restructure hero with signal badge; wrap past bulletins in collapsible details |
+
+### Impact
+
+These changes transform WeatherSpeak PH from a passive information display into an **emergency response tool**:
+
+- **Audio player** is now mobile-first, impossible to miss, and works flawlessly across platforms
+- **Signal levels** are immediately recognizable with clear danger explanations
+- **Autoplay** enables zero-friction emergency audio delivery via deep links
+- **Audio indicators** help users find storms with audio available
+- **Collapsed history** keeps focus on urgent current information
+- **Prominent location** reminds users where they are in relation to the storm
+
+---
+
 ## PR #22 — Radio Script & TTS Prompt Improvements
 **Date:** 2026-04-30
 **Branch:** `feature/radio-script-improvements`
