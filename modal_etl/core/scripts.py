@@ -22,29 +22,36 @@ _RADIO_PROMPTS = {
             "PURPOSE: This will be read by Filipinos who may not understand technical English — "
             "farmers, fisherfolk, and rural communities who need to know if they are in danger and what to do. "
             "Every word must earn its place. There is no room for anything that does not help them act.\n\n"
-            "PRIORITY ORDER — pack these in, in this order, within 300 words:\n"
-            "  1. Storm name and current category (what is it)\n"
-            "  2. Where it is now and where it is headed (location + track)\n"
-            "  3. Which areas are affected and at what Signal level (who is in danger)\n"
-            "  4. What people must do — evacuate, stay indoors, avoid the coast (action)\n"
-            "  5. When the next update is (so they know to listen again)\n\n"
+            "PRIORITY ORDER — pack these in, in this order, within 400 words:\n"
+            "  1. Storm name, current category, and wind speed (max sustained winds + gusts in km/h)\n"
+            "  2. Where it is now and where it is headed — include whether it is strengthening, weakening, or maintaining intensity; include any detail from the storm track map such as forecast positions and which landmasses the track crosses\n"
+            "  3. Which areas are under wind signals and at what level (Signal 1–5)\n"
+            "  4. Rainfall, flooding, and storm surge warnings — which areas are at risk even if not under a wind signal\n"
+            "  5. What people must do — evacuate if ordered, stay indoors, avoid the coast and flood-prone areas\n"
+            "  6. When the next update is (so they know to listen again)\n\n"
             "STYLE:\n"
             "- Write as if explaining to a neighbour — conversational, simple, direct\n"
             "- No broadcaster language, no formal sign-offs, no station IDs\n"
             "- Short sentences. Common words. Cut anything that does not add critical information.\n"
             "- Use digits for numbers (e.g. '25 kilometres per hour', 'Signal 2')\n"
+            "- For affected areas: group by region or island group — do NOT list individual provinces. "
+            "Say 'most of Bicol', 'northern and central Luzon', 'eastern Visayas' rather than naming every province.\n"
             "- Write place names naturally as they are spelled (e.g. Catanduanes, Visayas, Mindanao)\n"
             "- DO NOT add information that is not in the original bulletin\n\n"
             "FORMATTING: Plain flowing prose only. No headings, no bullet points, no bold, no markdown. "
             "Paragraph breaks (blank lines) between ideas.\n\n"
-            "LENGTH: No more than 300 words. Be concise — a life may depend on someone understanding this clearly."
+            "LENGTH: No more than 400 words. Be concise — a life may depend on someone understanding this clearly."
         ),
         "user": (
             "Convert this PAGASA weather bulletin data into a plain conversational English announcement.\n\n"
             "{bulletin_data}\n\n"
-            "Write the announcement now. Pack in all critical information — storm, location, track, "
-            "affected areas with Signal levels, what to do, next update time. "
-            "No more than 300 words. No headings, no markdown. Write place names naturally."
+            "Write the announcement now. Pack in all critical information — storm name and category, "
+            "wind speed in km/h, location and track (use the storm track map description to explain "
+            "forecast positions and which areas the storm will pass over), whether it is strengthening or weakening, "
+            "Signal levels with affected areas grouped by region (not individual provinces), "
+            "rainfall and storm surge warnings with affected regions, "
+            "what people must do, and when the next update is. "
+            "No more than 400 words. No headings, no markdown. Write place names naturally."
         ),
     },
     "tl": {
@@ -130,9 +137,10 @@ _TRANSLATE_PROMPTS = {
             "Narito ang kumpletong pahayag sa Ingles tungkol sa bagyo. I-adapt ito sa natural na Tagalog.\n\n"
             "{english_script}\n\n"
             "MAHALAGA: Panatilihin ang LAHAT ng impormasyon mula sa Ingles — pangalan ng bagyo, "
-            "lokasyon, landas, bawat apektadong lugar na may Signal level, kung ano ang dapat gawin, "
-            "at oras ng susunod na update. Walang detalye ang maaaring maiwanan.\n\n"
-            "Isulat ang pahayag sa Tagalog ngayon. Hindi hihigit sa 300 salita. "
+            "kategorya, bilis ng hangin (km/h), lokasyon, landas, kung lumalaki o humihina ang bagyo, "
+            "bawat apektadong lugar na may Signal level, mga babala sa ulan at storm surge na may apektadong lugar, "
+            "kung ano ang dapat gawin, at oras ng susunod na update. Walang detalye ang maaaring maiwanan.\n\n"
+            "Isulat ang pahayag sa Tagalog ngayon. Hindi hihigit sa 400 salita. "
             "Puro Tagalog. Walang headings, walang markdown."
         ),
     },
@@ -142,9 +150,10 @@ _TRANSLATE_PROMPTS = {
             "Ania ang kompletong pahimangno sa Ingles bahin sa bagyo. I-adapt kini ngadto sa natural nga Cebuano.\n\n"
             "{english_script}\n\n"
             "IMPORTANTE: Panatilihon ang TANAN nga impormasyon gikan sa Ingles — ngalan sa bagyo, "
-            "lokasyon, dalan, matag apektadong lugar nga adunay Signal level, unsa ang buhaton, "
-            "ug oras sa sunod nga update. Walay detalye ang maaaring mawala.\n\n"
-            "Isulat ang pahimangno sa Cebuano karon. Dili molapas sa 300 ka pulong. "
+            "kategorya, kusog sa hangin (km/h), lokasyon, dalan, kung nagkusog o nagluya ang bagyo, "
+            "matag apektadong lugar nga adunay Signal level, mga pasidaan sa ulan ug storm surge nga adunay apektadong lugar, "
+            "unsa ang buhaton, ug oras sa sunod nga update. Walay detalye ang maaaring mawala.\n\n"
+            "Isulat ang pahimangno sa Cebuano karon. Dili molapas sa 400 ka pulong. "
             "Puro Cebuano. Walay headings, walay markdown."
         ),
     },
@@ -158,9 +167,10 @@ _TTS_PROMPTS = {
     "en": {
         "system": (
             "You are converting a PAGASA severe weather announcement into plain text for text-to-speech synthesis.\n\n"
-            "AUDIENCE: Filipinos with low literacy, limited education, and no English background. "
-            "Keep the language simple. Short sentences. Common words only.\n\n"
+            "AUDIENCE: Filipino communities who may have limited formal education. "
+            "Use very simple English words only — no jargon, no complex sentences.\n\n"
             "RULES:\n"
+            "- Write ONLY in English — never switch to Tagalog, Cebuano, or any other language\n"
             "- NO markdown: no headings (#), no bullet points (-), no asterisks (*), no bold/italic\n"
             "- NO placeholders. Never write [station name], [insert...], [your location], or anything in brackets.\n"
             "- NO radio show language. No 'Good morning listeners', no sign-offs, no station IDs.\n"
@@ -204,6 +214,19 @@ _TTS_PROMPTS = {
             "  - north / south / east → nor / sow / ist\n"
             "  - northern / southern / eastern / western → nor-dern / sow-dern / is-tern / wes-tern\n"
             "  - Low Pressure Area / LPA → mababang presyon\n"
+            "PARA SA MGA ORAS — PALAGI GAMITIN ANG 'ALAS', HINDI 'IKA-':\n"
+            "  - 'ika-' ay para sa ordinal numbers (ika-apat na araw). HINDI ito ginagamit para sa oras.\n"
+            "  - 1:00 → ala una  (espesyal na kaso — 'ala', hindi 'alas')\n"
+            "  - 2:00 → alas dos  |  3:00 → alas tres  |  4:00 → alas kuwatro\n"
+            "  - 5:00 → alas singko  |  6:00 → alas sais  |  7:00 → alas syete\n"
+            "  - 8:00 → alas otso  |  9:00 → alas nuwebe  |  10:00 → alas diyes\n"
+            "  - 11:00 → alas onse  |  12:00 → alas dose\n"
+            "  - Pagtukoy ng oras ng araw: ng umaga (AM), ng tanghali (noon), ng hapon (PM), ng gabi (gabi)\n"
+            "  - HALIMBAWA: '4:00 PM' → 'alas kuwatro ng hapon'\n"
+            "               '8:00 AM' → 'alas otso ng umaga'\n"
+            "               '1:00 AM' → 'ala una ng umaga'\n"
+            "               '12:00 noon' → 'alas dose ng tanghali'\n"
+            "               '11:00 PM' → 'alas onse ng gabi'\n\n"
             "PARA SA MGA NUMERO — gamita ang Filipino/Spanish na mga salita:\n"
             "  - 25 km/h → beinte singko ki-lo-me-tro ba-wat o-ras\n"
             "  - 65 km/h → sisenta y singko ki-lo-me-tro ba-wat o-ras\n"
@@ -271,6 +294,19 @@ _TTS_PROMPTS = {
             "  - north / south / east → nor / sow / ist\n"
             "  - northern / southern / eastern / western → nor-dern / sow-dern / is-tern / wes-tern\n"
             "  - Low Pressure Area / LPA → lo-presyur-erya\n"
+            "PARA SA MGA ORAS — KANUNAY GAMITON ANG 'ALAS', DILI 'IKA-':\n"
+            "  - 'ika-' para sa ordinal numbers (ika-upat nga adlaw). DILI kini gamiton para sa oras.\n"
+            "  - 1:00 → ala una  (espesyal nga kaso — 'ala', dili 'alas')\n"
+            "  - 2:00 → alas dos  |  3:00 → alas tres  |  4:00 → alas kuwatro\n"
+            "  - 5:00 → alas singko  |  6:00 → alas sais  |  7:00 → alas syete\n"
+            "  - 8:00 → alas otso  |  9:00 → alas nuwebe  |  10:00 → alas diyes\n"
+            "  - 11:00 → alas onse  |  12:00 → alas dose\n"
+            "  - Panahon sa adlaw: sa buntag (AM), sa udto (noon), sa hapon (hapon), sa gabii (gabii)\n"
+            "  - PANANGLITAN: '4:00 PM' → 'alas kuwatro sa hapon'\n"
+            "                 '8:00 AM' → 'alas otso sa buntag'\n"
+            "                 '1:00 AM' → 'ala una sa buntag'\n"
+            "                 '12:00 noon' → 'alas dose sa udto'\n"
+            "                 '11:00 PM' → 'alas onse sa gabii'\n\n"
             "PARA SA MGA NUMERO — gamita ang Cebuano/Spanish nga mga pulong:\n"
             "  - 25 km/h → baynte singko ki-lo-me-tros sa usa ka oras\n"
             "  - 65 km/h → sisenta y singko ki-lo-me-tros sa usa ka oras\n"
@@ -408,7 +444,10 @@ _NUMBER_CLEANUP_PROMPTS = {
             "  '25 kilometro' → 'beinte singko kilometro'\n"
             "  '130 kilometro' → 'isang daan treynta kilometro'\n"
             "  'Signal 2' → 'sig-nal tu'\n"
-            "  '6 ng umaga' → 'sayis ng umaga'"
+            "  '4:00 ng hapon' → 'alas kuwatro ng hapon'\n"
+            "  '8:00 ng umaga' → 'alas otso ng umaga'\n"
+            "  '1:00 ng umaga' → 'ala una ng umaga'\n"
+            "  '6:00 ng umaga' → 'alas sais ng umaga'"
         ),
         "user": (
             "Suriin ang Tagalog TTS text na ito. Palitan ang LAHAT ng digit na numero ng katumbas na salita. "
@@ -442,7 +481,10 @@ _NUMBER_CLEANUP_PROMPTS = {
             "  '25 kilometros' → 'baynte singko kilometros'\n"
             "  '130 kilometros' → 'isyento treynta kilometros'\n"
             "  'Signal 2' → 'sig-nal tu'\n"
-            "  '6 sa buntag' → 'sayis sa buntag'"
+            "  '4:00 sa hapon' → 'alas kuwatro sa hapon'\n"
+            "  '8:00 sa buntag' → 'alas otso sa buntag'\n"
+            "  '1:00 sa buntag' → 'ala una sa buntag'\n"
+            "  '6:00 sa buntag' → 'alas sais sa buntag'"
         ),
         "user": (
             "Susiha kining Cebuano TTS text. Ilisan ang TANAN nga digit nga numero sa katumbas nga pulong. "
@@ -678,7 +720,11 @@ def run_step2(
         radio_md = _generate_radio_script(ocr_md, "en", ollama_url, model, metadata=metadata)
     else:
         en_radio_path = out_dir / "radio_en.md"
-        if not en_radio_path.exists() or force:
+        # Intentionally no `or force` here — run_batch.py always runs the English
+        # step first, which regenerates radio_en.md when force=True. Adding `or force`
+        # would make TL/CEB overwrite radio_en.md with a different LLM call, causing
+        # tts_en.txt (written by the English step) to be inconsistent with radio_en.md.
+        if not en_radio_path.exists():
             en_radio_md = _generate_radio_script(ocr_md, "en", ollama_url, model, metadata=metadata)
             en_radio_path.write_text(en_radio_md, encoding="utf-8")
             print(f"[run_step2] {stem}/{language}: auto-generated radio_en.md")

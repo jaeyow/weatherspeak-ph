@@ -5,6 +5,83 @@ Each entry corresponds to a pull request or significant milestone.
 
 ---
 
+## PR #22 — Radio Script & TTS Prompt Improvements
+**Date:** 2026-04-30
+**Branch:** `feature/radio-script-improvements`
+**Status:** Complete ✅
+
+### What we built
+
+A focused prompt-engineering pass across the full Step 2 pipeline, fixing audio quality issues and making the English bulletin more complete.
+
+---
+
+#### 1. English bulletin — more complete, 400-word limit
+
+**Problem:** The English radio script was capped at 300 words and omitted key information: wind speed in km/h, intensity trend (strengthening/weakening), rainfall and storm surge warnings, and storm track map content.
+
+**Fix:** Rewrote the EN generation prompt priorities:
+
+| # | Field | Before |
+|---|---|---|
+| 1 | Storm name + category + **wind speed (km/h)** | name + category only |
+| 2 | Location + track + **intensity trend** + **storm track map detail** | location + track only |
+| 3 | Wind signal areas (Signal 1–5) | affected areas |
+| 4 | **Rainfall, flooding, storm surge warnings** | (missing) |
+| 5 | What to do | what to do |
+| 6 | Next update time | next update |
+
+Word limit raised from 300 → 400. Affected areas now grouped by region ("most of Bicol", "northern Luzon") rather than listing every province.
+
+#### 2. TL/CEB translate prompts aligned to English
+
+Updated the Tagalog and Cebuano translation prompts to explicitly carry over the new fields — wind speed, intensity trend, rainfall/storm surge warnings — and raised their word limits to 400 to match English.
+
+#### 3. English TTS — Tagalog-words-in-English-audio bug
+
+**Root cause:** The EN TTS system prompt described the audience as "Filipinos with no English background", causing Gemma 4 to switch to Tagalog. Added an explicit rule: `Write ONLY in English — never switch to Tagalog, Cebuano, or any other language`.
+
+#### 4. Tagalog/Cebuano TTS — "alas" time system
+
+**Root cause:** TTS prompts had no time rules, and the number cleanup examples actively taught the wrong form (`'6 ng umaga' → 'sayis ng umaga'`). In Filipino, clock times use "alas" (from Spanish "a las"), not "ika-" (ordinal).
+
+**Fix:** Added a full "alas" time system table to both TL and CEB TTS generation prompts:
+- `ala una` (1:00, special case) through `alas dose` (12:00)
+- Period markers: `ng umaga` (AM), `ng tanghali` (noon), `ng hapon` (PM), `ng gabi` (evening)
+- Fixed number cleanup examples to use the correct "alas" form
+
+#### 5. `run_step2` force semantics — prevent triple generation
+
+**Problem:** TL/CEB containers each had `if not en_radio_path.exists() or force:`, causing `radio_en.md` to be regenerated three times (EN + TL + CEB containers) when `force=True`. Worse, the final write came from CEB's LLM call, making `radio_en.md` inconsistent with `tts_en.txt` (which was generated during the EN container's call).
+
+**Fix:** Removed `or force` from the TL/CEB English dependency check. The EN container always runs first in `run_batch.py` and handles `radio_en.md` regeneration when forced.
+
+#### 6. Storm chart description prompts — map embedded in table cell
+
+**Problem:** Both the Gemma 4 OCR and Marker chart description prompts gave vague instructions ("describe what you see"), causing the model to describe surrounding table borders and text instead of the map content.
+
+**Fix:** Rewrote both prompts to:
+- Explain that the map may be embedded in a table cell or the right column of a two-column layout
+- Instruct the model to find the geographic map of the Philippines and describe only what's inside the map frame
+- Explicitly exclude surrounding bulletin text, tables, headers, and footers
+
+#### 7. Notebook 10 Step 2 — English runs first
+
+**Problem:** The Step 2 cell iterated `LANGUAGES = ["ceb", "tl", "en"]` in order. With an existing `radio_en.md`, CEB and TL translated from the stale file before English regenerated it — producing placeholder-filled output.
+
+**Fix:** Cell now derives `ordered_langs = ["en"] + [other langs]`, mirroring `run_batch.py`'s two-phase dispatch.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `modal_etl/core/scripts.py` | EN prompt: +wind speed, +storm track map, +rainfall/surge, 300→400 words, region grouping; TL/CEB translate prompts aligned; EN TTS: "Write ONLY in English"; TL/CEB TTS: "alas" time rules; number cleanup examples fixed; removed `or force` from EN dependency check |
+| `modal_etl/core/ocr.py` | Chart description instruction: add map location hints, describe only map frame |
+| `modal_etl/core/ocr_marker.py` | `_CHART_DESCRIPTION_SYSTEM/_USER`: full rewrite for embedded-map handling |
+| `notebooks/10-etl-e2e.ipynb` | Step 2 cell: run English first before CEB/TL |
+
+---
+
 ## PR #20 — ETL Modularization, Marker OCR Backend, English-First Scripts
 **Date:** 2026-04-29
 **Branch:** `feature/ocr-prompt-improvements`

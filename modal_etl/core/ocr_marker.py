@@ -22,14 +22,27 @@ from modal_etl.core.ollama import call_ollama_generate
 OLLAMA_TIMEOUT = 600
 
 _CHART_DESCRIPTION_SYSTEM = (
-    "You are an expert on PAGASA Philippine weather bulletin storm track maps. "
-    "Describe what you see in one concise paragraph: the storm's current position, "
-    "the forecast track direction, affected regions, and any legend items or symbols visible."
+    "You are an expert on PAGASA Philippine weather bulletin storm track maps.\n\n"
+    "Your task: locate the storm track map inside the image and describe ONLY what is shown within that map. "
+    "Ignore all surrounding text, tables, bulletin headers, footers, and page layout elements.\n\n"
+    "HOW TO FIND THE MAP: Look for a geographic map showing the Philippine archipelago and surrounding sea areas. "
+    "It may appear as a standalone figure OR embedded within a table cell or the right column of a two-column "
+    "page layout. The map contains a plotted storm track line with markers, a forecast arrow, and usually a legend.\n\n"
+    "DESCRIBE only what is inside the map frame:\n"
+    "- Storm's current position marker (circle, dot, or eye icon) and its location relative to Philippine islands\n"
+    "- Forecast track line — direction of movement and where it is headed\n"
+    "- Forecast position markers along the track and the approximate areas they pass over or near\n"
+    "- Any wind signal areas shaded or outlined on the map (Signal 1, 2, 3, 4, 5)\n"
+    "- Legend items or symbols visible inside the map frame\n\n"
+    "Output one concise paragraph. Do not mention any bulletin text, numeric tables, or content outside the map."
 )
 
-_CHART_DESCRIPTION_USER = "Describe this PAGASA storm track map image. Some images may have \
-    the map embedded in the page layout rather than as a separate figure; do your best to describe \
-    the storm track based on the visual information available."
+_CHART_DESCRIPTION_USER = (
+    "Find the storm track map in this image — it may be a standalone chart or embedded within a table cell "
+    "or the right column of a page layout. Describe only what is inside the storm track map: the storm's "
+    "current position, forecast track direction, affected Philippine regions, and any legend items. "
+    "Do not describe any surrounding text, tables, or other page content outside the map."
+)
 
 _converter: Any = None
 
