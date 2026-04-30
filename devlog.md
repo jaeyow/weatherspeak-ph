@@ -104,6 +104,29 @@ These refinements make WeatherSpeak PH feel **polished and responsive**:
 
 Combined with PR #23, the frontend now delivers a **production-ready emergency response experience**.
 
+### Kaggle Write-up Materials
+
+**Date:** 2026-04-30
+
+Created screenshots and documentation for Kaggle hackathon submission:
+
+**Screenshots (3 total):**
+1. **Onboarding modal** — Language label corrected to "🌐 Pinulongan / Wika / Language" (Cebuano first)
+2. **Main page with active storm** — Fictitious Signal #4 Typhoon "Pepito" with audio badge
+3. **Storm detail with audio player** — Signal #4 badge added to Basyang for demonstration
+
+**Technical details:**
+- All screenshots: 2908px width (consistent with desktop rendering)
+- Heights: 1526px, 1506px, 4478px (varied by content)
+- Mobile-first framing with full-page captures
+- Comprehensive README.md documenting each screenshot, design principles, technical stack, and hackathon track alignment
+
+**Files:**
+- `writeup/01-onboarding.png` (164 KB)
+- `writeup/02-main-page-with-active-storm.png` (149 KB)
+- `writeup/03-storm-detail-with-audio-player.png` (983 KB)
+- `writeup/README.md` — Full documentation with inline images
+
 ---
 
 ## PR #23 — Frontend Audio Player Redesign & Critical UX Improvements
