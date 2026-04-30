@@ -86,6 +86,18 @@ Detailed view for "Basyang" (Tropical Depression):
 - Past bulletins accordion (collapsed, shows count)
 - Storm summary audio teaser
 
+### 4. Past Bulletins (Expanded)
+**File:** `04-past-bulletins-expanded.png`
+
+![Past Bulletins Expanded](04-past-bulletins-expanded.png)
+
+Historical bulletin timeline with pagination:
+- **Accordion Header:** "Mga Miaging Bullettin (22)" — shows total count
+- **Bulletin List:** Each bulletin shows number, timestamp, and audio icon
+- **Pagination:** "Showing 1-15 of 22 bulletins" with Previous/Next controls
+- **Tap Targets:** Each bulletin is a tappable button to load that specific warning
+- **Audio Indicators:** SVG speaker icons confirm audio availability for each
+
 ---
 
 ## Design Principles
