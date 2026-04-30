@@ -86,6 +86,7 @@ interface Props {
   durationSeconds: number | null;
   filename: string;
   language?: string; // e.g. 'English', 'Tagalog', 'Cebuano'
+  autoplay?: boolean; // If true, start playing automatically
 }
 
 function formatTime(seconds: number): string {
@@ -111,12 +112,13 @@ function PauseIcon() {
   );
 }
 
-export default function AudioPlayer({ audioUrl, durationSeconds, filename, language }: Props) {
+export default function AudioPlayer({ audioUrl, durationSeconds, filename, language, autoplay }: Props) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const [playing, setPlaying] = useState(false);
   const [current, setCurrent] = useState(0);
+  const [autoplayTriggered, setAutoplayTriggered] = useState(false);
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -127,12 +129,49 @@ export default function AudioPlayer({ audioUrl, durationSeconds, filename, langu
   useEffect(() => {
     setPlaying(false);
     setCurrent(0);
+    setAutoplayTriggered(false);
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
     audioCtxRef.current?.suspend();
   }, [audioUrl]);
+
+  // Autoplay effect - triggers once when autoplay=true and audio is available
+  useEffect(() => {
+    if (autoplay && audioUrl && !autoplayTriggered && audioRef.current) {
+      setAutoplayTriggered(true);
+      // Small delay to let the component render
+      setTimeout(() => {
+        if (audioRef.current) {
+          const audio = audioRef.current;
+          // Initialize audio context
+          if (!audioCtxRef.current) {
+            try {
+              const audioCtx = new AudioContext();
+              const node = audioCtx.createAnalyser();
+              node.fftSize = 64;
+              node.smoothingTimeConstant = 0.75;
+              const source = audioCtx.createMediaElementSource(audio);
+              source.connect(node);
+              node.connect(audioCtx.destination);
+              audioCtxRef.current = audioCtx;
+              setAnalyser(node);
+            } catch {
+              // Fallback if Web Audio fails
+            }
+          }
+          // Start playing
+          if (audioCtxRef.current) {
+            audioCtxRef.current.resume().then(() => audio.play().catch(() => {}));
+          } else {
+            audio.play().catch(() => {});
+          }
+          setPlaying(true);
+        }
+      }, 300);
+    }
+  }, [autoplay, audioUrl, autoplayTriggered]);
 
   if (!audioUrl) {
     return (

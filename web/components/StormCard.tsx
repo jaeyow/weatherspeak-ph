@@ -25,10 +25,16 @@ export default function StormCard({ storm, compact = false }: Props) {
         className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
       >
         <SignalBadge signal={storm.current_signal} />
-        <div className="min-w-0">
-          <div className="font-bold text-white truncate">{storm.storm_name}</div>
-          <div className="text-xs text-gray-400">
-            {storm.current_category} · {timeAgo(storm.last_bulletin_at)}
+        <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className="font-bold text-white truncate">{storm.storm_name}</div>
+            <div className="text-xs text-gray-400">
+              {storm.current_category} · {timeAgo(storm.last_bulletin_at)}
+            </div>
+          </div>
+          {/* Audio availability indicator */}
+          <div className="text-red-400 flex-shrink-0" title="Audio available">
+            🔊
           </div>
         </div>
       </Link>
@@ -42,7 +48,13 @@ export default function StormCard({ storm, compact = false }: Props) {
     >
       <SignalBadge signal={storm.current_signal} />
       <div className="flex-1 min-w-0">
-        <div className="text-xl font-extrabold text-white">{storm.storm_name}</div>
+        <div className="flex items-center gap-2">
+          <div className="text-xl font-extrabold text-white">{storm.storm_name}</div>
+          {/* Audio availability indicator */}
+          <div className="text-red-400 text-lg" title="Audio available">
+            🔊
+          </div>
+        </div>
         <div className="text-sm text-gray-400">{storm.current_category}</div>
         {storm.current_reference && (
           <div className="text-xs text-gray-500 truncate mt-0.5">{storm.current_reference}</div>

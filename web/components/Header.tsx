@@ -23,9 +23,11 @@ export default function Header() {
             WeatherSpeak PH
           </span>
         </Link>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {city && (
-            <span className="text-xs text-gray-400 hidden sm:block">📍 {city}</span>
+            <div className="px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-500/30">
+              <span className="text-xs text-blue-300 font-medium">📍 {city}</span>
+            </div>
           )}
           <LanguageToggle />
         </div>
