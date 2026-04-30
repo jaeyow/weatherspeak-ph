@@ -64,7 +64,7 @@ export default function BulletinAudioSection({ media, stem, autoplay }: Props) {
       {readyUrl && (
         <div className="text-center py-2">
           <p className="text-sm text-gray-300">
-            {t('tap_to_hear')} <span className="text-red-400 font-medium">{languageNames[language]}</span>
+            {t('tap_to_hear')} <span className="inline-block" style={{ transform: 'translateY(1px)' }}>▶</span> {t('to_hear_bulletin_in')} <span className="text-red-400 font-medium">{languageNames[language]}</span>
           </p>
         </div>
       )}

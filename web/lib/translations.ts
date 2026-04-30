@@ -20,7 +20,8 @@ export type TranslationKey =
   | 'your_location'
   | 'get_started'
   | 'read_bulletin'
-  | 'tap_to_hear';
+  | 'tap_to_hear'
+  | 'to_hear_bulletin_in';
 
 export const translations: Record<Language, Record<TranslationKey, string>> = {
   en: {
@@ -43,7 +44,8 @@ export const translations: Record<Language, Record<TranslationKey, string>> = {
     your_location:       'Your location',
     get_started:         'Get Started',
     read_bulletin:       'Read bulletin',
-    tap_to_hear:         'Tap ▶ to hear this bulletin in',
+    tap_to_hear:         'Tap',
+    to_hear_bulletin_in: 'to hear this bulletin in',
   },
   tl: {
     active_typhoons:     'Mga Aktibong Bagyo',
@@ -65,7 +67,8 @@ export const translations: Record<Language, Record<TranslationKey, string>> = {
     your_location:       'Inyong lokasyon',
     get_started:         'Magsimula',
     read_bulletin:       'Basahin ang bullettin',
-    tap_to_hear:         'I-tap ang ▶ para marinig ang bulletin sa',
+    tap_to_hear:         'I-tap ang',
+    to_hear_bulletin_in: 'para marinig ang bulletin sa',
   },
   ceb: {
     active_typhoons:     'Mga Aktibong Bagyo',
@@ -87,7 +90,8 @@ export const translations: Record<Language, Record<TranslationKey, string>> = {
     your_location:       'Imong lokasyon',
     get_started:         'Sugdan',
     read_bulletin:       'Basaha ang bullettin',
-    tap_to_hear:         'I-tap ang ▶ aron madungog ang bulletin sa',
+    tap_to_hear:         'I-tap ang',
+    to_hear_bulletin_in: 'aron madungog ang bulletin sa',
   },
 };
 
