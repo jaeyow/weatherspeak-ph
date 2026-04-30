@@ -9,6 +9,8 @@ This folder contains screenshots demonstrating the WeatherSpeak PH application f
 ### 1. Onboarding Screen
 **File:** `01-onboarding.png`
 
+![Onboarding Screen](01-onboarding.png)
+
 The initial setup modal where users configure their preferences:
 - **Province selection:** Choose from 39 Philippine provinces
 - **City/Municipality selection:** Dropdown populates based on province
@@ -26,6 +28,8 @@ The initial setup modal where users configure their preferences:
 
 ### 2. Main Page with Active Storm
 **File:** `02-main-page-with-active-storm.png`
+
+![Main Page with Active Storm](02-main-page-with-active-storm.png)
 
 Homepage showing an active typhoon alert:
 
@@ -56,6 +60,8 @@ Homepage showing an active typhoon alert:
 
 ### 3. Storm Detail Page with Audio Player
 **File:** `03-storm-detail-with-audio-player.png`
+
+![Storm Detail Page with Audio Player](03-storm-detail-with-audio-player.png)
 
 Detailed view for "Basyang" (Tropical Depression):
 
