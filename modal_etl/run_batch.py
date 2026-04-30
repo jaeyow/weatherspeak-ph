@@ -118,7 +118,7 @@ def _write_report(
             ]
             for lang in LANGUAGES:
                 label = _LANG_LABEL[lang]
-                lines.append(f"| `radio_{lang}.md` | {label} radio script (~300 words) |")
+                lines.append(f"| `radio_{lang}.md` | {label} radio script (~400 words) |")
             for lang in LANGUAGES:
                 label = _LANG_LABEL[lang]
                 lines.append(f"| `tts_{lang}.txt` | {label} TTS plain text (phonetically spelled) |")

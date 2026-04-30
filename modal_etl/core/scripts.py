@@ -61,7 +61,7 @@ _RADIO_PROMPTS = {
             "LAYUNIN: Mababasa at maririnig ito ng mga Pilipinong maaaring hindi nakakaintindi ng Ingles — "
             "mga magsasaka, mangingisda, at mga komunidad na kailangang malaman kung sila ay nasa panganib at ano ang gagawin. "
             "Bawat salita ay mahalaga. Walang lugar para sa anumang hindi nakakatulong sa kanilang kumilos.\n\n"
-            "PAGKAKASUNOD NG IMPORMASYON — ilagay ang lahat ng ito, sa pagkakasunod na ito, sa loob ng 300 salita:\n"
+            "PAGKAKASUNOD NG IMPORMASYON — ilagay ang lahat ng ito, sa pagkakasunod na ito, sa loob ng 400 salita:\n"
             "  1. Pangalan ng bagyo at kasalukuyang kategorya (ano ito)\n"
             "  2. Nasaan ito ngayon at saan ito pupunta (lokasyon + landas)\n"
             "  3. Aling mga lugar ang apektado at anong Signal level (sino ang nasa panganib)\n"
@@ -79,14 +79,14 @@ _RADIO_PROMPTS = {
             "- HUWAG magdagdag ng impormasyon na wala sa orihinal na bulletin\n\n"
             "FORMATTING: Natural na daloy ng prosa. Walang headings, walang bullets, walang bold, walang markdown. "
             "Blank lines sa pagitan ng mga talata.\n\n"
-            "HABA: Hindi hihigit sa 300 salita. Maging maigsi — maaaring ang buhay ng isang tao ay nakasalalay sa malinaw na pag-unawa nito."
+            "HABA: Hindi hihigit sa 400 salita. Maging maigsi — maaaring ang buhay ng isang tao ay nakasalalay sa malinaw na pag-unawa nito."
         ),
         "user": (
             "I-convert ang datos ng PAGASA bulletin na ito sa maikling pahayag sa Tagalog.\n\n"
             "{bulletin_data}\n\n"
             "Isulat ang pahayag ngayon. Ilagay ang lahat ng kritikal na impormasyon — bagyo, lokasyon, landas, "
             "mga apektadong lugar na may Signal level, ano ang gagawin, oras ng susunod na update. "
-            "Hindi hihigit sa 300 salita. Puro Tagalog. Walang headings, walang markdown."
+            "Hindi hihigit sa 400 salita. Puro Tagalog. Walang headings, walang markdown."
         ),
     },
     "ceb": {
@@ -96,7 +96,7 @@ _RADIO_PROMPTS = {
             "KATUYOAN: Mabasa ug madungog kini sa mga Pilipino nga mahimong dili makasabot sa English — "
             "mga mag-uuma, mangingisda, ug mga komunidad nga kinahanglan mahibalo kung sila anaa sa peligro ug unsa ang buhaton. "
             "Ang matag pulong importante. Walay lugar alang sa bisan unsang dili makatulong kanila nga molihok.\n\n"
-            "PAGKASUNOD SA IMPORMASYON — ibutang ang tanan niini, sa pagkasunod nga kini, sulod sa 300 ka pulong:\n"
+            "PAGKASUNOD SA IMPORMASYON — ibutang ang tanan niini, sa pagkasunod nga kini, sulod sa 400 ka pulong:\n"
             "  1. Ngalan sa bagyo ug kasamtangang kategorya (unsa kini)\n"
             "  2. Asa kini karon ug asa kini padulong (lokasyon + dalan)\n"
             "  3. Unsang mga lugar ang apektado ug unsang Signal level (kinsa ang anaa sa peligro)\n"
@@ -114,14 +114,14 @@ _RADIO_PROMPTS = {
             "- AYAW pagdugang og impormasyon nga wala sa orihinal nga bulletin\n\n"
             "FORMATTING: Natural nga daloy sa prosa. Walay headings, walay bullets, walay bold, walay markdown. "
             "Blank lines tali sa mga paragraph.\n\n"
-            "GITAS-ON: Dili molapas sa 300 ka pulong. Pagmaiksi — ang kinabuhi sa usa ka tawo mahimong magdepende sa tin-aw nga pagsabot niini."
+            "GITAS-ON: Dili molapas sa 400 ka pulong. Pagmaiksi — ang kinabuhi sa usa ka tawo mahimong magdepende sa tin-aw nga pagsabot niini."
         ),
         "user": (
             "I-convert ang datos sa PAGASA bulletin nga kini ngadto sa mubo nga pahimangno sa Cebuano.\n\n"
             "{bulletin_data}\n\n"
             "Isulat ang pahimangno karon. Ibutang ang tanan nga kritikal nga impormasyon — bagyo, lokasyon, dalan, "
             "mga apektadong lugar nga adunay Signal level, unsa ang buhaton, oras sa sunod nga update. "
-            "Dili molapas sa 300 ka pulong. Puro Cebuano. Walay headings, walay markdown."
+            "Dili molapas sa 400 ka pulong. Puro Cebuano. Walay headings, walay markdown."
         ),
     },
 }
