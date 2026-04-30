@@ -31,7 +31,7 @@ export default function StormCard({ storm, compact = false }: Props) {
     return (
       <Link
         href={`/storms/${storm.id}`}
-        className="group flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+        className="group flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/15 hover:scale-105 transition-all"
       >
         <SignalBadge signal={storm.current_signal} />
         <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
@@ -56,7 +56,7 @@ export default function StormCard({ storm, compact = false }: Props) {
   return (
     <Link
       href={`/storms/${storm.id}`}
-      className="group flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors"
+      className="group flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/15 hover:scale-105 transition-all"
     >
       <SignalBadge signal={storm.current_signal} />
       <div className="flex-1 min-w-0">
