@@ -32,9 +32,9 @@ export default function SignalBadge({ signal, showTooltip = false }: Props) {
     <div className="relative group">
       <div
         style={{ backgroundColor: bg }}
-        className="w-14 h-14 rounded-lg flex flex-col items-center justify-center flex-shrink-0"
+        className="w-14 h-14 rounded-lg flex flex-col items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:shadow-lg transition-all"
       >
-        <span className="text-xs text-white/60 uppercase leading-none">SIG</span>
+        <span className="text-xs text-white/60 group-hover:text-white/80 uppercase leading-none transition-colors">SIG</span>
         <span className="text-3xl font-extrabold text-white leading-none">
           {signal ?? '—'}
         </span>
