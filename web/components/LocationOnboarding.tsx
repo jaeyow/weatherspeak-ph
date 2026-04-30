@@ -125,7 +125,7 @@ export default function LocationOnboarding() {
         {/* Language */}
         <div className="space-y-2">
           <label className="text-xs font-semibold text-gray-300 uppercase tracking-wide">
-            🌐 Language / Wika / Pinulongan
+            🌐 Pinulongan / Wika / Language
           </label>
           <div className="flex gap-2">
             {LANGUAGES.map(l => (
