@@ -189,12 +189,16 @@ web/                          # Next.js 14 PWA frontend
   lib/                        # Supabase queries, i18n translations, geography utils
 
 notebooks/                    # Numbered Jupyter notebooks — primary dev/research artifacts
-  04-gemma4.ipynb             # OCR + structured JSON extraction experiments
-  05-comparison.ipynb         # OCR backend comparison (Gemma4 vs Marker)
-  06-radio-bulletin.ipynb     # Radio script generation experiments
-  08-mms-tts-experiment.ipynb # MMS VITS TTS experiments
-  09-pipeline-validation.ipynb # End-to-end pipeline validation
-  10-etl-e2e.ipynb            # Full local ETL run (mirrors Modal pipeline)
+  01-ocr-setup-and-data.ipynb      # Environment setup, PAGASA bulletin data acquisition
+  02-surya-ocr.ipynb               # Surya OCR experiments on bulletin PDFs
+  03-marker.ipynb                  # Marker PDF experiments — layout-aware text + table extraction
+  04-gemma4.ipynb                  # Gemma 4 E4B vision OCR + structured JSON extraction
+  05-comparison.ipynb              # OCR backend comparison: Surya vs Marker vs Gemma 4
+  06-radio-bulletin.ipynb          # Radio script generation experiments (EN / TL / CEB)
+  07-tts-experiment.ipynb          # Coqui XTTS v2 TTS experiments (English)
+  08-mms-tts-experiment.ipynb      # Facebook MMS VITS experiments (Tagalog + Cebuano)
+  09-pipeline-validation.ipynb     # End-to-end pipeline validation across multiple bulletins
+  10-etl-e2e.ipynb                 # Full local ETL run using modal_etl/core/ (mirrors Modal pipeline)
 
 data/
   bulletin-archive/           # Source PAGASA PDFs (gitignored)
