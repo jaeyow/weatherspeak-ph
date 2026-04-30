@@ -10,9 +10,16 @@ import { useTranslation } from './LanguageProvider';
 interface Props {
   media: MediaByLang;
   stem: string; // used to construct a human-readable download filename
+  autoplay?: boolean; // URL parameter ?autoplay=1
 }
 
-export default function BulletinAudioSection({ media, stem }: Props) {
+const languageNames: Record<Language, string> = {
+  en: 'English',
+  tl: 'Tagalog',
+  ceb: 'Cebuano',
+};
+
+export default function BulletinAudioSection({ media, stem, autoplay }: Props) {
   const [language, setLanguage] = useState<Language>('ceb');
   const [scriptText, setScriptText] = useState<string | null>(null);
   const [scriptLoading, setScriptLoading] = useState(false);
@@ -53,18 +60,34 @@ export default function BulletinAudioSection({ media, stem }: Props) {
 
   return (
     <div className="space-y-4">
+      {/* Hero CTA */}
+      {readyUrl && (
+        <div className="text-center py-2">
+          <p className="text-sm text-gray-300">
+            {t('tap_to_hear')} <span className="inline-block" style={{ transform: 'translateY(1px)' }}>▶</span> {t('to_hear_bulletin_in')} <span className="text-red-400 font-medium">{languageNames[language]}</span>
+          </p>
+        </div>
+      )}
+
       <AudioPlayer
         audioUrl={readyUrl}
         durationSeconds={current?.audio_duration_seconds ?? null}
         filename={`${stem}_${language}.mp3`}
+        language={languageNames[language]}
+        autoplay={autoplay}
       />
       {scriptLoading && (
         <p className="text-xs text-gray-500 px-1">Loading script...</p>
       )}
       {scriptText && !scriptLoading && (
         <details className="bg-white/5 rounded-xl p-4">
-          <summary className="text-xs font-semibold text-gray-400 uppercase tracking-wide cursor-pointer">
+          <summary className="text-xs font-semibold text-gray-400 uppercase tracking-wide cursor-pointer hover:text-gray-300 transition-colors">
             {t('read_bulletin')}
+            {scriptText && (
+              <span className="block mt-2 text-sm font-normal text-gray-500 normal-case tracking-normal line-clamp-1">
+                {scriptText.split('\n').find(line => line.trim().length > 0)?.replace(/^#+\s*/, '')}
+              </span>
+            )}
           </summary>
           <div className="mt-3 text-sm text-gray-300 leading-relaxed prose prose-invert prose-sm max-w-none">
             <ReactMarkdown>{scriptText}</ReactMarkdown>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
+import { formatDate } from '@/lib/format-date';
 
 // Configure PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -11,6 +12,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 interface BulletinHistoryItem {
   id: string;
   bulletin_number: number | null;
+  issued_at: string | null;
   pdf_url: string | null;
 }
 
@@ -57,9 +59,16 @@ export default function BulletinHistoryAccordion({ bulletins, stormName }: Props
                 transition-colors
               `}
             >
-              <span className="text-sm text-white">
-                Bulletin #{bulletin.bulletin_number}
-              </span>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm text-white">
+                  Bulletin #{bulletin.bulletin_number}
+                </span>
+                {bulletin.issued_at && (
+                  <span className="text-xs text-gray-400">
+                    {formatDate(bulletin.issued_at)}
+                  </span>
+                )}
+              </div>
               {hasPdf && (
                 <svg
                   className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
