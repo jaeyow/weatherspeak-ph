@@ -44,8 +44,9 @@ flowchart LR
     subgraph Step2["Step 2 — Script Generation"]
         EN["🤖 Gemma 4 E4B\nGenerates English script\n(≤400 words)"]
         TLCEB["🤖 Gemma 4 E4B × 2\nTranslates EN → Tagalog\nTranslates EN → Cebuano\n(parallel)"]
-        TTS["TTS text pass\n(phonetic spellings)"]
-        EN --> TLCEB --> TTS
+        TTS["🤖 Gemma 4 E4B\nConverts scripts to plain TTS text\n(no markdown, phonetic rules)"]
+        CLEANUP["🤖 Gemma 4 E4B\nTagalog + Cebuano only:\n1. English words → Filipino phonetic equivalents\n2. Digits → Filipino spoken word forms\n(ensures correct TTS pronunciation)"]
+        EN --> TLCEB --> TTS --> CLEANUP
     end
 
     subgraph Step3["Step 3 — Speech Synthesis  ‹parallel × 3›"]
@@ -74,7 +75,7 @@ flowchart TD
     subgraph ETL["Modal ETL  —  serverless GPU batch job"]
         direction TB
         OCR["Step 1\n📄 Marker PDF extracts bulletin text + tables\n🤖 Gemma 4 E4B interprets the storm track chart\nOutputs structured metadata"]
-        SCRIPTS["Step 2  ‹EN first, then TL + CEB in parallel›\n🤖 Gemma 4 E4B\n1. Generate English radio script (≤400 words) from OCR + metadata\n2. Translate English → Tagalog · English → Cebuano\n3. TTS text pass: phonetic spellings + number/time conversion"]
+        SCRIPTS["Step 2  ‹EN first, then TL + CEB in parallel›\n🤖 Gemma 4 E4B\n1. Generate English radio script (≤400 words) from OCR + metadata\n2. Translate English → Tagalog · English → Cebuano\n3. Convert scripts to plain TTS text\n4. TL + CEB: replace English words with Filipino phonetic equivalents\n5. TL + CEB: replace digits with Filipino spoken word forms"]
         TTS["Step 3  ‹EN · TL · CEB in parallel›\nMMS VITS synthesises Tagalog + Cebuano audio\nXTTS v2 synthesises English audio"]
         UPLOAD["Step 4\nUploads MP3s + scripts + chart\nto Supabase Storage + PostgreSQL"]
         OCR --> SCRIPTS --> TTS --> UPLOAD
