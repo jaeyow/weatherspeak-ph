@@ -67,20 +67,13 @@ flowchart LR
 
 ### End-to-End Flow
 
-Shows the full journey from PAGASA publishing a bulletin to a community member hearing it in their language, and where Gemma 4 is used.
+Shows the full journey from PAGASA publishing a bulletin to a community member hearing it in their language.
 
 ```mermaid
 flowchart TD
     PAGASA(["🌀 PAGASA publishes\ntyphoon bulletin PDF"])
 
-    subgraph ETL["Modal ETL  —  serverless GPU batch job"]
-        direction TB
-        OCR["Step 1\n📄 Marker PDF extracts bulletin text + tables\n🤖 Gemma 4 E4B interprets the storm track chart\nOutputs structured metadata"]
-        SCRIPTS["Step 2  ‹EN first, then TL + CEB in parallel›\n🤖 Gemma 4 E4B — up to 5 passes per bulletin:\n1. Generate English radio script (≤400 words)\n2. Translate English → Tagalog · English → Cebuano\n3. Convert all scripts to plain TTS text\n4. TL + CEB: English words → Filipino phonetic equivalents\n5. TL + CEB: digits → Filipino spoken word forms"]
-        TTS["Step 3  ‹EN · TL · CEB in parallel›\nMMS VITS synthesises Tagalog + Cebuano audio\nXTTS v2 synthesises English audio"]
-        UPLOAD["Step 4\nUploads MP3s + scripts + chart\nto Supabase Storage + PostgreSQL"]
-        OCR --> SCRIPTS --> TTS --> UPLOAD
-    end
+    ETL["⚙️ Modal ETL\nOCR · Script generation · TTS synthesis · Upload\n(see pipeline diagram above for detail)"]
 
     subgraph WEB["Next.js web app  —  Vercel"]
         direction TB
@@ -99,8 +92,7 @@ flowchart TD
 
     PAGASA --> ETL --> WEB --> USER
 
-    style OCR fill:#fef3c7,stroke:#d97706,color:#000
-    style SCRIPTS fill:#fef3c7,stroke:#d97706,color:#000
+    style ETL fill:#fef3c7,stroke:#d97706,color:#000
     style PAGASA fill:#fee2e2,stroke:#dc2626,color:#000
     style USER fill:#dcfce7,stroke:#16a34a,color:#000
 ```
