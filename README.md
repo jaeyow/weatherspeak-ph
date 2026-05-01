@@ -34,8 +34,10 @@ flowchart LR
     PDF([PAGASA PDF\nBulletin])
 
     subgraph Step1["Step 1 — OCR & Extraction"]
-        G1["🤖 Gemma 4 E4B\n(vision + OCR)\nor Marker PDF"]
-        OCR["ocr.md · forecast_table.md\nchart.png · metadata.json"]
+        M1["📄 Marker PDF\n(text + tables)"]
+        G1["🤖 Gemma 4 E4B\n(storm chart vision)"]
+        OCR["ocr.md · chart.png\nmetadata.json"]
+        M1 --> OCR
         G1 --> OCR
     end
 
@@ -71,14 +73,14 @@ flowchart TD
 
     subgraph ETL["Modal ETL  —  serverless GPU batch job"]
         direction TB
-        OCR["Step 1\n🤖 Gemma 4 E4B reads the PDF\nTwo-pass: narrative fields + forecast table\nExtracts storm track chart · outputs structured metadata\n(Marker PDF backend available as alternative)"]
+        OCR["Step 1\n📄 Marker PDF extracts bulletin text + tables\n🤖 Gemma 4 E4B interprets the storm track chart\nOutputs structured metadata"]
         SCRIPTS["Step 2  ‹EN first, then TL + CEB in parallel›\n🤖 Gemma 4 E4B\n1. Generate English radio script (≤400 words) from OCR + metadata\n2. Translate English → Tagalog · English → Cebuano\n3. TTS text pass: phonetic spellings + number/time conversion"]
         TTS["Step 3  ‹EN · TL · CEB in parallel›\nMMS VITS synthesises Tagalog + Cebuano audio\nXTTS v2 synthesises English audio"]
         UPLOAD["Step 4\nUploads MP3s + scripts + chart\nto Supabase Storage + PostgreSQL"]
         OCR --> SCRIPTS --> TTS --> UPLOAD
     end
 
-    subgraph WEB["Next.js PWA  —  Vercel"]
+    subgraph WEB["Next.js web app  —  Vercel"]
         direction TB
         SITE["weatherspeak-ph.vercel.app"]
         PLAYER["Audio player with waveform\n(EN · TL · CEB)"]
