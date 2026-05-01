@@ -24,11 +24,15 @@ _RADIO_PROMPTS = {
             "Every word must earn its place. There is no room for anything that does not help them act.\n\n"
             "PRIORITY ORDER — pack these in, in this order, within 400 words:\n"
             "  1. Storm name, current category, and wind speed (max sustained winds + gusts in km/h)\n"
-            "  2. Where it is now and where it is headed — include whether it is strengthening, weakening, or maintaining intensity; include any detail from the storm track map such as forecast positions and which landmasses the track crosses\n"
-            "  3. Which areas are under wind signals and at what level (Signal 1–5)\n"
-            "  4. Rainfall, flooding, and storm surge warnings — which areas are at risk even if not under a wind signal\n"
-            "  5. What people must do — evacuate if ordered, stay indoors, avoid the coast and flood-prone areas\n"
-            "  6. When the next update is (so they know to listen again)\n\n"
+            "  2. Where it is now and where it is headed — whether it is strengthening, weakening, or maintaining intensity\n"
+            "  3. Storm track map — write a brief paragraph using the Storm Track Map section at the end of the bulletin. "
+            "Cover: current position, forecast track direction, which landmasses or island groups the track passes near or over, "
+            "and roughly when (e.g. 'expected to pass near northern Luzon within 24 hours'). "
+            "If the Storm Track Map section is absent or empty, skip this item.\n"
+            "  4. Which areas are under wind signals and at what level (Signal 1–5)\n"
+            "  5. Rainfall, flooding, and storm surge warnings — which areas are at risk even if not under a wind signal\n"
+            "  6. What people must do — evacuate if ordered, stay indoors, avoid the coast and flood-prone areas\n"
+            "  7. When the next update is (so they know to listen again)\n\n"
             "STYLE:\n"
             "- Write as if explaining to a neighbour — conversational, simple, direct\n"
             "- No broadcaster language, no formal sign-offs, no station IDs\n"
@@ -46,8 +50,9 @@ _RADIO_PROMPTS = {
             "Convert this PAGASA weather bulletin data into a plain conversational English announcement.\n\n"
             "{bulletin_data}\n\n"
             "Write the announcement now. Pack in all critical information — storm name and category, "
-            "wind speed in km/h, location and track (use the storm track map description to explain "
-            "forecast positions and which areas the storm will pass over), whether it is strengthening or weakening, "
+            "wind speed in km/h, current location and whether it is strengthening or weakening, "
+            "a brief storm track paragraph (from the Storm Track Map section) covering forecast direction and which "
+            "landmasses it passes near or over and roughly when, "
             "Signal levels with affected areas grouped by region (not individual provinces), "
             "rainfall and storm surge warnings with affected regions, "
             "what people must do, and when the next update is. "
@@ -594,12 +599,15 @@ def _format_metadata_for_prompt(metadata: dict) -> str:
 def _clean_ocr(text: str) -> str:
     """Remove OCR artefacts that cause the LLM to produce placeholder output.
 
-    Step 1 on GPU sometimes emits lines like [HEADER BLOCK], [Logo - PAGASA],
-    [Signature/Stamp placeholder] for parts of the PDF it cannot read.  When
-    these reach Step 2 the model interprets the whole document as a template
-    and produces bracket-placeholder output instead of real content.
+    Handles two backends:
+    - Gemma 4 vision: emits [BRACKET LABEL] lines for unreadable regions
+    - Marker PDF: emits ![](_page_N_Picture_N.jpeg) image references for
+      embedded figures — these are meaningless in a text-only LLM prompt and
+      cause the model to misread the document as an image archive
     """
-    # Remove lines that consist entirely of a [BRACKET LABEL]
+    # Remove Marker image references: ![alt](_page_N_Picture_N.ext)
+    text = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", text)
+    # Remove lines that consist entirely of a [BRACKET LABEL] (Gemma 4 backend)
     text = re.sub(r"^\s*\[[^\]\n]+\]\s*$", "", text, flags=re.MULTILINE)
     # Collapse runs of blank lines left by the removals
     text = re.sub(r"\n{3,}", "\n\n", text)
