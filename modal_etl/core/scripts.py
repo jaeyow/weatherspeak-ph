@@ -599,12 +599,15 @@ def _format_metadata_for_prompt(metadata: dict) -> str:
 def _clean_ocr(text: str) -> str:
     """Remove OCR artefacts that cause the LLM to produce placeholder output.
 
-    Step 1 on GPU sometimes emits lines like [HEADER BLOCK], [Logo - PAGASA],
-    [Signature/Stamp placeholder] for parts of the PDF it cannot read.  When
-    these reach Step 2 the model interprets the whole document as a template
-    and produces bracket-placeholder output instead of real content.
+    Handles two backends:
+    - Gemma 4 vision: emits [BRACKET LABEL] lines for unreadable regions
+    - Marker PDF: emits ![](_page_N_Picture_N.jpeg) image references for
+      embedded figures — these are meaningless in a text-only LLM prompt and
+      cause the model to misread the document as an image archive
     """
-    # Remove lines that consist entirely of a [BRACKET LABEL]
+    # Remove Marker image references: ![alt](_page_N_Picture_N.ext)
+    text = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", text)
+    # Remove lines that consist entirely of a [BRACKET LABEL] (Gemma 4 backend)
     text = re.sub(r"^\s*\[[^\]\n]+\]\s*$", "", text, flags=re.MULTILINE)
     # Collapse runs of blank lines left by the removals
     text = re.sub(r"\n{3,}", "\n\n", text)
