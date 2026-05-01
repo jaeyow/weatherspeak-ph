@@ -73,7 +73,7 @@ Shows the full journey from PAGASA publishing a bulletin to a community member h
 flowchart TD
     PAGASA(["🌀 PAGASA publishes\ntyphoon bulletin PDF"])
 
-    ETL["⚙️ Modal ETL\nOCR · Script generation · TTS synthesis · Upload\n(see pipeline diagram above for detail)"]
+    ETL["⚙️ Modal ETL\nOCR · Script generation · TTS synthesis · Upload\n(see ETL pipeline diagram above for detail)"]
 
     subgraph WEB["Next.js web app  —  Vercel"]
         direction TB
@@ -105,13 +105,15 @@ flowchart TD
 
 | Layer | Technology |
 |---|---|
+| LLM | Gemma 4 E4B (`gemma4:e4b`) |
+| LLM serving | Ollama (runs inside Modal container) |
 | OCR backend (default) | Marker PDF (Surya layout-aware extractor) + Gemma 4 chart description |
-| OCR backend (alternative) | Gemma 4 E4B vision via Ollama (`gemma4:e4b`) — `--backend gemma4` |
-| Script generation | Gemma 4 E4B via Ollama (`gemma4:e4b`) |
+| OCR backend (alternative) | Gemma 4 E4B vision — `--backend gemma4` |
+| Script generation | Gemma 4 E4B via Ollama |
 | TTS — Cebuano / Tagalog | Facebook MMS VITS (`facebook/mms-tts-ceb`, `facebook/mms-tts-tgl`) |
 | TTS — English | Coqui XTTS v2 (`tts_models/multilingual/multi-dataset/xtts_v2`) |
 | GPU compute | Modal (serverless A10G) |
-| Frontend | Next.js 14 / Vercel (PWA, mobile-first, CEB/TL/EN i18n) |
+| Frontend | Next.js 14 / Vercel (mobile-first web application, CEB/TL/EN i18n) |
 | Storage | Supabase Storage + PostgreSQL |
 | Package manager | uv |
 | Python | 3.12+ |
