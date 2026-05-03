@@ -27,11 +27,15 @@ _RADIO_PROMPTS = {
             "farmers, fisherfolk, and rural communities who need to know if they are in danger and what to do.\n\n"
             "PRIORITY ORDER — cover all of these, in this order:\n"
             "  1. Storm name, current category, and wind speed (max sustained winds + gusts in km/h)\n"
-            "  2. Where it is now and where it is headed — include whether it is strengthening, weakening, or maintaining intensity; include forecast positions and which landmasses the track crosses\n"
-            "  3. Which areas are under wind signals and at what level (Signal 1–5)\n"
-            "  4. Rainfall, flooding, and storm surge warnings — which areas are at risk even if not under a wind signal\n"
-            "  5. What people must do — evacuate if ordered, stay indoors, avoid the coast and flood-prone areas\n"
-            "  6. When the next update is (so they know to listen again)\n\n"
+            "  2. Where it is now and where it is headed — whether it is strengthening, weakening, or maintaining intensity\n"
+            "  3. Storm track map — write a brief paragraph using the Storm Track Map section at the end of the bulletin. "
+            "Cover: current position, forecast track direction, which landmasses or island groups the track passes near or over, "
+            "and roughly when (e.g. 'expected to pass near northern Luzon within 24 hours'). "
+            "If the Storm Track Map section is absent or empty, skip this item.\n"
+            "  4. Which areas are under wind signals and at what level (Signal 1–5)\n"
+            "  5. Rainfall, flooding, and storm surge warnings — which areas are at risk even if not under a wind signal\n"
+            "  6. What people must do — evacuate if ordered, stay indoors, avoid the coast and flood-prone areas\n"
+            "  7. When the next update is (so they know to listen again)\n\n"
             "STYLE:\n"
             "- Write as if explaining to a neighbour — conversational, simple, direct\n"
             "- No broadcaster language, no formal sign-offs, no station IDs\n"
@@ -50,8 +54,10 @@ _RADIO_PROMPTS = {
             "{bulletin_data}\n\n"
             "Write the full 350–400 word announcement now. You MUST include — with the actual values "
             "from the bulletin above — the storm name and category, wind speed and gusts in km/h, "
-            "exact current position, track and forecast positions with timing, whether it is "
-            "strengthening or weakening, Signal levels with affected areas grouped by region, "
+            "exact current position, whether it is strengthening or weakening, "
+            "a storm track paragraph (from the Storm Track Map section) covering forecast direction and which "
+            "landmasses it passes near or over and roughly when, "
+            "Signal levels with affected areas grouped by region (not individual provinces), "
             "gale warnings and affected sea areas with wave heights, rainfall and storm surge "
             "warnings with affected regions, what people must do, and when the next update is. "
             "No headings. No markdown. Write place names naturally. Do not stop before 350 words."
@@ -515,12 +521,13 @@ def _clean_ocr(text: str) -> str:
 
     Handles two backends:
     - Gemma 4 vision: emits [BRACKET LABEL] lines for unreadable regions
-    - Marker PDF: emits ![](...) image references for logos, stamps, figures
-    Both cause the model to ignore bulletin text and generate generic content.
+    - Marker PDF: emits ![](_page_N_Picture_N.jpeg) image references for
+      embedded figures — these are meaningless in a text-only LLM prompt and
+      cause the model to misread the document as an image archive
     """
-    # Remove Marker image references: ![](...) inline or on their own line
+    # Remove Marker image references: ![alt](_page_N_Picture_N.ext)
     text = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", text)
-    # Remove lines that consist entirely of a [BRACKET LABEL]
+    # Remove lines that consist entirely of a [BRACKET LABEL] (Gemma 4 backend)
     text = re.sub(r"^\s*\[[^\]\n]+\]\s*$", "", text, flags=re.MULTILINE)
     # Collapse runs of blank lines left by the removals
     text = re.sub(r"\n{3,}", "\n\n", text)
