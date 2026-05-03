@@ -189,16 +189,64 @@ web/                          # Next.js 14 PWA frontend
   lib/                        # Supabase queries, i18n translations, geography utils
 
 notebooks/                    # Numbered Jupyter notebooks — primary dev/research artifacts
-  01-ocr-setup-and-data.ipynb      # Environment setup, PAGASA bulletin data acquisition
-  02-surya-ocr.ipynb               # Surya OCR experiments on bulletin PDFs
-  03-marker.ipynb                  # Marker PDF experiments — layout-aware text + table extraction
-  04-gemma4.ipynb                  # Gemma 4 E4B vision OCR + structured JSON extraction
-  05-comparison.ipynb              # OCR backend comparison: Surya vs Marker vs Gemma 4
-  06-radio-bulletin.ipynb          # Radio script generation experiments (EN / TL / CEB)
-  07-tts-experiment.ipynb          # Coqui XTTS v2 TTS experiments (English)
-  08-mms-tts-experiment.ipynb      # Facebook MMS VITS experiments (Tagalog + Cebuano)
-  09-pipeline-validation.ipynb     # End-to-end pipeline validation across multiple bulletins
-  10-etl-e2e.ipynb                 # Full local ETL run using modal_etl/core/ (mirrors Modal pipeline)
+  01-ocr-setup-and-data.ipynb
+      # Project setup: installs dependencies, clones the pagasa-parser/bulletin-archive
+      # repo, and selects two representative bulletins (Pepito SWB#01, Basyang TCA#01)
+      # as the baseline test set used throughout all experiments.
+
+  02-surya-ocr.ipynb
+      # Evaluates Surya OCR (AI-native, 90+ languages) on PAGASA bulletin PDFs.
+      # Tests layout detection, reading-order reconstruction, and raw text extraction
+      # quality. Establishes the first accuracy baseline for the OCR comparison.
+
+  03-marker.ipynb
+      # Evaluates Marker PDF — a document conversion toolkit built on Surya that
+      # outputs clean Markdown with preserved tables and extracted figures.
+      # Key finding: Marker handles the multi-column bulletin layout and forecast
+      # table far better than raw Surya, and saves chart images alongside the text.
+
+  04-gemma4.ipynb
+      # Tests the vision-first hypothesis: can Gemma 4 E4B replace a dedicated OCR
+      # engine? Sends each bulletin page as a base64 image to Ollama and prompts
+      # Gemma to extract all bulletin fields plus a structured JSON summary.
+      # Validates the two-pass approach (narrative fields + forecast table separately).
+
+  05-comparison.ipynb
+      # Side-by-side comparison of Surya, Marker, and Gemma 4 E4B on speed,
+      # field-extraction accuracy, and table fidelity. Outcome: Marker is selected
+      # as the default OCR backend (best text + table quality); Gemma 4 E4B is
+      # retained for storm track chart description where vision is required.
+
+  06-radio-bulletin.ipynb
+      # First radio script generator: prompts Gemma 4 E4B to convert raw OCR markdown
+      # into a ~200-word spoken bulletin in English, Tagalog, and Cebuano.
+      # Experiments with prompt style, word count, tone, and field ordering to produce
+      # natural, radio-ready prose for each language.
+
+  07-tts-experiment.ipynb
+      # Text-to-speech experiments with Coqui XTTS v2. Converts the English radio
+      # scripts to MP3 using the "Damien Black" voice clone. Explores chunking
+      # strategy (sentence-boundary splits ≤200 chars) and language-code mapping
+      # (Tagalog/Cebuano → Spanish phonemes as the closest available approximation).
+
+  08-mms-tts-experiment.ipynb
+      # Introduces Facebook MMS VITS as the TTS engine for Tagalog and Cebuano —
+      # native models that eliminate the Spanish-phoneme approximation. Compares
+      # MMS output quality against XTTS v2. Also refines the radio script pipeline:
+      # switches from raw OCR to structured metadata JSON as the LLM input to fix
+      # hallucinations (e.g. wind speed confused with movement speed).
+
+  09-pipeline-validation.ipynb
+      # Validates the full OCR → structured metadata → radio scripts → TTS text
+      # chain across multiple bulletins. Checks JSON schema conformance for metadata,
+      # script word counts, and TTS text cleanup. Serves as a pre-production smoke
+      # test before the Modal ETL is built.
+
+  10-etl-e2e.ipynb
+      # Full end-to-end ETL run using modal_etl/core/ modules locally — no Modal
+      # required. Runs Steps 1–3 (OCR, scripts, TTS) against a real bulletin PDF
+      # and writes output to notebooks/10-etl-e2e/output/{stem}/. Used for
+      # iterative prompt development and regression testing before deploying to Modal.
 
 data/
   bulletin-archive/           # Source PAGASA PDFs (gitignored)
