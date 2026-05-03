@@ -23,9 +23,10 @@ def call_ollama_generate(
     images_b64: list[str] | None = None,
     fmt: dict | None = None,
     timeout: int = 600,
+    think: bool = False,
 ) -> str:
     """POST /api/generate and return the response text."""
-    payload: dict = {"model": model, "prompt": prompt, "stream": False, "think": False}
+    payload: dict = {"model": model, "prompt": prompt, "stream": False, "think": think}
     if system:
         payload["system"] = system
     if images_b64:
