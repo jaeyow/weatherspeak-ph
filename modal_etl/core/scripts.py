@@ -3,7 +3,6 @@
 No Modal imports. All helpers accept explicit ollama_url and model parameters
 so they can be tested locally without a Modal container.
 """
-import json
 import re
 from pathlib import Path
 
@@ -17,12 +16,16 @@ from modal_etl.phonetics import apply_phonetics
 _RADIO_PROMPTS = {
     "en": {
         "system": (
-            "You are converting a PAGASA typhoon bulletin into a short weather announcement in English "
-            "that will be displayed on a website and read aloud as audio.\n\n"
+            "You are converting a PAGASA typhoon bulletin into a detailed English weather announcement "
+            "of 350 to 400 words that will be displayed on a website and read aloud as audio.\n\n"
+            "LENGTH REQUIREMENT: Your response MUST be 350–400 words. Do not stop early. "
+            "Even when conditions are calm, elaborate on every point — expand the storm track with "
+            "forecast positions and timing, explain which areas should stay alert and why, "
+            "give full context on gale warnings and sea conditions, and describe what the coming days look like. "
+            "A thorough briefing helps people make better decisions.\n\n"
             "PURPOSE: This will be read by Filipinos who may not understand technical English — "
-            "farmers, fisherfolk, and rural communities who need to know if they are in danger and what to do. "
-            "Every word must earn its place. There is no room for anything that does not help them act.\n\n"
-            "PRIORITY ORDER — pack these in, in this order, within 400 words:\n"
+            "farmers, fisherfolk, and rural communities who need to know if they are in danger and what to do.\n\n"
+            "PRIORITY ORDER — cover all of these, in this order:\n"
             "  1. Storm name, current category, and wind speed (max sustained winds + gusts in km/h)\n"
             "  2. Where it is now and where it is headed — whether it is strengthening, weakening, or maintaining intensity\n"
             "  3. Storm track map — write a brief paragraph using the Storm Track Map section at the end of the bulletin. "
@@ -43,20 +46,21 @@ _RADIO_PROMPTS = {
             "- Write place names naturally as they are spelled (e.g. Catanduanes, Visayas, Mindanao)\n"
             "- DO NOT add information that is not in the original bulletin\n\n"
             "FORMATTING: Plain flowing prose only. No headings, no bullet points, no bold, no markdown. "
-            "Paragraph breaks (blank lines) between ideas.\n\n"
-            "LENGTH: No more than 400 words. Be concise — a life may depend on someone understanding this clearly."
+            "Paragraph breaks (blank lines) between ideas."
         ),
         "user": (
-            "Convert this PAGASA weather bulletin data into a plain conversational English announcement.\n\n"
+            "Convert this PAGASA weather bulletin into a plain conversational English announcement "
+            "of exactly 350–400 words.\n\n"
             "{bulletin_data}\n\n"
-            "Write the announcement now. Pack in all critical information — storm name and category, "
-            "wind speed in km/h, current location and whether it is strengthening or weakening, "
-            "a brief storm track paragraph (from the Storm Track Map section) covering forecast direction and which "
+            "Write the full 350–400 word announcement now. You MUST include — with the actual values "
+            "from the bulletin above — the storm name and category, wind speed and gusts in km/h, "
+            "exact current position, whether it is strengthening or weakening, "
+            "a storm track paragraph (from the Storm Track Map section) covering forecast direction and which "
             "landmasses it passes near or over and roughly when, "
             "Signal levels with affected areas grouped by region (not individual provinces), "
-            "rainfall and storm surge warnings with affected regions, "
-            "what people must do, and when the next update is. "
-            "No more than 400 words. No headings, no markdown. Write place names naturally."
+            "gale warnings and affected sea areas with wave heights, rainfall and storm surge "
+            "warnings with affected regions, what people must do, and when the next update is. "
+            "No headings. No markdown. Write place names naturally. Do not stop before 350 words."
         ),
     },
     "tl": {
@@ -84,14 +88,18 @@ _RADIO_PROMPTS = {
             "- HUWAG magdagdag ng impormasyon na wala sa orihinal na bulletin\n\n"
             "FORMATTING: Natural na daloy ng prosa. Walang headings, walang bullets, walang bold, walang markdown. "
             "Blank lines sa pagitan ng mga talata.\n\n"
-            "HABA: Hindi hihigit sa 400 salita. Maging maigsi — maaaring ang buhay ng isang tao ay nakasalalay sa malinaw na pag-unawa nito."
+            "HABA: Layunin ang 350–400 salita. Gamitin ang buong haba — kahit ang sitwasyon ay medyo tahimik, "
+            "palawakin ang bawat punto: ipaliwanag nang detalyado ang landas ng bagyo at timing ng mga forecast position, "
+            "sabihin kung aling mga lugar ang dapat manatiling alerto at bakit, ibigay ang buong konteksto sa gale warning "
+            "at kondisyon ng dagat, at ilarawan kung ano ang inaasahan sa mga susunod na araw."
         ),
         "user": (
             "I-convert ang datos ng PAGASA bulletin na ito sa maikling pahayag sa Tagalog.\n\n"
             "{bulletin_data}\n\n"
             "Isulat ang pahayag ngayon. Ilagay ang lahat ng kritikal na impormasyon — bagyo, lokasyon, landas, "
-            "mga apektadong lugar na may Signal level, ano ang gagawin, oras ng susunod na update. "
-            "Hindi hihigit sa 400 salita. Puro Tagalog. Walang headings, walang markdown."
+            "mga forecast position at timing, mga apektadong lugar na may Signal level, gale warning, "
+            "ano ang gagawin, oras ng susunod na update. "
+            "Mga 400 salita. Puro Tagalog. Walang headings, walang markdown."
         ),
     },
     "ceb": {
@@ -119,14 +127,18 @@ _RADIO_PROMPTS = {
             "- AYAW pagdugang og impormasyon nga wala sa orihinal nga bulletin\n\n"
             "FORMATTING: Natural nga daloy sa prosa. Walay headings, walay bullets, walay bold, walay markdown. "
             "Blank lines tali sa mga paragraph.\n\n"
-            "GITAS-ON: Dili molapas sa 400 ka pulong. Pagmaiksi — ang kinabuhi sa usa ka tawo mahimong magdepende sa tin-aw nga pagsabot niini."
+            "GITAS-ON: Tumong sa 350–400 ka pulong. Gamiton ang tibuok gitas-on — bisan kung ang sitwasyon kay relatibong malinaw, "
+            "palawaon ang matag punto: ipaliwanag pag-ayo ang dalan sa bagyo ug timing sa mga forecast position, "
+            "isulti kung unsang mga lugar ang kinahanglan magpabilin alerto ug ngano, ihatag ang tibuok konteksto sa gale warning "
+            "ug kondisyon sa dagat, ug ihulagway kung unsa ang gipaabut sa mosunod nga mga adlaw."
         ),
         "user": (
             "I-convert ang datos sa PAGASA bulletin nga kini ngadto sa mubo nga pahimangno sa Cebuano.\n\n"
             "{bulletin_data}\n\n"
             "Isulat ang pahimangno karon. Ibutang ang tanan nga kritikal nga impormasyon — bagyo, lokasyon, dalan, "
-            "mga apektadong lugar nga adunay Signal level, unsa ang buhaton, oras sa sunod nga update. "
-            "Dili molapas sa 400 ka pulong. Puro Cebuano. Walay headings, walay markdown."
+            "mga forecast position ug timing, mga apektadong lugar nga adunay Signal level, gale warning, "
+            "unsa ang buhaton, oras sa sunod nga update. "
+            "Mga 400 ka pulong. Puro Cebuano. Walay headings, walay markdown."
         ),
     },
 }
@@ -504,98 +516,6 @@ _NUMBER_CLEANUP_PROMPTS = {
 # Helper functions
 # ---------------------------------------------------------------------------
 
-def _format_metadata_for_prompt(metadata: dict) -> str:
-    """Convert a parsed metadata.json dict into a labelled text block for LLM prompts.
-
-    Produces unambiguous field labels so the LLM cannot confuse wind speed with
-    movement speed or miss the OUTSIDE PAR / no-signal status.
-    """
-    s = metadata.get("storm", {})
-    storm_name = s.get("name", "Unknown")
-    category = s.get("category", "Unknown")
-    former = s.get("former_name")
-    intl = s.get("international_name")
-    former_str = f", formerly known as {former}" if former else ""
-    intl_str = f" (international name: {intl})" if intl else ""
-
-    b_type = metadata.get("bulletin_type", "")
-    b_num = metadata.get("bulletin_number")
-    b_num_str = f" #{b_num}" if b_num else ""
-    bulletin_label = f"{b_type}{b_num_str}" if b_type else "Bulletin"
-
-    iss = metadata.get("issuance", {})
-    issued = iss.get("datetime") or "not specified"
-    valid_until = iss.get("valid_until") or "not specified"
-
-    pos = metadata.get("current_position", {})
-    position_ref = pos.get("reference") or "not specified"
-    position_as_of = pos.get("as_of") or ""
-    position_str = position_ref
-    if position_as_of:
-        position_str += f" (as of {position_as_of})"
-
-    inten = metadata.get("intensity", {})
-    winds = inten.get("max_sustained_winds_kph")
-    gusts = inten.get("gusts_kph")
-    winds_str = f"{winds} km/h" if winds else "not specified"
-    gusts_str = f"up to {gusts} km/h" if gusts else "not specified"
-
-    mov = metadata.get("movement", {})
-    direction = mov.get("direction") or "not specified"
-    speed = mov.get("speed_kph")
-    speed_str = f"{speed} km/h" if speed else "not specified"
-
-    areas = metadata.get("affected_areas", {})
-    signal_sections = []
-    for level in range(1, 6):
-        places = areas.get(f"signal_{level}", [])
-        if places:
-            signal_sections.append(f"  Signal {level}: {', '.join(places)}")
-    rainfall = areas.get("rainfall_warning", [])
-    if rainfall:
-        signal_sections.append(f"  Rainfall warning: {', '.join(rainfall)}")
-    coastal = areas.get("coastal_waters")
-    if coastal:
-        signal_sections.append(f"  Coastal waters: {coastal}")
-    signals_str = (
-        "\n".join(signal_sections)
-        if signal_sections
-        else "  No wind signals in effect — no areas of the Philippines are under any wind signal."
-    )
-
-    forecasts = metadata.get("forecast_positions", [])
-    forecast_lines = [
-        f"  {fp.get('hour', '?')}-hour: {fp.get('reference') or 'location not specified'}"
-        for fp in forecasts
-    ]
-    forecasts_str = "\n".join(forecast_lines) if forecast_lines else "  Not available"
-
-    return (
-        f"=== PAGASA TYPHOON BULLETIN ===\n"
-        f"Storm: {category} {storm_name}{former_str}{intl_str}\n"
-        f"Bulletin: {bulletin_label}\n"
-        f"Issued: {issued}\n"
-        f"Valid until / Next bulletin: {valid_until}\n"
-        f"\n"
-        f"CURRENT POSITION:\n"
-        f"  {position_str}\n"
-        f"\n"
-        f"INTENSITY:\n"
-        f"  Maximum sustained winds: {winds_str} near the center\n"
-        f"  Gusts: {gusts_str}\n"
-        f"\n"
-        f"MOVEMENT:\n"
-        f"  Direction: {direction}\n"
-        f"  Speed: {speed_str}\n"
-        f"\n"
-        f"WIND SIGNALS IN EFFECT:\n"
-        f"{signals_str}\n"
-        f"\n"
-        f"FORECAST TRACK:\n"
-        f"{forecasts_str}\n"
-    )
-
-
 def _clean_ocr(text: str) -> str:
     """Remove OCR artefacts that cause the LLM to produce placeholder output.
 
@@ -615,23 +535,14 @@ def _clean_ocr(text: str) -> str:
 
 
 def _generate_radio_script(
-    ocr_md: str, language: str, ollama_url: str, model: str, metadata: dict | None = None
+    ocr_md: str, language: str, ollama_url: str, model: str
 ) -> str:
-    if metadata is not None:
-        bulletin_data = (
-            "=== KEY FACTS (use these for accuracy — do not confuse fields) ===\n"
-            f"{_format_metadata_for_prompt(metadata)}\n"
-            "=== FULL BULLETIN TEXT (use for completeness) ===\n"
-            f"{ocr_md}"
-        )
-    else:
-        bulletin_data = ocr_md
     p = _RADIO_PROMPTS[language]
     return call_ollama_chat(
         url=ollama_url,
         model=model,
         system=p["system"],
-        user=p["user"].format(bulletin_data=bulletin_data),
+        user=p["user"].format(bulletin_data=ocr_md),
     )
 
 
@@ -695,7 +606,6 @@ def run_step2(
     """Generate radio script and TTS plain text for one bulletin + language.
 
     Reads:  output_dir/{stem}/ocr.md  (required)
-            output_dir/{stem}/metadata.json  (optional — falls back to OCR-only)
     Writes: output_dir/{stem}/radio_{language}.md
             output_dir/{stem}/tts_{language}.txt
 
@@ -716,16 +626,8 @@ def run_step2(
 
     ocr_md = _clean_ocr(ocr_file.read_text(encoding="utf-8"))
 
-    metadata_path = out_dir / "metadata.json"
-    if metadata_path.exists():
-        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-        print(f"[run_step2] {stem}/{language}: using hybrid input (metadata + OCR)")
-    else:
-        metadata = None
-        print(f"[run_step2] {stem}/{language}: metadata.json absent, using OCR only")
-
     if language == "en":
-        radio_md = _generate_radio_script(ocr_md, "en", ollama_url, model, metadata=metadata)
+        radio_md = _generate_radio_script(ocr_md, "en", ollama_url, model)
     else:
         en_radio_path = out_dir / "radio_en.md"
         # Intentionally no `or force` here — run_batch.py always runs the English
@@ -733,7 +635,7 @@ def run_step2(
         # would make TL/CEB overwrite radio_en.md with a different LLM call, causing
         # tts_en.txt (written by the English step) to be inconsistent with radio_en.md.
         if not en_radio_path.exists():
-            en_radio_md = _generate_radio_script(ocr_md, "en", ollama_url, model, metadata=metadata)
+            en_radio_md = _generate_radio_script(ocr_md, "en", ollama_url, model)
             en_radio_path.write_text(en_radio_md, encoding="utf-8")
             print(f"[run_step2] {stem}/{language}: auto-generated radio_en.md")
         english_md = en_radio_path.read_text(encoding="utf-8")

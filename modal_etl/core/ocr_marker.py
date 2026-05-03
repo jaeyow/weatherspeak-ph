@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import base64
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -21,27 +22,88 @@ from modal_etl.core.ollama import call_ollama_generate
 
 OLLAMA_TIMEOUT = 600
 
+
+def _clean_marker_md(text: str) -> str:
+    """Strip Marker artefacts that confuse the metadata extractor.
+
+    Marker emits inline image references (![](...)) for logos, stamps, and
+    embedded graphics. These lines add noise with no text value and cause the
+    structured-output LLM to hallucinate or return null for real fields.
+    """
+    # Remove Markdown image references: ![](...) on their own line or inline
+    text = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", text)
+    # Collapse runs of blank lines left behind
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
 _CHART_DESCRIPTION_SYSTEM = (
-    "You are an expert on PAGASA Philippine weather bulletin storm track maps.\n\n"
-    "Your task: locate the storm track map inside the image and describe ONLY what is shown within that map. "
-    "Ignore all surrounding text, tables, bulletin headers, footers, and page layout elements.\n\n"
-    "HOW TO FIND THE MAP: Look for a geographic map showing the Philippine archipelago and surrounding sea areas. "
-    "It may appear as a standalone figure OR embedded within a table cell or the right column of a two-column "
-    "page layout. The map contains a plotted storm track line with markers, a forecast arrow, and usually a legend.\n\n"
-    "DESCRIBE only what is inside the map frame:\n"
-    "- Storm's current position marker (circle, dot, or eye icon) and its location relative to Philippine islands\n"
-    "- Forecast track line — direction of movement and where it is headed\n"
-    "- Forecast position markers along the track and the approximate areas they pass over or near\n"
-    "- Any wind signal areas shaded or outlined on the map (Signal 1, 2, 3, 4, 5)\n"
-    "- Legend items or symbols visible inside the map frame\n\n"
-    "Output one concise paragraph. Do not mention any bulletin text, numeric tables, or content outside the map."
+    "You are an expert meteorological assistant analysing a PAGASA 'Track and Intensity Forecast' chart.\n\n"
+    "YOUR OUTPUT MUST BE EXACTLY TWO SECTIONS — NO MORE, NO LESS.\n"
+    "Begin your response immediately with the first section heading. "
+    "Do not write any preamble, introduction, or explanation before it.\n\n"
+    "REQUIRED OUTPUT STRUCTURE (copy these headings exactly):\n\n"
+    "### Storm Track Map Analysis\n"
+    "[~200 words of chain-of-thought reasoning covering all four steps below, in flowing prose]\n\n"
+    "### Storm Track Map Outlook\n"
+    "[~200 words of plain narrative — storm name, current location, compass heading, "
+    "Towards/Away verdict, geographic areas near each forecast position, intensity changes, wind signals]\n\n"
+    "DO NOT use any other headings, section names, bullet lists, or additional sections. "
+    "Do not write 'Paragraph 1' or 'Paragraph 2'. "
+    "Do not write 'Forecast and Recommendations' or any other section. "
+    "Only the two sections above.\n\n"
+    "---\n\n"
+    "You will be given TWO sources of information:\n"
+    "  1. The official PAGASA bulletin text — AUTHORITATIVE. Your description MUST reflect what it says. "
+    "Do not invent directions, positions, or intensity changes that contradict it.\n"
+    "  2. The storm track chart image — use this to confirm and add visual detail "
+    "(coordinates, map positions, geographic areas). If ambiguous, defer to the official text.\n\n"
+    "Before working through the steps, read the official text and note: "
+    "the storm's current position, its stated bearing/direction, and whether it is moving "
+    "towards or away from the Philippines. These are your anchors.\n\n"
+    "STEP 1 — Anchor the Timeline\n"
+    "  • Find the black header box at the top centre of the map. It contains the storm name and the "
+    "bulletin issue date/time (e.g. '27 November 2025. 11PM'). This is the Reference Timestamp.\n"
+    "  • Each timestamp label on the map is connected to its corresponding track dot by a short leader line. "
+    "Follow the leader line from each label to find the exact dot position.\n"
+    "  • Find the label that matches the Reference Timestamp — that dot is the Current Position. "
+    "Read the coordinates from the grid.\n\n"
+    "STEP 2 — Sequence the Forecast\n"
+    "  • Read every timestamp label on the track (form: '6PM 2 Dec. 2025 (Tue)'). Count them all.\n"
+    "  • For each label, follow its leader line to its dot and note the coordinates.\n"
+    "  • Classify each as Past (before Reference Timestamp) or Future (after).\n"
+    "  • List Future timestamps in chronological order with coordinates — this is the forecast path.\n\n"
+    "STEP 3 — Analyze Spatial Vector\n"
+    "  • Last Forecast Position = the dot for the LATEST future date.\n"
+    "  • Longitude: if it DECREASES from Current to Last → storm moves WEST; INCREASES → EAST.\n"
+    "  • Latitude: if it INCREASES → NORTH; DECREASES → SOUTH.\n"
+    "  • State the combined compass bearing (e.g. West-Northwest).\n\n"
+    "STEP 4 — Determine Proximity to the Philippines\n"
+    "  • Philippine landmass: roughly 116°E–127°E longitude.\n"
+    "  • Storm moving WEST (longitude decreasing) away from 116°E–127°E → Moving Away.\n"
+    "  • Storm moving EAST (longitude increasing) toward 116°E–127°E → Moving Towards.\n"
+    "  • State clearly: Moving Towards or Moving Away from the Philippines.\n\n"
+    "Write the ### Storm Track Map Analysis section covering Steps 1–4 in prose, "
+    "then the ### Storm Track Map Outlook section as a plain narrative. Nothing else."
 )
 
-_CHART_DESCRIPTION_USER = (
-    "Find the storm track map in this image — it may be a standalone chart or embedded within a table cell "
-    "or the right column of a page layout. Describe only what is inside the storm track map: the storm's "
-    "current position, forecast track direction, affected Philippine regions, and any legend items. "
-    "Do not describe any surrounding text, tables, or other page content outside the map."
+_CHART_DESCRIPTION_USER_TMPL = (
+    "OFFICIAL PAGASA BULLETIN TEXT (authoritative — your description must reflect this):\n"
+    "---\n"
+    "{track_text}\n"
+    "---\n\n"
+    "Using the official text above as ground truth, analyse the attached storm track chart.\n\n"
+    "Step 1: OCR all visible text on the map — header, timestamp labels, coordinate grid values. "
+    "For each timestamp label follow its leader line to the exact dot and record the coordinates.\n\n"
+    "Step 2–4: Work through the spatial vector analysis as instructed.\n\n"
+    "Then write your response as exactly two sections:\n\n"
+    "### Storm Track Map Analysis\n"
+    "(~200 words — chain-of-thought covering all four steps: reference timestamp + current position "
+    "coordinates, all timestamps classified Past/Future, Current vs Last Forecast longitude/latitude "
+    "comparison and resulting compass bearing, Moving Towards or Away conclusion)\n\n"
+    "### Storm Track Map Outlook\n"
+    "(~200 words — plain prose narrative: storm name, current location, compass heading, "
+    "Towards/Away verdict, geographic areas near each forecast position, intensity changes, wind signals)\n\n"
+    "Start your response with '### Storm Track Map Analysis' — nothing before it."
 )
 
 _converter: Any = None
@@ -72,12 +134,33 @@ def _get_converter() -> Any:
 
 
 def _run_marker(pdf_path: Path) -> tuple[str, dict]:
-    """Run Marker on the PDF. Returns (markdown_str, figures_dict)."""
+    """Extract full text from all PDF pages and figures from page 1.
+
+    Two-pass strategy:
+    - Full PDF → Marker native path: accurate text and table extraction across
+      all pages (no figure extraction needed here).
+    - Page 1 PNG → Marker image path: visual bounding-box figure extraction to
+      capture the storm track chart, which is a vector graphic on page 1 and
+      would be missed by the PDF-native path.
+    """
+    import tempfile
+    from pdf2image import convert_from_path
     from marker.output import text_from_rendered
 
     converter = _get_converter()
-    rendered = converter(str(pdf_path))
-    markdown, _, figures = text_from_rendered(rendered)
+
+    # Pass 1: full PDF for complete text/table markdown across all pages
+    rendered_full = converter(str(pdf_path))
+    markdown, _, _ = text_from_rendered(rendered_full)
+
+    # Pass 2: page 1 PNG for chart figure extraction
+    pages = convert_from_path(str(pdf_path), dpi=200, first_page=1, last_page=1)
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
+        png_path = f.name
+        pages[0].save(png_path, format="PNG")
+    rendered_page1 = converter(png_path)
+    _, _, figures = text_from_rendered(rendered_page1)
+
     return markdown, figures or {}
 
 
@@ -102,16 +185,53 @@ def _select_chart(figures: dict) -> Any | None:
     return max(candidates, key=lambda img: img.size[0] * img.size[1])
 
 
-def _describe_chart(chart_path: Path, ollama_url: str, model: str) -> str:
-    """Run one Gemma 4 vision pass on chart_path and return a description string."""
+_TRACK_SECTION_HEADINGS = (
+    "track and intensity forecast",
+    "track and intensity outlook",
+    "intensity forecast",
+    "track forecast",
+)
+
+
+def _extract_track_sections(markdown: str) -> str:
+    """Extract Track and Intensity Forecast / Outlook sections from bulletin markdown.
+
+    Scans for headings that match known PAGASA section names and returns all
+    matching sections concatenated. Falls back to the full markdown if nothing
+    is found so the caller always has something to work with.
+    """
+    import re
+    sections: list[str] = []
+    # Split on any markdown heading (# through ####)
+    parts = re.split(r"(?m)^(#{1,4}\s+.+)$", markdown)
+    i = 0
+    while i < len(parts):
+        chunk = parts[i]
+        if re.match(r"^#{1,4}\s+", chunk):
+            heading_text = re.sub(r"^#{1,4}\s+", "", chunk).strip().lower()
+            body = parts[i + 1] if i + 1 < len(parts) else ""
+            if any(kw in heading_text for kw in _TRACK_SECTION_HEADINGS):
+                sections.append(chunk + "\n" + body)
+            i += 2
+        else:
+            i += 1
+    return "\n\n".join(sections).strip() if sections else markdown.strip()
+
+
+def _describe_chart(chart_path: Path, ollama_url: str, model: str, track_text: str = "") -> str:
+    """Run one Gemma 4 vision pass on chart_path, grounded by official bulletin text."""
     img_b64 = base64.b64encode(chart_path.read_bytes()).decode("utf-8")
+    prompt = _CHART_DESCRIPTION_USER_TMPL.format(
+        track_text=track_text or "(no bulletin text available)"
+    )
     return call_ollama_generate(
         url=ollama_url,
         model=model,
-        prompt=_CHART_DESCRIPTION_USER,
+        prompt=prompt,
         system=_CHART_DESCRIPTION_SYSTEM,
         images_b64=[img_b64],
         timeout=OLLAMA_TIMEOUT,
+        think=True,
     ).strip()
 
 
@@ -123,7 +243,8 @@ def run(
     force: bool = False,
     stem: str | None = None,
 ) -> Path:
-    """Run Marker OCR on pdf_path. Writes ocr.md, chart.png, metadata.json to output_dir/{stem}/.
+    """Run Marker OCR on pdf_path. Extracts all pages for text; page 1 PNG for chart figure.
+    Writes ocr.md, chart.png, metadata.json to output_dir/{stem}/.
 
     Does NOT write forecast_table.md — Marker handles tables accurately without a separate pass.
 
@@ -162,8 +283,10 @@ def run(
     if chart_img is not None:
         chart_img.save(str(chart_path), format="PNG")
         print(f"[run_step1_marker] {stem}: saved chart.png")
-        chart_description = _describe_chart(chart_path, ollama_url, model)
-        full_md = markdown + f"\n\n## Storm Track Map\n\n{chart_description}"
+        track_text = _extract_track_sections(markdown)
+        print(f"[run_step1_marker] {stem}: extracted {len(track_text)} chars of track/outlook text")
+        chart_description = _describe_chart(chart_path, ollama_url, model, track_text=track_text)
+        full_md = markdown + f"\n\n## Storm Track Map\n\nThe following is a written explanation of the storm track map chart image included in this bulletin.\n\n{chart_description}"
     else:
         print(f"[run_step1_marker] {stem}: no chart available")
         chart_path.write_bytes(b"")
@@ -172,8 +295,10 @@ def run(
     ocr_path.write_text(full_md, encoding="utf-8")
     print(f"[run_step1_marker] {stem}: wrote ocr.md ({len(full_md)} chars)")
 
-    # Step 3: Generate metadata from full markdown (table included)
-    metadata = _generate_metadata(full_md, ollama_url, model)
+    # Step 3: Generate metadata from bulletin text only (no chart description, no image refs)
+    # Passing full_md would include the appended Storm Track Map section and Marker image
+    # references — both corrupt the structured-output extraction. Use clean bulletin text only.
+    metadata = _generate_metadata(_clean_marker_md(markdown), ollama_url, model)
     metadata_path.write_text(
         json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
     )

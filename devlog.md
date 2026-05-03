@@ -5,6 +5,63 @@ Each entry corresponds to a pull request or significant milestone.
 
 ---
 
+## PR #29 — ETL Step 2: Drop metadata.json context, fix OCR cleaning, improve EN radio prompt
+**Date:** 2026-05-03
+**Branch:** `feature/step2-ocr-only-prompt-improvements`
+**Status:** Open 🔄
+**Link:** https://github.com/jaeyow/weatherspeak-ph/pull/29
+
+### What we built
+
+A targeted quality improvement to the Step 2 radio script generation pipeline, addressing three compounding issues that caused the English radio bulletin to produce hallucinated, vague, and truncated output.
+
+---
+
+#### 1. Drop metadata.json from Step 2 context
+
+**Problem:** `run_step2` was feeding both `metadata.json` and `ocr.md` to the English radio script LLM call, with the metadata labelled as the authoritative "KEY FACTS" source. On inspection of a real bulletin (Verbena TCB#24), the extracted metadata contained multiple factual errors — wrong wind speed (100 km/h vs actual 120 km/h), wrong current position (24-hour forecast position used instead of the actual current position), wrong movement direction (WNW vs actual WSW), wrong signal info, and missing forecast positions. These errors were being passed as ground truth to the model, corrupting the generated scripts.
+
+**Fix:** Removed metadata.json from the Step 2 prompt entirely. `run_step2` now reads only `ocr.md` and passes it directly to the LLM. Deleted `_format_metadata_for_prompt()` and the metadata loading block. Also removed the `import json` that was only used for metadata loading.
+
+#### 2. Fix `_clean_ocr` to strip Marker image references
+
+**Problem:** The Marker PDF backend writes `![](_page_N_Picture_N.jpeg)` image references throughout the OCR markdown for logos, stamps, and embedded figures. `_clean_ocr` in `scripts.py` only stripped `[BRACKET LABEL]` lines (Gemma 4 vision artefacts) and left all Marker image refs intact. When fed to `gemma4:e4b`, these image references at the top of the context caused the model to generate generic, hallucinated content instead of reading the actual bulletin text.
+
+**Fix:** Extended `_clean_ocr` to also strip all `![](...)`  Markdown image references before passing the OCR text to the LLM.
+
+#### 3. Improve English radio prompt for length and content specificity
+
+**Problem:** The EN radio bulletin was generating ~140 words instead of the 350–400 target. Two prompt issues caused this: (1) the opening line described the task as producing a "short weather announcement", anchoring the model on brevity; (2) the `LENGTH` instruction was buried at the very end of a long system prompt, where small models consistently ignore it. The user prompt also did not strongly reinforce the length target or require specific values from the bulletin.
+
+**Fix:** Removed "short" from the opening sentence. Moved the LENGTH requirement to the second paragraph of the system prompt (immediately after the role description) with explicit "Do not stop early" language. Updated the user prompt to state the word count up front, require specific values (wind speed in km/h, exact position, wave heights) from the bulletin text, and end with "Do not stop before 350 words."
+
+#### 4. Storm track map section headings and description
+
+**Problem:** The storm track chart description in `ocr.md` used "Paragraph 1:" and "Paragraph 2:" as section labels, which were generic and provided no structural signal for downstream readers. The output format instruction was buried at the end of a very long system prompt, causing `gemma4:e4b` to ignore it and generate its own section structure with hallucinated content.
+
+**Fix:** Renamed sections to `### Storm Track Map Analysis` and `### Storm Track Map Outlook`. Moved the output format requirements to the top of `_CHART_DESCRIPTION_SYSTEM` so the model sees them first. Reinforced the exact section headings in both system and user prompts. Added a one-sentence description ("The following is a written explanation of the storm track map chart image included in this bulletin.") immediately after the `## Storm Track Map` heading in `ocr.md`.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `modal_etl/core/scripts.py` | Drop metadata.json from Step 2; extend `_clean_ocr` to strip Marker image refs; improve EN radio prompt length and specificity |
+| `modal_etl/core/ocr_marker.py` | Rename storm track map sections; move output format to top of system prompt; add one-sentence intro in assembled `ocr.md` |
+| `modal_etl/core/ollama.py` | Expose `think=` parameter on `call_ollama_generate` (was hardcoded `False`) |
+| `notebooks/01-ocr-setup-and-data.ipynb` | Updated cell outputs from latest runs |
+| `notebooks/03-marker.ipynb` | Updated cell outputs from latest runs |
+| `notebooks/10-etl-e2e.ipynb` | Updated cell outputs from latest runs |
+| `notebooks/11-storm-track-map.ipynb` | New notebook for storm track map experiments |
+
+### Impact
+
+- English radio bulletins now correctly use actual bulletin data (wind speeds, positions, gale warning details) rather than hallucinating generic content
+- Output length is consistently in the 350–400 word target range
+- `ocr.md` storm track section has meaningful, navigable headings
+- Step 2 prompt is simpler (one input instead of two) and more reliable
+
+---
+
 ## PR #26 — UX Polish: Interactive Hover Effects, Location Editing, Icon Centering + Kaggle Screenshots
 **Date:** 2026-04-30  
 **Branch:** `feature/audio-player-ux`  
