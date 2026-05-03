@@ -5,10 +5,11 @@ Each entry corresponds to a pull request or significant milestone.
 
 ---
 
-## PR #27 — ETL Step 2: Drop metadata.json context, fix OCR cleaning, improve EN radio prompt
+## PR #29 — ETL Step 2: Drop metadata.json context, fix OCR cleaning, improve EN radio prompt
 **Date:** 2026-05-03
 **Branch:** `feature/step2-ocr-only-prompt-improvements`
 **Status:** Open 🔄
+**Link:** https://github.com/jaeyow/weatherspeak-ph/pull/29
 
 ### What we built
 
@@ -46,6 +47,11 @@ A targeted quality improvement to the Step 2 radio script generation pipeline, a
 |---|---|
 | `modal_etl/core/scripts.py` | Drop metadata.json from Step 2; extend `_clean_ocr` to strip Marker image refs; improve EN radio prompt length and specificity |
 | `modal_etl/core/ocr_marker.py` | Rename storm track map sections; move output format to top of system prompt; add one-sentence intro in assembled `ocr.md` |
+| `modal_etl/core/ollama.py` | Expose `think=` parameter on `call_ollama_generate` (was hardcoded `False`) |
+| `notebooks/01-ocr-setup-and-data.ipynb` | Updated cell outputs from latest runs |
+| `notebooks/03-marker.ipynb` | Updated cell outputs from latest runs |
+| `notebooks/10-etl-e2e.ipynb` | Updated cell outputs from latest runs |
+| `notebooks/11-storm-track-map.ipynb` | New notebook for storm track map experiments |
 
 ### Impact
 
