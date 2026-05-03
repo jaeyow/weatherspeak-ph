@@ -18,6 +18,9 @@ _RADIO_PROMPTS = {
         "system": (
             "You are converting a PAGASA typhoon bulletin into a detailed English weather announcement "
             "of 350 to 400 words that will be displayed on a website and read aloud as audio.\n\n"
+            "LANGUAGE: Write ONLY in English. Do not use Tagalog, Filipino, Cebuano, or any other language. "
+            "Every single word must be English. If you find yourself writing 'po', 'ang', 'ng', 'sa', 'mga', "
+            "or any Filipino word, stop and rewrite that sentence in English.\n\n"
             "LENGTH REQUIREMENT: Your response MUST be 350–400 words. Do not stop early. "
             "Even when conditions are calm, elaborate on every point — expand the storm track with "
             "forecast positions and timing, explain which areas should stay alert and why, "
@@ -60,7 +63,8 @@ _RADIO_PROMPTS = {
             "Signal levels with affected areas grouped by region (not individual provinces), "
             "gale warnings and affected sea areas with wave heights, rainfall and storm surge "
             "warnings with affected regions, what people must do, and when the next update is. "
-            "No headings. No markdown. Write place names naturally. Do not stop before 350 words."
+            "No headings. No markdown. Write place names naturally. Do not stop before 350 words. "
+            "ENGLISH ONLY — do not write a single word in Tagalog, Filipino, or Cebuano."
         ),
     },
     "tl": {
