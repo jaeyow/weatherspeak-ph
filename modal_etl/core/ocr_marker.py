@@ -70,8 +70,10 @@ _CHART_DESCRIPTION_SYSTEM = (
     "STEP 2 — Sequence the Forecast\n"
     "  • Read every timestamp label on the track (form: '6PM 2 Dec. 2025 (Tue)'). Count them all.\n"
     "  • For each label, follow its leader line to its dot and note the coordinates.\n"
-    "  • Classify each as Past (before Reference Timestamp) or Future (after).\n"
-    "  • List Future timestamps in chronological order with coordinates — this is the forecast path.\n\n"
+    "  • List ALL timestamps in chronological order with their coordinates and classify each as Past or Future "
+    "(relative to the Reference Timestamp). Do not skip or omit any — listing past timestamps is how you "
+    "confirm the Reference Timestamp dot and current position are correctly identified.\n"
+    "  • After listing all, identify the ordered sequence of Future timestamps — this is the forecast path.\n\n"
     "STEP 3 — Analyze Spatial Vector\n"
     "  • Last Forecast Position = the dot for the LATEST future date.\n"
     "  • Longitude: if it DECREASES from Current to Last → storm moves WEST; INCREASES → EAST.\n"
@@ -94,12 +96,16 @@ _CHART_DESCRIPTION_USER_TMPL = (
     "Using the official text above as ground truth, analyse the attached storm track chart.\n\n"
     "Step 1: OCR all visible text on the map — header, timestamp labels, coordinate grid values. "
     "For each timestamp label follow its leader line to the exact dot and record the coordinates.\n\n"
-    "Step 2–4: Work through the spatial vector analysis as instructed.\n\n"
+    "Step 2: List ALL timestamp labels found on the track in chronological order, each with its coordinates "
+    "and whether it is Past or Future relative to the Reference Timestamp. Include every label — "
+    "past ones confirm you have the correct current position dot.\n\n"
+    "Step 3–4: Work through the spatial vector analysis as instructed.\n\n"
     "Then write your response as exactly two sections:\n\n"
     "### Storm Track Map Analysis\n"
     "(~200 words — chain-of-thought covering all four steps: reference timestamp + current position "
-    "coordinates, all timestamps classified Past/Future, Current vs Last Forecast longitude/latitude "
-    "comparison and resulting compass bearing, Moving Towards or Away conclusion)\n\n"
+    "coordinates, ALL timestamps listed with coordinates and Past/Future classification, "
+    "Current vs Last Forecast longitude/latitude comparison and resulting compass bearing, "
+    "Moving Towards or Away conclusion)\n\n"
     "### Storm Track Map Outlook\n"
     "(~200 words — plain prose narrative: storm name, current location, compass heading, "
     "Towards/Away verdict, geographic areas near each forecast position, intensity changes, wind signals)\n\n"
@@ -220,6 +226,7 @@ def _extract_track_sections(markdown: str) -> str:
 
 def _describe_chart(chart_path: Path, ollama_url: str, model: str, track_text: str = "") -> str:
     """Run one Gemma 4 vision pass on chart_path, grounded by official bulletin text."""
+    # print(f"[_describe_chart] track_text ({len(track_text)} chars):\n{'-'*60}\n{track_text or '(empty)'}\n{'-'*60}")
     img_b64 = base64.b64encode(chart_path.read_bytes()).decode("utf-8")
     prompt = _CHART_DESCRIPTION_USER_TMPL.format(
         track_text=track_text or "(no bulletin text available)"
@@ -285,6 +292,7 @@ def run(
         print(f"[run_step1_marker] {stem}: saved chart.png")
         track_text = _extract_track_sections(markdown)
         print(f"[run_step1_marker] {stem}: extracted {len(track_text)} chars of track/outlook text")
+        # print(f"[run_step1_marker] {stem}: track_text content:\n{'-'*60}\n{track_text}\n{'-'*60}")
         chart_description = _describe_chart(chart_path, ollama_url, model, track_text=track_text)
         full_md = markdown + f"\n\n## Storm Track Map\n\nThe following is a written explanation of the storm track map chart image included in this bulletin.\n\n{chart_description}"
     else:

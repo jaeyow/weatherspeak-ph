@@ -533,11 +533,17 @@ def _clean_ocr(text: str) -> str:
     - Marker PDF: emits ![](_page_N_Picture_N.jpeg) image references for
       embedded figures — these are meaningless in a text-only LLM prompt and
       cause the model to misread the document as an image archive
+    Also strips markdown table rows — gemma4:e4b at 4B params inconsistently
+    parses complex nested PAGASA signal tables and hallucinates when it fails.
+    Marker extracts the same province/signal data in prose sections above the
+    tables, so stripping table rows loses noise without losing facts.
     """
     # Remove Marker image references: ![alt](_page_N_Picture_N.ext)
     text = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", text)
     # Remove lines that consist entirely of a [BRACKET LABEL] (Gemma 4 backend)
     text = re.sub(r"^\s*\[[^\]\n]+\]\s*$", "", text, flags=re.MULTILINE)
+    # Remove markdown table rows (pipe-delimited lines and separator lines)
+    text = re.sub(r"^\s*\|.*\|\s*$", "", text, flags=re.MULTILINE)
     # Collapse runs of blank lines left by the removals
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
