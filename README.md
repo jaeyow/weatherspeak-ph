@@ -149,7 +149,7 @@ uv run modal run modal_etl/run_batch.py --n 3 --backend gemma4
 uv run modal run modal_etl/run_batch.py --n 1 --force
 
 # Re-run a specific bulletin by stem (useful for fixing one bulletin):
-uv run modal run modal_etl/run_batch.py --stem "PAGASA_25-TC22_Verbena_TCB#24" --force
+uv run modal run --detach modal_etl/run_batch.py --stem "PAGASA_25-TC22_Verbena_TCB#24" --force
 
 # Use --detach when processing many bulletins — submits the job to Modal and
 # returns immediately so your local terminal doesn't time out waiting for logs.

@@ -56,6 +56,7 @@ def call_ollama_chat(
             ],
             "stream": False,
             "think": False,
+            "options": {"temperature": 0.8},
         },
         timeout=timeout,
     )
