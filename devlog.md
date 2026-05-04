@@ -5,6 +5,37 @@ Each entry corresponds to a pull request or significant milestone.
 
 ---
 
+## PR #30 — Fix EN radio hallucination: table stripping + storm track timestamp enumeration
+**Date:** 2026-05-05
+**Branch:** `feature/fix-en-radio-hallucination`
+
+### What we fixed
+
+#### 1. EN radio bulletin hallucination on Modal
+
+`gemma4:e4b` (4B params) was generating looping, generic output ("The storm is expected to track generally westwards" repeated 20+ times) on Modal but not locally. Root cause: Marker extracts PAGASA signal tables as complex nested markdown (`| Province | Signal |` with 50+ rows). The 4B model inconsistently parses these — when it fails, it has no specific facts and fills the 350-word count with training-data weather phrases.
+
+**Fix:** `_clean_ocr` now strips pipe-delimited markdown table rows before the text is fed to the LLM. Marker also emits the same province/signal data in plain-prose sections above the tables, so no information is lost — only the unparseable table noise is removed.
+
+#### 2. Storm track timestamp enumeration restored
+
+`_CHART_DESCRIPTION_SYSTEM` STEP 2 was only asking the model to "List Future timestamps" — discarding past ones before writing them down. This caused the model to guess at the reference timestamp position rather than anchoring it by contrast with past dots. Restored the original pattern: list ALL timestamps (past + future) in chronological order with coordinates, then classify. Past timestamps confirm the correct current position dot.
+
+#### 3. Temperature tuning
+
+`call_ollama_chat` temperature raised to 0.8 (removed `repeat_penalty=1.3`) — balances output diversity without the loop-suppression side-effects of repeat penalty.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `modal_etl/core/scripts.py` | `_clean_ocr`: strip markdown table rows (`^\s*\|.*\|\s*$`) |
+| `modal_etl/core/ocr_marker.py` | STEP 2: require ALL timestamps listed; user prompt STEP 2 made explicit |
+| `modal_etl/core/ollama.py` | `call_ollama_chat`: temperature 0.8, removed repeat_penalty |
+| `README.md` | Add `--detach` to single-stem re-run example |
+
+---
+
 ## PR #29 — ETL Step 2: Drop metadata.json context, fix OCR cleaning, improve EN radio prompt
 **Date:** 2026-05-03
 **Branch:** `feature/step2-ocr-only-prompt-improvements`
