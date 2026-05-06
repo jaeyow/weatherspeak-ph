@@ -15,7 +15,7 @@ Each entry corresponds to a pull request or significant milestone.
 
 Used Playwright to audit the UI at iPhone SE (375px) and iPhone 14 Pro (390px) viewport widths. Found and fixed five layout issues:
 
-- **Header**: brand text hidden on xs screens (emoji-only logo) + `shrink-0` so the city location pill and `CEB / TL / EN` language toggles always fit on one line without clipping.
+- **Header**: brand text hidden on small screens (emoji-only logo) + `shrink-0` so the city location pill and `CEB / TL / EN` language toggles always fit on one line without clipping.
 - **StormCard compact**: subtitle (`"Tropical Depression · Nd ago"`) was orphaning `"ago"` onto a second line — fixed with `truncate`.
 - **Storm detail hero**: storm name scaled `text-3xl → sm:text-4xl`; padding `p-4 sm:p-5`; reference location text set to `text-xs sm:text-sm` with `line-clamp-2` so the long `(OUTSIDE PAR)` suffix no longer drops onto its own line.
 - **SignalBadge**: shrunk to `w-12 h-12 sm:w-14 sm:h-14` + `text-2xl sm:text-3xl` — tighter in the mobile hero without affecting card list readability.
