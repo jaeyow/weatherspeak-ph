@@ -46,7 +46,7 @@ export default async function StormDetailPage({ params, searchParams }: Props) {
       </Link>
 
       {/* Hero banner with signal badge */}
-      <div className={`rounded-2xl bg-gradient-to-br ${heroBg(storm.current_signal)} p-5`}>
+      <div className={`rounded-2xl bg-gradient-to-br ${heroBg(storm.current_signal)} p-4 sm:p-5`}>
         <div className="flex gap-4 items-start">
           {/* Signal Badge - Prominent on left */}
           <SignalBadge signal={storm.current_signal} showTooltip={true} />
@@ -56,9 +56,9 @@ export default async function StormDetailPage({ params, searchParams }: Props) {
             <div className="text-xs text-white/60 uppercase tracking-wide">
               {storm.current_category ?? 'Tropical Cyclone'}
             </div>
-            <h1 className="text-4xl font-extrabold text-white">{storm.storm_name}</h1>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-white">{storm.storm_name}</h1>
             {storm.current_reference && (
-              <p className="text-sm text-white/70">{storm.current_reference}</p>
+              <p className="text-xs sm:text-sm text-white/70 line-clamp-2">{storm.current_reference}</p>
             )}
             {storm.current_lat != null && storm.current_lon != null && (
               <DistancePill stormLat={storm.current_lat} stormLon={storm.current_lon} />

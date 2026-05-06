@@ -21,9 +21,9 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-white/5">
       <div className="max-w-lg md:max-w-2xl lg:max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2 shrink-0">
           <span className="text-xl">🌀</span>
-          <span className="font-extrabold text-white text-base leading-none">
+          <span className="font-extrabold text-white text-base leading-none hidden sm:inline">
             WeatherSpeak PH
           </span>
         </Link>
