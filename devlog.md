@@ -5,7 +5,7 @@ Each entry corresponds to a pull request or significant milestone.
 
 ---
 
-## PR #32 — Fix EN radio OCR artifacts: knots hallucination + forecast position confusion
+## PR #32 — Fix EN radio OCR artefacts: knots hallucination + forecast position confusion
 **Date:** 2026-05-06
 **Branch:** `feature/prompt-cleanup-chart-location`
 
@@ -33,7 +33,7 @@ position, but the LLM picked it up as the current position.
 
 **Fix — two layers:**
 - `_clean_ocr`: strip lines matching `^\s*\d+\.\d+\s+\d+\.\d+\s+\d+.*$` (bare
-  decimal-lat decimal-lon coordinate rows are always table artifacts, never prose).
+  decimal-lat/lon coordinate rows are always table artefacts, never prose).
 - EN radio system prompt: PRIORITY ORDER item 2 now says "use the CURRENT position from
   the bulletin's position section, not a forecast position." STYLE section adds the landmark
   rule: describe location as distance + direction + named landmark, never degrees or coordinates.
