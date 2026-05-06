@@ -10,7 +10,7 @@ from modal_etl.core.ollama import call_ollama_chat
 from modal_etl.phonetics import apply_phonetics
 
 # ---------------------------------------------------------------------------
-# Radio script prompts (system + user template per language)
+# Radio script prompts
 # ---------------------------------------------------------------------------
 
 _RADIO_PROMPTS = {
@@ -33,13 +33,13 @@ _RADIO_PROMPTS = {
             "  2. Where it is now and where it is headed — whether it is strengthening, weakening, or maintaining intensity\n"
             "  3. Storm track map — write a brief paragraph using the Storm Track Map section at the end of the bulletin. "
             "Cover: current position, forecast track direction, which landmasses or island groups the track passes near or over, "
-            "and roughly when (e.g. 'expected to pass near northern Luzon within 24 hours'). "
+            "and roughly when (e.g. 'expected to pass near northern Luzon within 24 hours'). Use only kilometers for distance, not degrees or coordinates. "
             "If the Storm Track Map section is absent or empty, skip this item.\n"
             "  4. Which areas are under wind signals and at what level (Signal 1–5)\n"
             "  5. Rainfall, flooding, and storm surge warnings — which areas are at risk even if not under a wind signal\n"
             "  6. What people must do — evacuate if ordered, stay indoors, avoid the coast and flood-prone areas\n"
-            "  7. When the next update is (so they know to listen again)\n\n"
-            "NO HALLUCINATION: Every fact you state must come directly from the bulletin text. "
+            "  7. When the next update is (if data exists,so they know to listen again)\n\n"
+            "NO HALLUCINATION: Every fact you state must come directly FROM the bulletin text. "
             "Do not invent wind speeds, positions, storm names, or affected areas. "
             "If you catch yourself writing a vague phrase like 'adverse weather conditions', "
             "'challenging conditions', 'remain prepared', or 'open ocean' without a specific location "
@@ -72,6 +72,13 @@ _RADIO_PROMPTS = {
             "ENGLISH ONLY — do not write a single word in Tagalog, Filipino, or Cebuano."
         ),
     },
+}
+
+# ---------------------------------------------------------------------------
+# Translation prompts — adapt English script into TL/CEB
+# ---------------------------------------------------------------------------
+
+_TRANSLATE_PROMPTS = {
     "tl": {
         "system": (
             "Ikaw ay nagsusulat ng maikling pahayag tungkol sa isang malakas na bagyo sa Tagalog "
@@ -103,12 +110,14 @@ _RADIO_PROMPTS = {
             "at kondisyon ng dagat, at ilarawan kung ano ang inaasahan sa mga susunod na araw."
         ),
         "user": (
-            "I-convert ang datos ng PAGASA bulletin na ito sa maikling pahayag sa Tagalog.\n\n"
-            "{bulletin_data}\n\n"
-            "Isulat ang pahayag ngayon. Ilagay ang lahat ng kritikal na impormasyon — bagyo, lokasyon, landas, "
-            "mga forecast position at timing, mga apektadong lugar na may Signal level, gale warning, "
-            "ano ang gagawin, oras ng susunod na update. "
-            "Mga 400 salita. Puro Tagalog. Walang headings, walang markdown."
+            "Narito ang kumpletong pahayag sa Ingles tungkol sa bagyo. I-adapt ito sa natural na Tagalog.\n\n"
+            "{english_script}\n\n"
+            "MAHALAGA: Panatilihin ang LAHAT ng impormasyon mula sa Ingles — pangalan ng bagyo, "
+            "kategorya, bilis ng hangin (km/h), lokasyon, landas, kung lumalaki o humihina ang bagyo, "
+            "bawat apektadong lugar na may Signal level, mga babala sa ulan at storm surge na may apektadong lugar, "
+            "kung ano ang dapat gawin, at oras ng susunod na update. Walang detalye ang maaaring maiwanan.\n\n"
+            "Isulat ang pahayag sa Tagalog ngayon. Hindi hihigit sa 400 salita. "
+            "Puro Tagalog. Walang headings, walang markdown."
         ),
     },
     "ceb": {
@@ -141,37 +150,6 @@ _RADIO_PROMPTS = {
             "isulti kung unsang mga lugar ang kinahanglan magpabilin alerto ug ngano, ihatag ang tibuok konteksto sa gale warning "
             "ug kondisyon sa dagat, ug ihulagway kung unsa ang gipaabut sa mosunod nga mga adlaw."
         ),
-        "user": (
-            "I-convert ang datos sa PAGASA bulletin nga kini ngadto sa mubo nga pahimangno sa Cebuano.\n\n"
-            "{bulletin_data}\n\n"
-            "Isulat ang pahimangno karon. Ibutang ang tanan nga kritikal nga impormasyon — bagyo, lokasyon, dalan, "
-            "mga forecast position ug timing, mga apektadong lugar nga adunay Signal level, gale warning, "
-            "unsa ang buhaton, oras sa sunod nga update. "
-            "Mga 400 ka pulong. Puro Cebuano. Walay headings, walay markdown."
-        ),
-    },
-}
-
-# ---------------------------------------------------------------------------
-# Translation prompts — adapt English script into TL/CEB
-# ---------------------------------------------------------------------------
-
-_TRANSLATE_PROMPTS = {
-    "tl": {
-        "system": _RADIO_PROMPTS["tl"]["system"],
-        "user": (
-            "Narito ang kumpletong pahayag sa Ingles tungkol sa bagyo. I-adapt ito sa natural na Tagalog.\n\n"
-            "{english_script}\n\n"
-            "MAHALAGA: Panatilihin ang LAHAT ng impormasyon mula sa Ingles — pangalan ng bagyo, "
-            "kategorya, bilis ng hangin (km/h), lokasyon, landas, kung lumalaki o humihina ang bagyo, "
-            "bawat apektadong lugar na may Signal level, mga babala sa ulan at storm surge na may apektadong lugar, "
-            "kung ano ang dapat gawin, at oras ng susunod na update. Walang detalye ang maaaring maiwanan.\n\n"
-            "Isulat ang pahayag sa Tagalog ngayon. Hindi hihigit sa 400 salita. "
-            "Puro Tagalog. Walang headings, walang markdown."
-        ),
-    },
-    "ceb": {
-        "system": _RADIO_PROMPTS["ceb"]["system"],
         "user": (
             "Ania ang kompletong pahimangno sa Ingles bahin sa bagyo. I-adapt kini ngadto sa natural nga Cebuano.\n\n"
             "{english_script}\n\n"
