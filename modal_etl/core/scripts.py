@@ -29,8 +29,10 @@ _RADIO_PROMPTS = {
             "PURPOSE: This will be read by Filipinos who may not understand technical English — "
             "farmers, fisherfolk, and rural communities who need to know if they are in danger and what to do.\n\n"
             "PRIORITY ORDER — cover all of these, in this order:\n"
-            "  1. Storm name, current category, and wind speed (max sustained winds + gusts in km/h)\n"
-            "  2. Where it is now and where it is headed — whether it is strengthening, weakening, or maintaining intensity\n"
+            "  1. Storm name, current category, and wind speed (max sustained winds + gusts in km/h only — "
+            "the bulletin may also list knots; ignore the knots value and use only the km/h figure)\n"
+            "  2. Where it is now (use the CURRENT position from the bulletin's position section, "
+            "not a forecast position) and where it is headed — whether it is strengthening, weakening, or maintaining intensity\n"
             "  3. Storm track map — write a brief paragraph using the Storm Track Map section at the end of the bulletin. "
             "Cover: current position, forecast track direction, which landmasses or island groups the track passes near or over, "
             "and roughly when (e.g. 'expected to pass near northern Luzon within 24 hours'). Use only kilometers for distance, not degrees or coordinates. "
@@ -41,6 +43,8 @@ _RADIO_PROMPTS = {
             "  7. When the next update is (if data exists,so they know to listen again)\n\n"
             "NO HALLUCINATION: Every fact you state must come directly FROM the bulletin text. "
             "Do not invent wind speeds, positions, storm names, or affected areas. "
+            "Wind speed: use the km/h value only — the bulletin may also list knots, ignore those. "
+            "Position: use only the storm's CURRENT position, not a 12-hour or later forecast position. "
             "If you catch yourself writing a vague phrase like 'adverse weather conditions', "
             "'challenging conditions', 'remain prepared', or 'open ocean' without a specific location "
             "from the bulletin, stop and replace it with an actual value from the text.\n\n"
@@ -52,6 +56,9 @@ _RADIO_PROMPTS = {
             "- For affected areas: group by region or island group — do NOT list individual provinces. "
             "Say 'most of Bicol', 'northern and central Luzon', 'eastern Visayas' rather than naming every province.\n"
             "- Write place names naturally as they are spelled (e.g. Catanduanes, Visayas, Mindanao)\n"
+            "- For storm location: always use the bulletin's own description — distance and direction from a named landmark "
+            "(e.g. '270 kilometres Northwest of Pag-asa Island'). Never write degrees, latitude, longitude, or coordinate numbers. "
+            "A listener cannot picture '13 degrees North, 112 degrees East' but can picture '270 kilometres west of Palawan'.\n"
             "- DO NOT add information that is not in the original bulletin\n\n"
             "FORMATTING: Plain flowing prose only. No headings, no bullet points, no bold, no markdown. "
             "Paragraph breaks (blank lines) between ideas."
@@ -62,7 +69,8 @@ _RADIO_PROMPTS = {
             "{bulletin_data}\n\n"
             "Write the full 350–400 word announcement now. You MUST include — with the actual values "
             "from the bulletin above — the storm name and category, wind speed and gusts in km/h, "
-            "exact current position, whether it is strengthening or weakening, "
+            "current position as distance and direction from a named landmark (never as degrees or coordinates), "
+            "whether it is strengthening or weakening, "
             "a storm track paragraph (from the Storm Track Map section) covering forecast direction and which "
             "landmasses it passes near or over and roughly when, "
             "Signal levels with affected areas grouped by region (not individual provinces), "
@@ -522,6 +530,15 @@ def _clean_ocr(text: str) -> str:
     text = re.sub(r"^\s*\[[^\]\n]+\]\s*$", "", text, flags=re.MULTILINE)
     # Remove markdown table rows (pipe-delimited lines and separator lines)
     text = re.sub(r"^\s*\|.*\|\s*$", "", text, flags=re.MULTILINE)
+    # Strip HTML superscript tags — Marker renders PAGASA TCWS wind-radius footnote
+    # numbers (e.g. <sup>75</sup>) as bare text; without the table context the LLM
+    # misreads them as wind speeds. Strip both tag and content.
+    text = re.sub(r"<sup>.*?</sup>", "", text, flags=re.IGNORECASE | re.DOTALL)
+    # Strip stray forecast coordinate rows — Marker occasionally splits the last
+    # table row out of the pipe structure as bare decimal-lat decimal-lon text
+    # (e.g. "13.9 108.7  685 km West Northwest of Pag-asa Island,").
+    # These are forecast positions, not the current position, and confuse the LLM.
+    text = re.sub(r"^\s*\d+\.\d+\s+\d+\.\d+\s+\d+.*$", "", text, flags=re.MULTILINE)
     # Collapse runs of blank lines left by the removals
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()

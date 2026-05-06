@@ -5,6 +5,47 @@ Each entry corresponds to a pull request or significant milestone.
 
 ---
 
+## PR #32 — Fix EN radio OCR artefacts: knots hallucination + forecast position confusion
+**Date:** 2026-05-06
+**Branch:** `feature/prompt-cleanup-chart-location`
+
+### What we fixed
+
+#### 1. "75 knots" hallucination in EN radio
+
+Root cause identified in Verbena's `ocr.md`: Marker renders PAGASA TCWS table footnote
+numbers (wind-radius thresholds) as bare `<sup>75</sup>` HTML superscripts. Once outside
+the table context, `gemma4:e4b` sees `75` adjacent to `TS` and interprets it as "75 knots"
+wind speed.
+
+**Fix — two layers:**
+- `_clean_ocr`: strip `<sup>…</sup>` tags including their content. These are table footnote
+  references; with the table already stripped, the numbers are orphaned noise.
+- EN radio system prompt `NO HALLUCINATION` block: "Wind speed: use km/h only — the bulletin
+  may also list knots, ignore those."
+
+#### 2. "685 km West Northwest" (120-hour forecast) used as current position
+
+Root cause: Marker occasionally splits the final row of a pipe-delimited table into a bare
+`decimal-lat decimal-lon distance direction` line outside the table structure
+(`13.9 108.7 685 km West Northwest of Pag-asa Island,`). This was the 120-hour forecast
+position, but the LLM picked it up as the current position.
+
+**Fix — two layers:**
+- `_clean_ocr`: strip lines matching `^\s*\d+\.\d+\s+\d+\.\d+\s+\d+.*$` (bare
+  decimal latitude/longitude coordinate rows are always table artefacts, never prose).
+- EN radio system prompt: PRIORITY ORDER item 2 now says "use the CURRENT position from
+  the bulletin's position section, not a forecast position." STYLE section adds the landmark
+  rule: describe location as distance + direction + named landmark, never degrees or coordinates.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `modal_etl/core/scripts.py` | `_clean_ocr`: strip `<sup>` tags + stray coordinate rows; EN prompt: km/h only, current position only, landmark-based location |
+
+---
+
 ## PR #31 — Prompt cleanup: deduplicate chart description + remove dead TL/CEB radio entries
 **Date:** 2026-05-06
 **Branch:** `feature/prompt-cleanup-chart-location`
