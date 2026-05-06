@@ -33,7 +33,7 @@ position, but the LLM picked it up as the current position.
 
 **Fix — two layers:**
 - `_clean_ocr`: strip lines matching `^\s*\d+\.\d+\s+\d+\.\d+\s+\d+.*$` (bare
-  decimal-lat/lon coordinate rows are always table artefacts, never prose).
+  decimal latitude/longitude coordinate rows are always table artefacts, never prose).
 - EN radio system prompt: PRIORITY ORDER item 2 now says "use the CURRENT position from
   the bulletin's position section, not a forecast position." STYLE section adds the landmark
   rule: describe location as distance + direction + named landmark, never degrees or coordinates.
