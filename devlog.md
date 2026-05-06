@@ -5,6 +5,34 @@ Each entry corresponds to a pull request or significant milestone.
 
 ---
 
+## PR #32 — Fix EN radio OCR artefacts + mobile responsive breakpoints
+**Date:** 2026-05-06
+**Branch:** `feature/prompt-cleanup-chart-location`
+
+### What we fixed
+
+#### 1. Mobile responsive breakpoints (375–390px)
+
+Used Playwright to audit the UI at iPhone SE (375px) and iPhone 14 Pro (390px) viewport widths. Found and fixed five layout issues:
+
+- **Header**: brand text hidden on xs screens (emoji-only logo) + `shrink-0` so the city location pill and `CEB / TL / EN` language toggles always fit on one line without clipping.
+- **StormCard compact**: subtitle (`"Tropical Depression · Nd ago"`) was orphaning `"ago"` onto a second line — fixed with `truncate`.
+- **Storm detail hero**: storm name scaled `text-3xl → sm:text-4xl`; padding `p-4 sm:p-5`; reference location text set to `text-xs sm:text-sm` with `line-clamp-2` so the long `(OUTSIDE PAR)` suffix no longer drops onto its own line.
+- **SignalBadge**: shrunk to `w-12 h-12 sm:w-14 sm:h-14` + `text-2xl sm:text-3xl` — tighter in the mobile hero without affecting card list readability.
+- **BulletinAudioSection CTA**: removed `inline-block` from the ▶ span, added `whitespace-nowrap` to the language name, and set `text-xs sm:text-sm` so the whole sentence fits on one line at 375px.
+
+### Files changed
+
+| File | Change |
+|---|---|
+| `web/app/storms/[stormId]/page.tsx` | Hero: `text-3xl sm:text-4xl`, `p-4 sm:p-5`, reference `text-xs sm:text-sm line-clamp-2` |
+| `web/components/Header.tsx` | Brand text `hidden sm:inline`; link `shrink-0` |
+| `web/components/StormCard.tsx` | Compact subtitle: add `truncate` |
+| `web/components/SignalBadge.tsx` | Responsive size: `w-12 sm:w-14`, `text-2xl sm:text-3xl` |
+| `web/components/BulletinAudioSection.tsx` | CTA: `text-xs sm:text-sm`, `whitespace-nowrap` on language name |
+
+---
+
 ## PR #32 — Fix EN radio OCR artefacts: knots hallucination + forecast position confusion
 **Date:** 2026-05-06
 **Branch:** `feature/prompt-cleanup-chart-location`
