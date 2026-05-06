@@ -37,7 +37,7 @@ export default function StormCard({ storm, compact = false }: Props) {
         <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
           <div className="min-w-0">
             <div className="font-bold text-white truncate">{storm.storm_name}</div>
-            <div className="text-xs text-gray-400">
+            <div className="text-xs text-gray-400 truncate">
               {storm.current_category} · {timeAgo(storm.last_bulletin_at)}
             </div>
           </div>
