@@ -71,44 +71,46 @@ When a bulletin came out with the wrong wind speed from a hallucination bug, I d
 
 ---
 
-## 4. The Frontend — Mobile-First Because the User Has a Phone, Not a Laptop
+## A Mobile-First Web Application
 
 The target user is on a cheap Android handset, not at a desk. Every design decision follows from that: 64px play button, audio-first layout, one-tap language toggle between Cebuano, Tagalog, and English.
 
->The first time I switched the toggle to Cebuano and hit play — and heard a typhoon warning come out in the language my lola speaks — that was the moment the whole project felt real. That's what this is for.
+>The first time I switched the toggle to Cebuano and hit play, and heard a typhoon warning come out in the language my lola speaks, that was the moment the whole project felt real. That's what this is for.
 
-Onboarding collects province, municipality, and language preference. Right now language drives everything — which audio plays, which script is shown — with location wired up for future personalisation. You can download the MP3 for offline playback, which matters where mobile data is intermittent.
+Onboarding collects province, municipality, and language preference. Right now language drives everything: which audio plays, which script is shown, with location wired up for future personalisation. You can download the MP3 for offline playback, which matters where mobile data is intermittent.
 
-![Onboarding screen](01-onboarding.png)
-![Active storm card](02-main-page-with-active-storm.png)
 ![Storm detail with audio player](03-storm-detail-with-audio-player.png)
 
 ---
 
-## 5. What Gemma 4 Gets Right — and Where It Struggles
+## Gemma 4: Strengths and Limits
 
-Gemma 4 E4B is reliable when the inputs are clean: predictable schema, clear prompt, no noise. It follows style constraints well — km/h only, landmark-based positions, target word count. It reads a storm chart and describes it in plain language. At E4B speed, it does all of this in seconds.
+Gemma 4 E4B is reliable when the inputs are clean: predictable schema, clear prompt, no noise. It follows style constraints well: km/h only, landmark-based positions, target word count. It reads a storm chart and describes it in plain language. At E4B speed, it does all of this in seconds.
 
-Where it falls down is noisy context. Stray OCR artefacts, complex nested tables, long prompts that trigger repetition — any of these can cause the model to hallucinate. The fix is always upstream: clean the input before it reaches the model, and scope what you ask it to do. Don't ask a 4B model to do more than it needs to.
+Where it falls down is noisy context. Stray OCR artefacts, complex nested tables, long prompts that trigger repetition. Any of these can cause the model to hallucinate. The fix is always upstream: clean the input before it reaches the model, and scope what you ask it to do. Don't ask a 4B model to do more than it needs to.
 
----
-
-## 6. What It Can Do Right Now
-
-Any PAGASA bulletin PDF goes in; Cebuano, Tagalog, and English radio scripts and spoken audio come out — end-to-end in around four minutes on Modal. Both the text and the MP3 are displayed on the mobile app. Getting here took eleven Jupyter notebooks of experimentation — OCR comparisons, model evaluations, TTS trials — before a single line of production code was written. The pipeline has been through 33 pull requests of iteration across OCR, translation, TTS, ETL, and the frontend. The storm archive is live and browsable, audio is playable from any mobile browser, and every bulletin can be downloaded as an MP3.
+Fine-tuning was a real alternative. A domain-adapted Gemma 4 would likely handle noisy inputs without needing upstream preprocessing. That's outside the scope of this project, but it's the obvious next lever.
 
 ---
 
-## 7. What Comes Next
+## What It Can Do Right Now
 
-The pipeline works. Now it needs to run without anyone pressing a button. Live PAGASA ingestion — watching the feed and triggering the ETL automatically when a new bulletin drops — is the next step. After that, testing Gemma 4 26B to see whether a larger model meaningfully improves the translations. And longer term, more languages: Ilocano, Waray, Hiligaynon. The Philippines has over 180 languages. Translation is essentially free once the pipeline exists — Gemma 4 handles new languages with a prompt change. The bottleneck is TTS: low-resource languages have few good options, and that's a problem bigger than one project.
+Any PAGASA bulletin PDF goes in. Cebuano, Tagalog, and English radio scripts and spoken audio come out, end-to-end in around four minutes on Modal.
+
+Getting here took eleven Jupyter notebooks of experimentation across OCR, translation, and TTS before I wrote a single line of production code. Thirty-three pull requests later, the pipeline is running. The storm archive is live, audio is playable from any mobile browser, and every bulletin can be downloaded as an MP3.
 
 ---
 
-## 8. The Close — Why It Matters
+## What Comes Next
 
-Typhoon Verbena is still on track toward northern Cebu. The PAGASA bulletin exists — and so does an audio file in Cebuano on the barangay captain's phone, generated in four minutes from the same PDF, by a pipeline built by one developer in a few weeks using an open-weight model anyone can run.
+The pipeline works. Now it needs to run without anyone pressing a button. Live PAGASA ingestion is the next step: watching the feed and triggering the ETL automatically when a new bulletin drops. After that, I'll test Gemma 4 26B to see whether a larger model meaningfully improves the translations. And longer term, more languages: Ilocano, Waray, Hiligaynon. The Philippines has over 180 languages. Translation is essentially free once the pipeline exists. Gemma 4 handles new languages with a prompt change. The bottleneck is TTS: low-resource languages have few good options, and that's a problem bigger than one project.
 
-Digital equity isn't about giving people smartphones. Most of them already have one. It's about making the information on those phones actually useful — in the language they think in, in the voice they trust. Gemma 4 made that tractable. The code is open source, the model is open weight, and nothing here is specific to the Philippines. Any language, any country, any disaster alert system.
+---
+
+## Why It Matters
+
+Typhoon Verbena is still on track toward northern Cebu. The PAGASA bulletin exists. And so does an audio file in Cebuano, generated in four minutes from the same PDF by a batch pipeline running on a cloud GPU, ready to play on the barangay captain's phone.
+
+Digital equity isn't about giving people smartphones. Most of them already have one. It's about making the information on those phones actually useful, in the language they think in, in the voice they trust. Gemma 4 made that real. The code is open source, the model is open weight, and nothing here is specific to the Philippines. Any language, any country, any disaster alert system.
 
 ---
