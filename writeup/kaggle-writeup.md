@@ -1,19 +1,19 @@
-# When the Storm Hits, English Isn't Enough
-### WeatherSpeak PH — AI-powered multilingual typhoon warnings for the Philippines
+# WeatherSpeak PH: Bridging the Language Gap in Philippine Typhoon Warnings
+### Empowering PH communities with Gemma 4: Transforming complex typhoon alerts into actionable text and audio reports in local dialects.
 
 ---
 
-## 1. The Hook — A Problem That Feels Personal
+## The Technology Isn't the Gap
 
-Picture San Remigio, on the northern coast of Cebu. Typhoon Verbena is on a direct track toward the island. The wind is already bending the coconut palms sideways, and somewhere in Manila, PAGASA has issued a Tropical Cyclone Bulletin — the official word on where the storm is going, how strong it is, and who needs to evacuate.
+Picture San Remigio, on the northern coast of Cebu. Typhoon Verbena is on a direct track toward the island. The wind is already bending the coconut palms sideways, and somewhere in Manila, PAGASA has issued a Tropical Cyclone Bulletin, the official word on where the storm is going, how strong it is, and who needs to evacuate.
 
 The bulletin exists. It's public. But it's written in English.
 
-That's a problem. The Philippine Statistics Authority puts functional literacy at 91.6% — which means around 8 to 9 million Filipinos who can't reliably make sense of a written document. And English is a language most Filipinos encounter in school, not daily life. A typhoon bulletin is a formal, technical document. For most people on that coast, it might as well be in another language — because it is.
+That's a problem. The Philippine Statistics Authority puts functional literacy at 91.6%. In a country of 115 million people, that still leaves nearly 10 million Filipinos who can't reliably make sense of a written document. And English is a language most Filipinos encounter in school, not in daily life. A typhoon bulletin is a formal, technical document. For most people on that coast, it might as well be in another language. Because it is.
 
-I'm Cebuano. I know this problem personally — not as an abstract policy issue but as something playing out right now in that town. The people in San Remigio aren't disconnected. They have phones. There's a TV in the sari-sari store. The technology isn't the gap. The language is.
+I'm Cebuano. I know this problem personally, not as a statistic but as something playing out right now in that town. The people in San Remigio aren't disconnected. They have phones. There's a TV in the sari-sari store. The technology isn't the gap. The language is.
 
-That's the gap **WeatherSpeak PH** tries to close. It takes any PAGASA bulletin, runs it through an AI pipeline, and produces both readable scripts and spoken audio in Cebuano, Tagalog, and English — in under five minutes.
+That's the gap **WeatherSpeak PH** tries to close. It takes any PAGASA bulletin, runs it through an AI pipeline, and produces both readable scripts and spoken audio in Cebuano, Tagalog, and English, in under five minutes.
 
 ---
 
