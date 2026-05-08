@@ -33,21 +33,43 @@ At the center is **Gemma 4 E4B**, handling chart reading, script generation, and
 
 ## Nothing Worked the First Time
 
-### Step 1: Three OCR Tools, One Hybrid
+### Step 1: The Faithful Extraction Problem
 
-My first attempt was PaddleOCR. It kernel-crashed on macOS the same day I installed it. Next was Surya: good text extraction, completely blind to the storm track chart. I ended up on a hybrid: **Marker PDF** for the text and tables, **Gemma 4 E4B** for the chart. Given the image, it describes the storm's position in plain landmark language. Left to its own devices, it outputs coordinates. Nobody in San Remigio knows where 13.9°N, 112°E is.
+My first instinct was to use **Gemma 4 E4B** for everything: feed it the PDF, get structured output back. It hallucinated badly. The problem was faithfulness: it wasn't reproducing the bulletin text as written, it was paraphrasing and sometimes inventing. Back to the notebooks. **Marker PDF** turned out to be near-perfect at faithful text extraction, reproducing the bulletin content exactly as it appeared on the page. But Marker was blind to the storm track chart. **Gemma 4 E4B** could read that chart and describe the storm's position in plain landmark language. Left to its own devices, it outputs coordinates. Nobody in San Remigio knows where 13.9°N, 112°E is. The hybrid was the answer: Marker for text, Gemma 4 for the chart.
 
 ### Step 2: Garbage In, Hallucination Out
 
-The goal isn't translation. It's a community radio announcement. I generate English first, then translate Tagalog and Cebuano from that. The hallucination problem was real: Gemma 4 E4B was inventing wind speeds. The culprit: a footnote tag Marker rendered as `<sup>75</sup>` that the model read as "75 knots," plus a stray coordinate row mistaken for the storm's current position. Fix: strip the noise before the LLM sees it, reinforce constraints in the prompt, and strip the complex PAGASA signal tables entirely. The 4B model hallucinates badly on nested markdown.
+The goal isn't translation. It's a community radio announcement. The first implementation generated all three languages in parallel directly from the OCR. The problem: they diverged. English came out consistently richer and more faithful to the source. The model simply performs better in English.
+
+The fix: generate English first, then translate Tagalog and Cebuano from that. The local language scripts are now only as wrong as the English one, which is a much smaller problem.
+
+Hallucinations were a separate fight. Gemma 4 E4B was inventing wind speeds: a footnote tag Marker rendered as `<sup>75</sup>` that the model read as "75 knots," and a stray coordinate row it mistook for the storm's current position.
+
+The fix: strip the noise before the model sees it, tighten the prompt constraints, and strip the markdown signal tables. The same province/signal data appears in plain prose above the tables, so no information is lost, just the nested markdown the 4B model chokes on.
 
 ### Step 3: Bible Recordings to the Rescue
 
-When **Coqui XTTS v2** fell short for non-English, **Facebook MMS** stepped in. Trained on multilingual Bible recordings, it works, with caveats: it doesn't understand capitalisation or punctuation, so input must be fully lowercased, and English words need phonetic respelling. The script generation step handles all of that. English goes through **Coqui XTTS v2**, which handles casing and punctuation natively and sounds noticeably more polished, a gap that quietly illustrates this project's entire premise.
+**Coqui XTTS v2** supports English natively, and Tagalog and Cebuano through a Spanish phoneme approximation. The problem was quality: when I heard the Tagalog and Cebuano output, it was bad enough to rule out. That led to **Facebook MMS**, trained by Meta on multilingual Bible recordings. It has its own quirks, but the way it speaks Cebuano and Tagalog is noticeably better. The choice was also deliberate: self-hostable, open weights, runs on a GPU I control, no per-character billing, no vendor lock-in. Better commercial options probably exist. I'd rather own the stack.
 
-### Step 4: Modal, Supabase, and 2am Fixes
+MMS comes with caveats that had real ETL consequences. It doesn't understand capitalisation or punctuation, so every script needs pre-processing before it reaches the model: lowercase everything, strip punctuation, and phonetically respell any English words that slip through. Building that pre-processing step into the pipeline was non-trivial: forecast → pore-kast, evacuation → i-ba-kyu-we-yon, coastal → kos-tal. Over 30 mappings in total.
 
-The pipeline runs on **Modal**: GPU for OCR and vision, CPU for translation and TTS, then a Supabase upload. When a bulletin had the wrong wind speed from a hallucination bug, I didn't want to reprocess the entire archive, so I built two flags: `--stem` to target a single bulletin, `--force` to overwrite it. I used those flags at 2am more than once.
+Speed tuning was its own problem. The MMS voices speak at different natural rates, so each language needed separate calibration: Cebuano at 1.40×, Tagalog at 1.35×. At 1.5×, Cebuano sounds like a chipmunk.
+
+English stays on **Coqui XTTS v2**, where it handles casing and punctuation natively and sounds noticeably more polished. The contrast in quality between the English and Cebuano/Tagalog audio is real. It's an uncomfortable reminder of why this project exists.
+
+### Step 4: Ollama, Modal, and a Single Command
+
+The pipeline runs on **Modal** with compute matched to each step: OCR and script generation on A10G GPU, three parallel TTS containers for Cebuano, Tagalog, and English, then a CPU container for the Supabase upload.
+
+One architectural decision made everything easier: the pipeline code is fully modular, and the same modules run in both the ETL and the Jupyter notebooks. When I iterate on a prompt in a notebook, the output is identical to what the production ETL produces. There's no "works in the notebook, breaks in production" problem. The notebook and the ETL are running the same code.
+
+**Ollama** runs Gemma 4 E4B in both environments: locally during notebook iteration, and on Modal's A10G in production. Same API, same model weights, different hardware. That's what keeps the notebook and ETL outputs identical.
+
+Modal also removed the need for any orchestration or triggering infrastructure. No scheduler, no cron job, no cloud VM sitting idle. The trigger is a single command from my laptop: `uv run modal run modal_etl/run_batch.py`. Modal provisions the GPU, runs the pipeline, and tears down. All the compute is in the cloud; the trigger is local.
+
+Script generation originally ran all three languages sequentially: one container, one Ollama instance, ~4 minutes wall time. Refactoring to one container per language brought that down to ~1.5 minutes.
+
+When a bulletin came out with the wrong wind speed from a hallucination bug, I didn't want to reprocess the entire archive. So I built two flags: `--stem` to target a single bulletin by name, `--force` to overwrite existing outputs.
 
 ---
 
