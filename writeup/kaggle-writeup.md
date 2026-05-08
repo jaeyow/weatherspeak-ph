@@ -31,23 +31,23 @@ At the center is **Gemma 4 E4B**, handling chart reading, script generation, and
 
 ---
 
-## 3. The Build — Four Steps, Many Surprises
+## Nothing Worked the First Time
 
-### Step 1 — Getting Text Out of a PDF
+### Step 1: Three OCR Tools, One Hybrid
 
-My first attempt was PaddleOCR. It kernel-crashed on macOS the same day I installed it. Next was Surya — good text extraction, completely blind to the storm track chart. I ended up on a hybrid: **Marker PDF** for the text and tables, **Gemma 4 E4B vision** for the chart. Given the image, it describes the storm's position in plain landmark language. Left to its own devices, it outputs coordinates. Nobody in San Remigio knows where 13.9°N, 112°E is.
+My first attempt was PaddleOCR. It kernel-crashed on macOS the same day I installed it. Next was Surya: good text extraction, completely blind to the storm track chart. I ended up on a hybrid: **Marker PDF** for the text and tables, **Gemma 4 E4B** for the chart. Given the image, it describes the storm's position in plain landmark language. Left to its own devices, it outputs coordinates. Nobody in San Remigio knows where 13.9°N, 112°E is.
 
-### Step 2 — From Bulletin to Radio Script
+### Step 2: Garbage In, Hallucination Out
 
-The goal isn't translation — it's a community radio announcement. I generate English first, then translate Tagalog and Cebuano from that. The hallucination problem was real: Gemma 4 E4B was inventing wind speeds. The culprit — a footnote tag Marker rendered as `<sup>75</sup>` that the model read as "75 knots," plus a stray coordinate row mistaken for the storm's current position. Fix: strip the noise before the LLM sees it, reinforce constraints in the prompt, and strip the complex PAGASA signal tables entirely — the 4B model hallucinates badly on nested markdown.
+The goal isn't translation. It's a community radio announcement. I generate English first, then translate Tagalog and Cebuano from that. The hallucination problem was real: Gemma 4 E4B was inventing wind speeds. The culprit: a footnote tag Marker rendered as `<sup>75</sup>` that the model read as "75 knots," plus a stray coordinate row mistaken for the storm's current position. Fix: strip the noise before the LLM sees it, reinforce constraints in the prompt, and strip the complex PAGASA signal tables entirely. The 4B model hallucinates badly on nested markdown.
 
-### Step 3 — Text to Speech for Languages the Industry Left Behind
+### Step 3: Bible Recordings to the Rescue
 
-No commercial TTS exists for Cebuano. **Facebook MMS**, trained on multilingual Bible recordings, is the best available — and it works, with caveats: it doesn't understand capitalisation or punctuation, so input must be fully lowercased, and English words need phonetic respelling. The script generation step handles all of that. English goes through **Coqui XTTS v2**, which handles casing and punctuation natively and sounds noticeably more polished — a gap that quietly illustrates this project's entire premise.
+When **Coqui XTTS v2** fell short for non-English, **Facebook MMS** stepped in. Trained on multilingual Bible recordings, it works, with caveats: it doesn't understand capitalisation or punctuation, so input must be fully lowercased, and English words need phonetic respelling. The script generation step handles all of that. English goes through **Coqui XTTS v2**, which handles casing and punctuation natively and sounds noticeably more polished, a gap that quietly illustrates this project's entire premise.
 
-### Step 4 — Getting It Live
+### Step 4: Modal, Supabase, and 2am Fixes
 
-The pipeline runs on **Modal** — GPU for OCR and vision, CPU for translation and TTS, then a Supabase upload. When a bulletin had the wrong wind speed from a hallucination bug, I didn't want to reprocess the entire archive — so I built two flags: `--stem` to target a single bulletin, `--force` to overwrite it. I used those flags at 2am more than once.
+The pipeline runs on **Modal**: GPU for OCR and vision, CPU for translation and TTS, then a Supabase upload. When a bulletin had the wrong wind speed from a hallucination bug, I didn't want to reprocess the entire archive, so I built two flags: `--stem` to target a single bulletin, `--force` to overwrite it. I used those flags at 2am more than once.
 
 ---
 
