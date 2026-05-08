@@ -17,17 +17,17 @@ That's the gap **WeatherSpeak PH** tries to close. It takes any PAGASA bulletin,
 
 ---
 
-## 2. The Idea — Why Gemma 4 Makes This Possible Now
+## How Can Gemma 4 Possibly Help?
 
-Here's the thing about PAGASA bulletins: they're boring, in the best possible way. Every bulletin follows the same structure — storm position, intensity, wind speed, signal levels, affected areas, storm track. It's a predictable schema, issued on a predictable schedule. That's exactly the kind of problem a small, fast language model handles well.
+Every PAGASA bulletin follows the same structure: storm position, intensity, wind speed, signal levels, affected areas, storm track. Predictable schema, predictable schedule: exactly the kind of problem a small, fast language model handles well.
 
-Every Gemma 4 model is multimodal — and that's load-bearing here. PAGASA bulletins include a storm track chart that text extraction tools are blind to. Gemma 4 can see it, and with the right prompt, describe it in plain language: "270 km northwest of Pag-asa Island, moving west-northwest at 20 km/h." That image-to-text step is what makes the radio script actually useful.
+Every Gemma 4 model is multimodal. That turns out to be essential here. PAGASA bulletins include a storm track chart that text extraction tools are blind to. Gemma 4 can see it, and with the right prompt, describe it in plain language: "270 km northwest of Pag-asa Island, moving west-northwest at 20 km/h." That image-to-text step is what makes the radio script actually useful.
 
-I started with **Gemma 4 26B** — beautiful translations, too slow for the hackathon timeline. I dropped to **Gemma 4 E4B** and found the quality gap smaller than expected for structured document work. Fast enough for local Ollama inference and an A10G GPU in production. That tradeoff decided the whole project.
+I started with **Gemma 4 26B**: beautiful translations, but too slow for notebook-driven experimentation. When each inference takes minutes, the iteration loop breaks down — you stop exploring. I dropped to **Gemma 4 E4B** and found the quality gap smaller than expected for structured document work. Fast enough for local Ollama inference and an A10G GPU in production. That tradeoff decided the whole project.
 
-The audio side hit the same wall. Google Cloud TTS has no Cebuano voice. Solution: **Facebook MMS TTS** for Cebuano and Tagalog, **Coqui XTTS v2** for English — more natural-sounding on its native language.
+Google Cloud TTS has no Cebuano voice. Solution: **Facebook MMS TTS** for Cebuano and Tagalog, **Coqui XTTS v2** for English, which sounds more natural on its native language.
 
-At the center is **Gemma 4 E4B** — handling chart reading, script generation, and all three language translations. Open weights, open source, no proprietary inference APIs — because a project built for underserved communities shouldn't itself depend on a commercial service that could change its pricing, restrict access, or simply disappear.
+At the center is **Gemma 4 E4B**, handling chart reading, script generation, and all three language translations. Open weights, open source, no proprietary inference APIs, because a project built for underserved communities shouldn't itself depend on a commercial service that could change its pricing, restrict access, or simply disappear.
 
 ---
 
