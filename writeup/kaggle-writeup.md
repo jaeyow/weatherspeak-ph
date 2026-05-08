@@ -25,7 +25,7 @@ Every Gemma 4 model is multimodal. That turns out to be essential here. PAGASA b
 
 I started with **Gemma 4 26B**: beautiful translations, but too slow for notebook-driven experimentation. When each inference takes minutes, the iteration loop breaks down. You stop exploring. I dropped to **Gemma 4 E4B** and found the quality gap smaller than expected for structured document work. Fast enough for local Ollama inference and an A10G GPU in production. That tradeoff decided the whole project.
 
-Google Cloud TTS has no Cebuano voice. Solution: **Facebook MMS TTS** for Cebuano and Tagalog, **Coqui XTTS v2** for English, which sounds more natural on its native language.
+Ideally, **Coqui XTTS v2** would handle all three languages, but the quality for non-English was poor. Looking for alternatives, I found **Facebook MMS TTS**: not perfect, but good enough for Cebuano and Tagalog. **Coqui XTTS v2** stays for English, where it sounds noticeably more polished.
 
 At the center is **Gemma 4 E4B**, handling chart reading, script generation, and all three language translations. Open weights, open source, no proprietary inference APIs, because a project built for underserved communities shouldn't itself depend on a commercial service that could change its pricing, restrict access, or simply disappear.
 
