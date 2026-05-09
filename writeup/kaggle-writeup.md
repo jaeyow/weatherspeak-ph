@@ -35,7 +35,7 @@ My first instinct was to use **Gemma 4 E4B** for everything: feed it the PDF, ge
 
 ### Step 2: Garbage In, Hallucination Out
 
-The goal isn't translation. It's a community radio announcement. The first implementation generated all three languages in parallel directly from the OCR. The problem: they diverged. English came out consistently richer and more faithful to the source. The model simply performs better in English.
+The goal isn't translation. It's a community radio announcement. My first attempt generated all three languages in parallel directly from the OCR. The problem: they diverged. English came out consistently richer and more faithful to the source. The model simply performs better in English.
 
 The fix: generate English first, then translate Tagalog and Cebuano from that. The local language scripts are now only as wrong as the English one, which is a much smaller problem.
 
@@ -55,7 +55,7 @@ English stays on **Coqui XTTS v2**, where it handles casing and punctuation nati
 
 ### Step 4: Ollama, Modal, and a Single Command
 
-The pipeline runs on **Modal** with compute matched to each step: OCR and script generation on A10G GPU, three parallel TTS containers for Cebuano, Tagalog, and English, then a CPU container for the Supabase upload.
+I built the pipeline on **Modal** with compute matched to each step: OCR and script generation on A10G GPU, three parallel TTS containers for Cebuano, Tagalog, and English, then a CPU container for the Supabase upload.
 
 One architectural decision made everything easier: the pipeline code is fully modular, and the same modules run in both the ETL and the Jupyter notebooks. When I iterate on a prompt in a notebook, the output is identical to what the production ETL produces. There's no "works in the notebook, breaks in production" problem. The notebook and the ETL are running the same code.
 
@@ -71,11 +71,11 @@ When a bulletin came out with the wrong wind speed from a hallucination bug, I d
 
 ## Gemma 4: Strengths and Limits
 
-Gemma 4 E4B is reliable when the inputs are clean: predictable schema, clear prompt, no noise. It follows style constraints well, reads a storm chart, and does all of this at E4B speed.
+Building all of that taught me where Gemma 4 E4B is reliable: clean inputs, predictable schema, clear prompt, no noise. It follows style constraints well, reads a storm chart, and does all of this at E4B speed.
 
 Where it falls down is noisy context. Stray OCR artefacts, complex nested tables, long prompts that trigger repetition. Any of these cause hallucinations. The fix is upstream: clean the input, scope the task.
 
-Fine-tuning is the obvious next lever, outside the scope of this project.
+Fine-tuning is the obvious next lever. I left it for later.
 
 ---
 
@@ -95,15 +95,15 @@ Language drives everything: which audio plays, which script is shown. Offline MP
 
 Any PAGASA bulletin PDF goes in. Cebuano, Tagalog, and English radio scripts and audio come out, end-to-end in four minutes.
 
-Eleven Jupyter notebooks and 33 pull requests of iteration. The storm archive is live, audio is playable from any mobile browser, and every bulletin can be downloaded as an MP3.
+Eleven notebooks and 33 pull requests. The storm archive is live, audio is playable from any mobile browser, and every bulletin can be downloaded as an MP3.
 
 ---
 
 ## What Comes Next
 
-Next: live PAGASA ingestion, triggering automatically when a new bulletin drops. I'll also test Gemma 4 26B to see if the quality gain justifies the cost.
+Next, I'll add live PAGASA ingestion, triggering automatically when a new bulletin drops. I'll also test Gemma 4 26B to see if the quality gain justifies the cost.
 
-Longer term: Ilocano, Waray, Hiligaynon and 180+ other dialects. Gemma 4 handles new ones with a prompt change. The bottleneck is TTS: low-resource dialects have few options, and that's a problem bigger than this project.
+Longer term: Ilocano, Waray, Hiligaynon and 180+ other dialects. Adding a new dialect is a prompt change. The bottleneck is TTS. Low-resource dialects have few options, and that's bigger than this project.
 
 ---
 
