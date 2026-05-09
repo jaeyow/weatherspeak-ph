@@ -95,7 +95,7 @@ _COMMON: list[Sub] = [
     Sub(r"\bcentral\b", "sen-tral"),
 
     # Common weather/emergency terms --------------------------------------
-    Sub(r"\bforecast\b", "pore-kast"),
+    Sub(r"\bforecast\b", "por-kast"),
     Sub(r"\bbulletin\b", "bu-le-tin"),
     Sub(r"\badvisory\b", "ad-bay-so-ri"),
     Sub(r"\bwarning\b", "wor-ning"),
@@ -122,7 +122,7 @@ _COMMON: list[Sub] = [
 
     # Emergency preparedness words ----------------------------------------
     Sub(r"\bemergency\b", "i-mer-chen-si"),
-    Sub(r"\bevacuation\b", "i-bak-yu-ey-syon"),
+    Sub(r"\bevacuation\b", "i-ba-kyu-we-syon"),
     Sub(r"\bevacuate\b", "i-bak-yu-eyt"),
     Sub(r"\bfirst[\s\-]aid\b", "pirst eyd"),
     Sub(r"\bflashlight\b", "plash-layt"),

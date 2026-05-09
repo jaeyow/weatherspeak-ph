@@ -107,7 +107,7 @@ def test_kilometers_per_hour_tagalog():
 @pytest.mark.parametrize("lang", ["tl", "ceb"])
 def test_forecast(lang):
     result = apply_phonetics("forecast track", lang)
-    assert "pore-kast" in result
+    assert "por-kast" in result
     assert "forecast" not in result
 
 
@@ -133,7 +133,7 @@ def test_coastal(lang):
 @pytest.mark.parametrize("lang", ["tl", "ceb"])
 def test_evacuation(lang):
     result = apply_phonetics("evacuation center", lang)
-    assert "i-bak-yu-ey-syon" in result
+    assert "i-ba-kyu-we-syon" in result
     assert "sen-ter" in result
 
 

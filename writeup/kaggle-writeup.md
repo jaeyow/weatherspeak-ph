@@ -5,7 +5,7 @@
 
 ## The Technology Isn't the Gap
 
-Picture San Remigio, on the northern coast of Cebu. Typhoon Verbena is bearing down on the island. PAGASA has issued a Tropical Cyclone Bulletin: the official word on where the storm is going, how strong it is, and who needs to evacuate.
+Picture Ronda, on the southwestern coast of Cebu, Philippines. Typhoon Verbena is bearing down on the island. PAGASA has issued a Tropical Cyclone Bulletin: the official word on where the storm is going, how strong it is, and who needs to evacuate.
 
 The bulletin exists. It's public. But it's written in English.
 
@@ -13,7 +13,7 @@ The Philippine Statistics Authority puts functional literacy at 91.6%. In a coun
 
 I'm Cebuano. I know this problem personally, not as a statistic but as something playing out right now in that town. They have phones. There's a TV in the sari-sari store. The technology isn't the gap. The language is.
 
-That's the gap **WeatherSpeak PH** closes: PAGASA bulletins in Cebuano, Tagalog, and English, with audio, in five minutes.
+That's the gap **WeatherSpeak PH** closes: PAGASA bulletins in Cebuano, Tagalog, and English, with audio, in four minutes.
 
 ---
 
@@ -31,7 +31,7 @@ I started with **Gemma 4 26B**: beautiful translations, but too slow for noteboo
 
 ### Step 1: The Faithful Extraction Problem
 
-My first instinct was to use **Gemma 4 E4B** for everything: feed it the PDF, get structured output back. It hallucinated badly. The problem was faithfulness: it wasn't reproducing the bulletin text as written, it was paraphrasing and sometimes inventing. Back to the notebooks. **Marker PDF** turned out to be near-perfect at faithful text extraction, reproducing the bulletin content exactly as it appeared on the page. But Marker was blind to the storm track chart. **Gemma 4 E4B** could read that chart and describe the storm's position in plain landmark language. Left to its own devices, it outputs coordinates. Nobody in San Remigio knows where 13.9°N, 112°E is. The hybrid was the answer: Marker for text, Gemma 4 for the chart.
+My first instinct was to use **Gemma 4 E4B** for everything: feed it the PDF, get structured output back. It hallucinated badly. The problem was faithfulness: it wasn't reproducing the bulletin text as written, it was paraphrasing and sometimes inventing. Back to the notebooks. **Marker PDF** turned out to be near-perfect at faithful text extraction, reproducing the bulletin content exactly as it appeared on the page. But Marker was blind to the storm track chart. **Gemma 4 E4B** could read that chart and describe the storm's position in plain landmark language. Left to its own devices, it outputs coordinates. Nobody in Ronda knows where 13.9°N, 112°E is. The hybrid was the answer: Marker for text, Gemma 4 for the chart.
 
 ### Step 2: Garbage In, Hallucination Out
 
@@ -83,7 +83,7 @@ Fine-tuning is the obvious next lever. I left it for later.
 
 The target user is on a cheap Android handset. Every design decision follows: 64px play button, audio-first layout, one-tap language toggle.
 
->The first time I switched the toggle to Cebuano and hit play, and heard a typhoon warning come out in the language my lola speaks, that was the moment the whole project felt real. That's what this is for.
+>The first time I switched the toggle to Cebuano and hit play, and heard a typhoon warning come out in the language my Lola speaks, that was the moment the whole project felt real. That's what this is for.
 
 Language drives everything: which audio plays, which script is shown. Offline MP3 download is supported for where mobile data is intermittent.
 
@@ -109,7 +109,7 @@ Longer term: Ilocano, Waray, Hiligaynon and 180+ other dialects. Adding a new di
 
 ## Why It Matters
 
-Typhoon Verbena is still on track toward northern Cebu. The PAGASA bulletin exists. So does an audio file in Cebuano, generated in four minutes by a batch pipeline on a cloud GPU, ready to play on the barangay captain's phone.
+Typhoon Verbena is still on track toward southwestern Cebu. The PAGASA bulletin exists. So does an audio file in Cebuano, generated in four minutes by a batch pipeline on a cloud GPU, ready to play on my Lola's phone.
 
 Digital equity isn't about giving people smartphones. Most of them already have one. It's about making the information on those phones useful in the language they think in. The code and model are open source, and nothing here is specific to the Philippines. Any language, any country, any disaster alert system.
 
