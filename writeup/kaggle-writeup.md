@@ -25,7 +25,7 @@ Every Gemma 4 model is multimodal. That turns out to be essential here. PAGASA b
 
 I started with **Gemma 4 26B**: beautiful translations, but too slow for notebook-driven experimentation. When each inference takes minutes, the iteration loop breaks down. You stop exploring. I dropped to **Gemma 4 E4B** and found the quality gap smaller than expected for structured document work. Fast enough for local Ollama inference and an A10G GPU in production. That tradeoff decided the whole project.
 
-At the center is **Gemma 4 E4B**, handling chart reading, script generation, and all three language translations. Open weights, open source, no proprietary inference APIs.
+At the center is **Gemma 4 E4B**, handling chart reading, script generation, and all three language translations.
 
 ---
 
@@ -49,7 +49,7 @@ The fix: strip the noise before the model sees it, tighten the prompt constraint
 
 **Coqui XTTS v2** supports English natively, and Tagalog and Cebuano through a Spanish phoneme approximation. The problem was quality: when I heard the Tagalog and Cebuano output, it was bad enough to rule out. That led to **Facebook MMS**, trained by Meta on multilingual Bible recordings. It has its own quirks, but the way it speaks Cebuano and Tagalog is noticeably better. The choice was also deliberate: self-hostable, open weights, runs on a GPU I control, no per-character billing, no vendor lock-in. Better commercial options probably exist. I'd rather own the stack.
 
-MMS comes with caveats that had real ETL consequences. It doesn't understand capitalisation or punctuation, so every script needs pre-processing before it reaches the model: lowercase everything, strip punctuation, and phonetically respell any English words that slip through. Building that pre-processing step into the pipeline was non-trivial: forecast → pore-kast, evacuation → i-ba-kyu-we-yon, coastal → kos-tal. Over 30 mappings in total.
+MMS comes with caveats that had real ETL consequences. It doesn't understand capitalisation or punctuation, so every script needs pre-processing before it reaches the model: lowercase everything, strip punctuation, and phonetically respell any English words that slip through. Building that pre-processing step into the pipeline was non-trivial: forecast → por-kast, evacuation → i-ba-kyu-we-syon, coastal → kos-tal. Over 30 mappings in total.
 
 Speed tuning was its own problem. The MMS voices speak at different natural rates, so each language needed separate calibration: Cebuano at 1.40×, Tagalog at 1.35×. At 1.5×, Cebuano sounds like a chipmunk.
 
@@ -71,7 +71,21 @@ When a bulletin came out with the wrong wind speed from a hallucination bug, I d
 
 ---
 
+## Gemma 4: Strengths and Limits
+
+Eleven notebooks of iteration also taught me where Gemma 4 shines and where it doesn't.
+
+Gemma 4 E4B is reliable when the inputs are clean: predictable schema, clear prompt, no noise. It follows style constraints well: km/h only, landmark-based positions, target word count. It reads a storm chart and describes it in plain language. At E4B speed, it does all of this in seconds.
+
+Where it falls down is noisy context. Stray OCR artefacts, complex nested tables, long prompts that trigger repetition. Any of these can cause the model to hallucinate. The fix is always upstream: clean the input before it reaches the model, and scope what you ask it to do. Don't ask a 4B model to do more than it needs to.
+
+Fine-tuning was a real alternative. A domain-adapted Gemma 4 would likely handle noisy inputs without needing upstream preprocessing. That's outside the scope of this project, but it's the obvious next lever.
+
+---
+
 ## A Mobile-First Web Application
+
+With the pipeline solid, the question became how to put it in people's hands.
 
 The target user is on a cheap Android handset, not at a desk. Every design decision follows from that: 64px play button, audio-first layout, one-tap language toggle between Cebuano, Tagalog, and English.
 
@@ -80,16 +94,6 @@ The target user is on a cheap Android handset, not at a desk. Every design decis
 Onboarding collects province, municipality, and language preference. Right now language drives everything: which audio plays, which script is shown, with location wired up for future personalisation. You can download the MP3 for offline playback, which matters where mobile data is intermittent.
 
 ![Storm detail with audio player](03-storm-detail-with-audio-player.png)
-
----
-
-## Gemma 4: Strengths and Limits
-
-Gemma 4 E4B is reliable when the inputs are clean: predictable schema, clear prompt, no noise. It follows style constraints well: km/h only, landmark-based positions, target word count. It reads a storm chart and describes it in plain language. At E4B speed, it does all of this in seconds.
-
-Where it falls down is noisy context. Stray OCR artefacts, complex nested tables, long prompts that trigger repetition. Any of these can cause the model to hallucinate. The fix is always upstream: clean the input before it reaches the model, and scope what you ask it to do. Don't ask a 4B model to do more than it needs to.
-
-Fine-tuning was a real alternative. A domain-adapted Gemma 4 would likely handle noisy inputs without needing upstream preprocessing. That's outside the scope of this project, but it's the obvious next lever.
 
 ---
 
@@ -103,7 +107,7 @@ Getting here took eleven Jupyter notebooks of experimentation across OCR, transl
 
 ## What Comes Next
 
-The pipeline works. Now it needs to run without anyone pressing a button. Live PAGASA ingestion is the next step: watching the feed and triggering the ETL automatically when a new bulletin drops. After that, I'll test Gemma 4 26B to see whether a larger model meaningfully improves the translations. And longer term, more languages: Ilocano, Waray, Hiligaynon. The Philippines has over 180 languages. Translation is essentially free once the pipeline exists. Gemma 4 handles new languages with a prompt change. The bottleneck is TTS: low-resource languages have few good options, and that's a problem bigger than one project.
+The pipeline works. Now it needs to run without anyone pressing a button. Live PAGASA ingestion is the next step: watching the feed and triggering the ETL automatically when a new bulletin drops. After that, I'll test Gemma 4 26B to see whether a larger model meaningfully improves the translations. And longer term, more dialects: Ilocano, Waray, Hiligaynon. The Philippines has over 180 dialects. Translation is essentially free once the pipeline exists. Gemma 4 handles new dialects with a prompt change. The bottleneck is TTS: low-resource dialects have few good options, and that's a problem bigger than one project.
 
 ---
 
