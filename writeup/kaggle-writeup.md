@@ -3,11 +3,13 @@
 
 ---
 
-## The Technology Isn't the Gap
-
 Picture Ronda, on the southwestern coast of Cebu, Philippines. Typhoon Verbena is bearing down on the island. PAGASA has issued a Tropical Cyclone Bulletin: the official word on where the storm is going, how strong it is, and who needs to evacuate.
 
 The bulletin exists. It's public. But it's written in English.
+
+The Philippines averages 20 typhoons a year. Each arrives with a bulletin like this and costs lives, livelihoods, and billions in damage.
+
+![](./06-verbena-cyclone-bulletin.png)
 
 The Philippine Statistics Authority puts functional literacy at 91.6%. In a country of 115 million people, that's nearly 10 million Filipinos who can't reliably make sense of a written document. For most people on that coast, the bulletin might as well be in another language. Because it is.
 
@@ -61,11 +63,13 @@ One architectural decision made everything easier: the pipeline code is fully mo
 
 **Ollama** runs Gemma 4 E4B in both environments: locally during notebook iteration, and on Modal's A10G in production. Same API, same model weights, different hardware. That's what keeps the notebook and ETL outputs identical.
 
+[![ETL on Modal.com](05-etl-pipeline.png)](https://weatherspeak-ph.vercel.app/)
+
 Modal also removed the need for any orchestration or triggering infrastructure. No scheduler, no cron job, no cloud VM sitting idle. The trigger is a single command from my laptop: `uv run modal run modal_etl/run_batch.py`. Modal provisions the GPU, runs the pipeline, and tears down. All the compute is in the cloud; the trigger is local.
 
 Script generation originally ran all three languages sequentially: one container, one Ollama instance, ~4 minutes wall time. Refactoring to one container per language brought that down to ~1.5 minutes.
 
-When a bulletin came out with the wrong wind speed from a hallucination bug, I didn't want to reprocess the entire archive. So I built two flags: `--stem` to target a single bulletin by name, `--force` to overwrite existing outputs.
+When a bulletin came out with the wrong wind speed, I didn't want to reprocess the entire archive. So I built two flags: `--stem` to target a single bulletin by name, `--force` to overwrite existing outputs.
 
 ---
 
@@ -87,7 +91,7 @@ The target user is on a cheap Android handset. Every design decision follows: 64
 
 Language drives everything: which audio plays, which script is shown. Offline MP3 download is supported for where mobile data is intermittent.
 
-![Storm detail with audio player](03-storm-detail-with-audio-player.png)
+![Storm detail with audio player](./04-cebu-verbena-audio.png)
 
 ---
 
@@ -95,7 +99,7 @@ Language drives everything: which audio plays, which script is shown. Offline MP
 
 Any PAGASA bulletin PDF goes in. Cebuano, Tagalog, and English radio scripts and audio come out, end-to-end in four minutes.
 
-Eleven notebooks and 33 pull requests. The storm archive is live, audio is playable from any mobile browser, and every bulletin can be downloaded as an MP3.
+Eleven notebooks and 33 pull requests. The storm archive is live and audio is playable from any mobile browser.
 
 ---
 
@@ -111,6 +115,6 @@ Longer term: Ilocano, Waray, Hiligaynon and 180+ other dialects. Adding a new di
 
 Typhoon Verbena is still on track toward southwestern Cebu. The PAGASA bulletin exists. So does an audio file in Cebuano, generated in four minutes by a batch pipeline on a cloud GPU, ready to play on my Lola's phone.
 
-Digital equity isn't about giving people smartphones. Most of them already have one. It's about making the information on those phones useful in the language they think in. The code and model are open source, and nothing here is specific to the Philippines. Any language, any country, any disaster alert system.
+Digital equity isn't about giving people smartphones. Most already do. It's about making the information on those phones useful in the language they think in. The code and model are open source, and nothing here is specific to the Philippines. Any language, any country, any disaster alert system.
 
 ---
