@@ -60,7 +60,7 @@ _CHART_DESCRIPTION_SYSTEM = (
     "Longitude increasing toward it → Moving Towards. State the verdict clearly.\n\n"
     "OUTPUT — exactly two sections, no other headings or text:\n\n"
     "### Storm Track Map Analysis\n"
-    "[~200 words of flowing prose covering Steps 1–4. List each step's reasoning includingreference timestamp, current position coordinates, "
+    "[~200 words of flowing prose covering Steps 1–4. List each step's reasoning including reference timestamp, current position coordinates, "
     "all timestamps with coordinates and Past/Future labels, compass bearing derivation, Towards/Away verdict]\n\n"
     "### Storm Track Map Outlook\n"
     "[~200 words of plain narrative for general audiences. "
@@ -195,6 +195,21 @@ def _extract_track_sections(markdown: str) -> str:
     return "\n\n".join(sections).strip() if sections else markdown.strip()
 
 
+def _extract_outlook(chart_description: str) -> str:
+    """Return only the Storm Track Map Outlook section from the chart description.
+
+    The Analysis section contains raw coordinates used for reasoning — it must
+    not reach ocr.md where the radio script generator would pick them up.
+    Falls back to the full description if the Outlook section cannot be parsed.
+    """
+    match = re.search(
+        r"### Storm Track Map Outlook\n+(.*?)(?=###|\Z)",
+        chart_description,
+        re.DOTALL,
+    )
+    return match.group(1).strip() if match else chart_description
+
+
 def _describe_chart(chart_path: Path, ollama_url: str, model: str, track_text: str = "") -> str:
     """Run one Gemma 4 vision pass on chart_path, grounded by official bulletin text."""
     # print(f"[_describe_chart] track_text ({len(track_text)} chars):\n{'-'*60}\n{track_text or '(empty)'}\n{'-'*60}")
@@ -265,7 +280,8 @@ def run(
         print(f"[run_step1_marker] {stem}: extracted {len(track_text)} chars of track/outlook text")
         # print(f"[run_step1_marker] {stem}: track_text content:\n{'-'*60}\n{track_text}\n{'-'*60}")
         chart_description = _describe_chart(chart_path, ollama_url, model, track_text=track_text)
-        full_md = markdown + f"\n\n## Storm Track Map\n\nThe following is a written explanation of the storm track map chart image included in this bulletin.\n\n{chart_description}"
+        outlook = _extract_outlook(chart_description)
+        full_md = markdown + f"\n\n## Storm Track Map\n\nThe following is a written explanation of the storm track map chart image included in this bulletin.\n\n{outlook}"
     else:
         print(f"[run_step1_marker] {stem}: no chart available")
         chart_path.write_bytes(b"")
